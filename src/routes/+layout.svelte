@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Header from "$lib/elements/ui/layout/header.svelte";
+
 
 </script>
 <style>
@@ -13,6 +15,8 @@
         padding: 0 !important;
         overflow-x: hidden !important;
         font-family: 'Poppins', sans-serif !important;
+
+        --orange: #ffbe42;
     }
 
     :global(main) {
@@ -40,8 +44,14 @@
         background-color: #00000080
     }
 
-    :global(.center-layout) {
-        width: 100vw; padding: 48px; padding-left: 0px; padding-right: 0px; text-align: center;
+    :global(.material-symbols-outlined) {
+        user-select: none;
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
     }
 </style>
+<Header />
 <slot />
