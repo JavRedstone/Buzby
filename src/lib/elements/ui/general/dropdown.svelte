@@ -27,6 +27,12 @@
         
         cursor: pointer;
         user-select: none;
+
+        transition: border-color var(--transition-duration);
+
+        &:hover {
+            border-color: var(--accent);
+        }
     }
 
     .dropdown-button-arrow {
