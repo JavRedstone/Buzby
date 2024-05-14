@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Header from "$lib/elements/ui/layout/header.svelte";
+	import Core from "$lib/elements/ui/layout/core.svelte";
 
 
 </script>
@@ -22,8 +22,8 @@
         --accent-light: #e8f0fe;
         --accent-dark: #1c5fbb;
 
-        --off-white: #F2F3F5;
-        --off-white-light: #ebedef;
+        --off-white: #ebedef;
+        --off-white-light: #F2F3F5;
         --off-white-dark: #e0e4e7;
 
         --font-family: 'Poppins', sans-serif;
@@ -41,8 +41,7 @@
         --gray-100: #f5f5f5;
         --gray-50: #fafafa;
         
-        background-color: var(--off-white);
-        font-family: var(--font-family) !important;
+        background-color: var(--off-white-light);
     }
 
     :global(main) {
@@ -55,14 +54,18 @@
         width: 100vw;
     }
 
+    :global(main, button, input, select, textarea, a) {
+        
+        font-family: var(--font-family) !important;
+    }
+
     :global(a) {
         text-decoration: none;
-        color: inherit;
 
         transition: color var(--transition-duration);
 
         &:hover {
-            color: var(--primary-dark);
+            color: var(--primary-dark) !important;
         }
     }
 
@@ -90,5 +93,5 @@
         'opsz' 24
     }
 </style>
-<Header />
+<Core />
 <slot />

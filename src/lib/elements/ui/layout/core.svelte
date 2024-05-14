@@ -2,20 +2,22 @@
     import logo from "$lib/elements/assets/logo.svg";
 	import { RouteConstants } from "$lib/elements/classes/ui/header/RouteConstants";
 	import { fade, fly } from "svelte/transition";
+	import Dropdown from "../general/dropdown.svelte";
 
     let drawerOpen: boolean = false;
+    let selectedGroup: string = "";
 </script>
 <style>
-    .header-container {
+    .core-header-container {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 48px;
-        background-color: var(--off-white-light);
+        background-color: var(--off-white);
     }
 
-    .header-drawer-toggle {
+    .core-drawer-toggle {
         position: absolute;
         top: 8px;
         left: 8px;
@@ -32,7 +34,7 @@
         }
     }
 
-    .header-logo {
+    .core-header-logo {
         position: absolute;
         top: 3px;
         left: 44px;
@@ -41,7 +43,13 @@
         user-select: none;
     }
 
-    .drawer-left-container {
+    .core-server-dropdown {
+        position: absolute;
+        top: 48px;
+        left: 50px;
+    }
+
+    .core-drawer-left-container {
         position: fixed;
         top: 48px;
         left: 50px;
@@ -52,7 +60,7 @@
         z-index: 1000;
     }
 
-    .drawer-left-container-small {
+    .core-drawer-left-container-small {
         position: fixed;
         top: 48px;
         left: 0;
@@ -63,7 +71,7 @@
         z-index: 1000;
     }
 
-    .drawer-icon {
+    .core-drawer-icon {
         font-size: 36px;
         margin: 3px;
         padding: 4px;
@@ -77,15 +85,17 @@
 
         &:hover {
             color: var(--primary-dark);
-            background-color: var(--off-white-light);
+            background-color: var(--off-white);
         }
     }
 
-    .drawer-text {
+    .core-drawer-link {
         padding: 13px;
+        display: block;
+        color: var(--gray-700);
     }
 
-    .drawer-right-container {
+    .core-drawer-right-container {
         position: fixed;
         top: 48px;
         right: 0;
@@ -96,10 +106,10 @@
         z-index: 999;
     }
 </style>
-<div class="header-container">
+<div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="header-drawer-toggle material-symbols-rounded" on:click={() => drawerOpen = !drawerOpen}>
+    <span class="core-drawer-toggle material-symbols-rounded" on:click={() => drawerOpen = !drawerOpen}>
         {#if drawerOpen}
             close
         {:else}
@@ -107,25 +117,26 @@
         {/if}
     </span>
     <a href="/">
-        <img class="header-logo" src={logo} alt="logo" />
+        <img class="core-header-logo" src={logo} alt="logo" />
     </a>
-    {#if drawerOpen}
-        <div class="drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>
-            {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
-                <a href={routeItem.route} on:click={() => drawerOpen = false}>
-                    <div class="drawer-text">{routeItem.name}</div>
-                </a>
-            {/each}
-        </div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: 300 }}></div>
-    {/if}
-    <div class="drawer-left-container-small">
+</div>
+<div class="core-server-dropdown">
+    <Dropdown label="Select group" items={["Group 1", "Group 2", "Group 3"]} bind:selected={selectedGroup} />
+</div>
+{#if drawerOpen}
+    <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>
         {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
-            <a href={routeItem.route} on:click={() => drawerOpen = false}>
-                <span class="drawer-icon material-symbols-rounded" style="cursor: pointer;">{routeItem.icon}</span>
-            </a>
+            <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
         {/each}
     </div>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="core-drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: 300 }}></div>
+{/if}
+<div class="core-drawer-left-container-small">
+    {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
+        <a href={routeItem.route} on:click={() => drawerOpen = false}>
+            <span class="core-drawer-icon material-symbols-rounded" style="cursor: pointer;">{routeItem.icon}</span>
+        </a>
+    {/each}
 </div>
