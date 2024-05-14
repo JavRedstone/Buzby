@@ -123,7 +123,7 @@
     {/if}
     <div class="drawer-left-container-small">
         {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
-            <a href={routeItem.route}>
+            <a href={routeItem.route} on:click={() => drawerOpen = false}>
                 <span class="drawer-icon material-symbols-rounded" style="cursor: pointer;">{routeItem.icon}</span>
             </a>
         {/each}
