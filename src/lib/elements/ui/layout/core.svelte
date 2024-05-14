@@ -5,7 +5,9 @@
 	import Dropdown from "../general/dropdown.svelte";
 
     let drawerOpen: boolean = false;
-    let selectedGroup: string = "";
+
+    let defaultGroup: string = "Groups Overview";
+    let selectedGroup: string = defaultGroup;
 </script>
 <style>
     .core-header-container {
@@ -45,8 +47,8 @@
 
     .core-server-dropdown {
         position: absolute;
-        top: 48px;
-        left: 50px;
+        top: 6px;
+        left: 200px
     }
 
     .core-drawer-left-container {
@@ -90,9 +92,18 @@
     }
 
     .core-drawer-link {
-        padding: 13px;
         display: block;
+        padding: 7px;
+        margin: 6px;
+        margin-bottom: 12px;
+        border-radius: 8px;
         color: var(--gray-700);
+        
+        transition: background-color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--off-white);
+        }
     }
 
     .core-drawer-right-container {
@@ -119,9 +130,9 @@
     <a href="/">
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
-</div>
-<div class="core-server-dropdown">
-    <Dropdown label="Select group" items={["Group 1", "Group 2", "Group 3"]} bind:selected={selectedGroup} />
+    <div class="core-server-dropdown">
+        <Dropdown label="Select group" items={["Groups Overview", "Group 1", "Group 2", "Group 3"]} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} />
+    </div>
 </div>
 {#if drawerOpen}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>

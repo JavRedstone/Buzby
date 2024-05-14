@@ -19,11 +19,12 @@
         --primary-light: #fcefe8;
         --primary-dark: #e8763d;
         --accent: #4284ff;
-        --accent-light: #e8f0fe;
+        --accent-light: #87ceeb;
         --accent-dark: #1c5fbb;
 
         --off-white: #ebedef;
-        --off-white-light: #F2F3F5;
+        --off-white-lightish: #eeefef;
+        --off-white-light: #f2f3f5;
         --off-white-dark: #e0e4e7;
 
         --font-family: 'Poppins', sans-serif;
