@@ -48,7 +48,7 @@
     .core-server-dropdown {
         position: absolute;
         top: 6px;
-        left: 200px
+        left: 200px;
     }
 
     .core-drawer-left-container {
@@ -112,7 +112,7 @@
         right: 0;
         width: 100vw;
         height: calc(100vh - 48px);
-        background-color: rgba(0, 0, 0, 0.25);
+        background-color: rgba(0, 0, 0, 0.1);
 
         z-index: 999;
     }
