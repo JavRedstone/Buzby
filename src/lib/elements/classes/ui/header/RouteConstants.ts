@@ -14,24 +14,10 @@ export class RouteConstants {
     public static readonly PROFILE: string = "/profile";
 
     public static readonly ALL_ROUTES: RouteItem[] = [
-        new RouteItem(RouteConstants.HOME, "home", "Home"),
-
         new RouteItem(RouteConstants.HIVE, "hexagon", "Hive"),
         new RouteItem(RouteConstants.OFFICE, "group_work", "Office"),
         new RouteItem(RouteConstants.GANTT, "view_timeline", "Gantt"),
         new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
         new RouteItem(RouteConstants.CHAT, "forum", "Chat"),
-
-        new RouteItem(RouteConstants.LOGIN, "login", "Login"),
-        new RouteItem(RouteConstants.LOGOUT, "logout", "Logout"),
-        new RouteItem(RouteConstants.PROFILE, "account_circle", "Profile"),
-    ];
-
-    public static readonly IMPORTANT_ROUTES: RouteItem[] = [
-        new RouteItem(RouteConstants.HIVE, "hive", "Hive"),
-        new RouteItem(RouteConstants.OFFICE, "group_work", "Office"),
-        new RouteItem(RouteConstants.GANTT, "view_timeline", "Gantt"),
-        new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
-        new RouteItem(RouteConstants.CHAT, "business_messages", "Chat"),
     ];
 }

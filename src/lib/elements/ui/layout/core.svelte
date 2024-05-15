@@ -8,6 +8,17 @@
 
     let defaultGroup: string = "Overview";
     let selectedGroup: string = defaultGroup;
+
+    $: if (selectedGroup == defaultGroup) {
+        drawerOpen = false;
+    }
+
+    function toggleDrawer() {
+        if (selectedGroup == defaultGroup) {
+            return;
+        }
+        drawerOpen = !drawerOpen;
+    }
 </script>
 <style>
     .core-header-container {
@@ -19,10 +30,18 @@
         background-color: var(--off-white);
     }
 
-    .core-drawer-toggle {
+    .core-header-logo {
+        position: absolute;
+        top: 3px;
+        left: 44px;
+        height: 42px;
+
+        user-select: none;
+    }
+
+    .core-header-icon {
         position: absolute;
         top: 8px;
-        left: 8px;
         font-size: 32px;
         color: var(--primary-dark);
 
@@ -34,15 +53,6 @@
         &:hover {
             color: var(--accent-dark);
         }
-    }
-
-    .core-header-logo {
-        position: absolute;
-        top: 3px;
-        left: 44px;
-        height: 42px;
-
-        user-select: none;
     }
 
     .core-server-dropdown {
@@ -120,7 +130,7 @@
 <div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="core-drawer-toggle material-symbols-rounded" on:click={() => drawerOpen = !drawerOpen}>
+    <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer}>
         {#if drawerOpen}
             close
         {:else}
@@ -133,10 +143,13 @@
     <div class="core-server-dropdown">
         <Dropdown label="Select group" items={["Overview", "Group 1", "Group 2", "Group 3"]} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} />
     </div>
+    <a href='/login' on:click={() => drawerOpen = false}>
+        <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
+    </a>
 </div>
-{#if drawerOpen}
+{#if drawerOpen && selectedGroup != defaultGroup}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>
-        {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
+        {#each RouteConstants.ALL_ROUTES as routeItem}
             <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
         {/each}
     </div>
@@ -144,10 +157,12 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div class="core-drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: 300 }}></div>
 {/if}
-<div class="core-drawer-left-container-small">
-    {#each RouteConstants.IMPORTANT_ROUTES as routeItem}
-        <a href={routeItem.route} on:click={() => drawerOpen = false}>
-            <span class="core-drawer-icon material-symbols-rounded" style="cursor: pointer;">{routeItem.icon}</span>
-        </a>
-    {/each}
-</div>
+{#if selectedGroup != defaultGroup}
+    <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: 300 }}>
+        {#each RouteConstants.ALL_ROUTES as routeItem}
+            <a href={routeItem.route} on:click={() => drawerOpen = false}>
+                <span class="core-drawer-icon material-symbols-rounded">{routeItem.icon}</span>
+            </a>
+        {/each}
+    </div>
+{/if}
