@@ -51,7 +51,7 @@
     .dropdown-a {
         display: block;
         box-sizing: border-box;
-        min-width: 175px;
+        min-width: 100px;
         max-width: 500px;
         padding-left: 8px;
         padding-right: 8px;

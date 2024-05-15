@@ -6,7 +6,7 @@
 
     let drawerOpen: boolean = false;
 
-    let defaultGroup: string = "Groups Overview";
+    let defaultGroup: string = "Overview";
     let selectedGroup: string = defaultGroup;
 </script>
 <style>
@@ -131,7 +131,7 @@
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
     <div class="core-server-dropdown">
-        <Dropdown label="Select group" items={["Groups Overview", "Group 1", "Group 2", "Group 3"]} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} />
+        <Dropdown label="Select group" items={["Overview", "Group 1", "Group 2", "Group 3"]} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} />
     </div>
 </div>
 {#if drawerOpen}

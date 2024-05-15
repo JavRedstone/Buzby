@@ -18,9 +18,16 @@
         --primary: #ffbe42;
         --primary-light: #fcefe8;
         --primary-dark: #e8763d;
+        --primary-darker: #d95b1d;
+
         --accent: #4284ff;
-        --accent-light: #87ceeb;
+        --accent-light: #b0e0e6;
         --accent-dark: #1c5fbb;
+        --accent-darker: #0d4aa2;
+
+        --success: #4caf50;
+        --error: #f44336;
+        --warning: #ff9800;
 
         --off-white: #ebedef;
         --off-white-lightish: #eeefef;
@@ -43,6 +50,7 @@
         --gray-50: #fafafa;
         
         background-color: var(--off-white-light);
+        font-family: var(--font-family) !important;
     }
 
     :global(main) {
@@ -55,13 +63,13 @@
         width: 100vw;
     }
 
-    :global(main, button, input, select, textarea, a) {
-        
+    :global(button, input, select, textarea, a, label) {
         font-family: var(--font-family) !important;
     }
 
     :global(a) {
         text-decoration: none;
+        color: var(--accent-dark);
 
         transition: color var(--transition-duration);
 
