@@ -1,20 +1,25 @@
 <script lang="ts">
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
+	import { createEventDispatcher } from "svelte";
 	import { scale } from "svelte/transition";
 
     export let open: boolean = false;
     export let text: string = '';
     export let type: string = 'neutral';
 
+    let dispatch = createEventDispatcher();
+
     let selfOpen: boolean = false;
 
     function hide(): void {
         selfOpen = false;
+        dispatch('hide');
     }
 
     function show(): void {
         selfOpen = true;
         setTimeout(hide, SnackbarConstants.DURATION);
+        dispatch('show');
     }
 
     $: {

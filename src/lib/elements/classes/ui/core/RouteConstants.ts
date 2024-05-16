@@ -14,8 +14,8 @@ export class RouteConstants {
     public static readonly PROFILE: string = "/profile";
 
     public static readonly ALL_ROUTES: RouteItem[] = [
-        new RouteItem(RouteConstants.HIVE, "hexagon", "Hive"),
-        new RouteItem(RouteConstants.OFFICE, "group_work", "Office"),
+        new RouteItem(RouteConstants.HIVE, "hive", "Hive"),
+        new RouteItem(RouteConstants.OFFICE, "group", "Office"),
         new RouteItem(RouteConstants.GANTT, "view_timeline", "Gantt"),
         new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
         new RouteItem(RouteConstants.CHAT, "forum", "Chat"),

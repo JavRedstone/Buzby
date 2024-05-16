@@ -1,16 +1,25 @@
 <script lang="ts">
+	import { createEventDispatcher } from "svelte";
 	import { slide } from "svelte/transition";
 
     export let label: string;
     export let items: string[];
     export let defaultItem: string;
     export let selectedItem: string | null = null;
+    export let open: boolean = false;
 
-    let dropdownOpen: boolean = false;
+    let dispatch = createEventDispatcher();
+
+    function toggle(): void {
+        open = !open;
+        dispatch("toggle", open);
+    }
 
     function select(item: string): void {
         selectedItem = item;
-        dropdownOpen = false;
+        open = false;
+
+        dispatch("select", item);
     }
 </script>
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -71,29 +80,28 @@
         }
     }
 </style>
-
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="dropdown">
-    <button class="dropdown-button" on:click={() => dropdownOpen = !dropdownOpen}>
+    <button class="dropdown-button" on:click={toggle}>
         {#if selectedItem}
             {selectedItem}
         {:else}
             {label}
         {/if}
-        {#if dropdownOpen}
+        {#if open}
             <span class="dropdown-button-arrow material-symbols-rounded">keyboard_arrow_up</span>
         {:else}
             <span class="dropdown-button-arrow material-symbols-rounded">keyboard_arrow_down</span>
         {/if}
     </button>
-    {#if dropdownOpen}
+    {#if open}
         <div class="dropdown-content" transition:slide={{duration: 200}}>
             {#each items as item, i}
                 <!-- svelte-ignore a11y-missing-attribute -->
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <a class="dropdown-a" style="{i != items.length - 1 ? item == defaultItem ? 'border-bottom: 5px solid var(--gray-400)' : 'border-bottom: 1px solid var(--gray-300)' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px'};" on:click={() => select(item)}>{item}</a>
+                <a class="dropdown-a" style="{i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--gray-400)' : 'border-bottom: 1px solid var(--gray-300)' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px'};" on:click={() => select(item)}>{item}</a>
             {/each}
         </div>
     {/if}

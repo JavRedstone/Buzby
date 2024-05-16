@@ -6,14 +6,23 @@
     import type { UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers } from "$lib/elements/stores/authstore";
+	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
+	import { onMount } from 'svelte';
     let email: string = '';
     let password: string = '';
 
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
     let snackbarType: string = 'neutral';
+
+    function checkUser(): void {
+        authStore.subscribe((value: any) => {
+            if (value.currentUser != null) {
+                window.location.href = '/';
+            }
+        });
+    }
 
     function login(): void {
         try {
@@ -63,11 +72,14 @@
     }
 
     function openSnackbar(text: string, type: string): void {
-        snackbarOpen = false;
         snackbarText = text;
         snackbarType = type;
         snackbarOpen = true;
     }
+    
+    onMount(() => {
+        checkUser();
+    });
 </script>
 <style>
     .login-container {
@@ -160,4 +172,4 @@
         <div class="login-signup">New here? <a href="/signup">Sign up</a></div>
     </form>
 </div>
-<Snackbar open={snackbarOpen} text={snackbarText} type={snackbarType} />
+<Snackbar text={snackbarText} type={snackbarType} bind:open={snackbarOpen} />

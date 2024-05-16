@@ -1,24 +1,110 @@
 <script lang="ts">
     import logo from "$lib/elements/assets/logo.svg";
-	import { RouteConstants } from "$lib/elements/classes/ui/header/RouteConstants";
+	import { RouteConstants } from "$lib/elements/classes/ui/core/RouteConstants";
 	import { fade, fly } from "svelte/transition";
 	import Dropdown from "../general/dropdown.svelte";
+	import type { User } from "firebase/auth";
+	import { onMount } from "svelte";
+	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
+	import { auth, getFirestoreDoc } from "$lib/elements/firebase/firebase";
+	import Snackbar from "../general/snackbar.svelte";
+	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 
     let drawerOpen: boolean = false;
+    let groupSelectOpen: boolean = false;
 
     let defaultGroup: string = "Overview";
     let selectedGroup: string = defaultGroup;
+    let groupNames: string[] = [defaultGroup];
+    
+    let snackbarOpen: boolean = false;
+    let snackbarText: string = '';
+    let snackbarType: string = 'neutral';
 
-    $: if (selectedGroup == defaultGroup) {
-        drawerOpen = false;
-    }
+    let currUser: User | null = null;
 
-    function toggleDrawer() {
+    function toggleDrawer(): void {
         if (selectedGroup == defaultGroup) {
             return;
         }
         drawerOpen = !drawerOpen;
+        if (drawerOpen) {
+            groupSelectOpen = false;
+        }
     }
+
+    function toggleGroupSelect(): void {
+        drawerOpen = false;
+    }
+
+    function selectGroup(): void {
+        drawerOpen = false;
+    }
+
+    function login(): void {
+        drawerOpen = false;
+        groupSelectOpen = false;
+        window.location.href = "/login";
+    }
+
+    function autoLogin(): void {
+        auth.onAuthStateChanged(
+            (user: User | null) => {
+                if (user != null) {
+                    // User is signed in.
+                    authStore.update((curr: any) => {
+                        return {
+                            ...curr,
+                            isLoading: false,
+                            currentUser: user,
+                            userDoc: getFirestoreDoc('users', user.uid)
+                        }
+                    });
+                    currUser = user;
+                } else {
+                    // No user is signed in.
+                }
+            }
+        );
+    }
+
+    function logout(): void {
+        drawerOpen = false;
+        groupSelectOpen = false;
+        try {
+            authHandlers.logout().then(
+                () => {
+                    currUser = null;
+                    openSnackbar('Logged out successfully. Good bye!', 'neutral');
+                    setTimeout(() => {
+                        window.location.href = "/";
+                    }, SnackbarConstants.DURATION);
+                }
+            ).catch(
+                (error: any) => {
+                    openSnackbar('Error logging out. Please try again.', 'error');
+                }
+            );
+        }
+        catch(error: any) {
+            openSnackbar('Error logging out. Please try again.', 'error');
+        }
+    }
+
+    function editProfile(): void {
+        drawerOpen = false;
+        groupSelectOpen = false;
+    }
+
+    function openSnackbar(text: string, type: string): void {
+        snackbarText = text;
+        snackbarType = type;
+        snackbarOpen = true;
+    }
+
+    onMount(() => {
+        autoLogin();
+    });
 </script>
 <style>
     .core-header-container {
@@ -133,19 +219,39 @@
     <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer}>
         {#if drawerOpen}
             close
-        {:else}
+        {:else if selectedGroup != defaultGroup}
             menu_open
+        {:else}
+            hexagon
         {/if}
     </span>
     <a href="/">
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
     <div class="core-server-dropdown">
-        <Dropdown label="Select group" items={["Overview", "Group 1", "Group 2", "Group 3"]} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} />
+        <Dropdown label="Select group" items={groupNames} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} bind:open={groupSelectOpen} on:toggle={toggleGroupSelect} on:select={selectGroup} />
     </div>
-    <a href='/login' on:click={() => drawerOpen = false}>
-        <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
-    </a>
+    {#if currUser == null}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-missing-attribute -->
+        <a on:click={login}>
+            <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
+        </a>
+    {:else}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-missing-attribute -->
+        <a on:click={logout}>
+            <span class="core-header-icon material-symbols-rounded" style="right: 42px;">logout</span>
+        </a>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-missing-attribute -->
+        <a on:click={editProfile}>
+            <span class="core-header-icon material-symbols-rounded" style="right: 8px;">account_circle</span>
+        </a>
+    {/if}
 </div>
 {#if drawerOpen && selectedGroup != defaultGroup}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>
@@ -166,3 +272,4 @@
         {/each}
     </div>
 {/if}
+<Snackbar text={snackbarText} type={snackbarType} bind:open={snackbarOpen} />
