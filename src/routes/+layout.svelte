@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Core from "$lib/elements/ui/layout/core.svelte";
 
-
+    let sideOpen: boolean = false;
 </script>
 <style>
     :global(body),
@@ -101,6 +101,17 @@
         'GRAD' 0,
         'opsz' 24
     }
+
+    .layout-slot-container {
+        box-sizing: border-box;
+        position: fixed;
+        top: 48px; 
+        height: calc(100vh - 48px);
+
+        transition: left var(--transition-duration), width var(--transition-duration);
+    }
 </style>
-<Core />
-<slot />
+<div class="layout-slot-container" style="{sideOpen ? 'left: 48px; width: calc(100vw - 48px);' : 'left: 0; width: 100vw;'}">
+    <slot />
+</div>
+<Core bind:sideOpen={sideOpen} />

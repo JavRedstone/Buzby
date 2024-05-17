@@ -5,7 +5,7 @@
     export let label: string;
     export let items: string[];
     export let defaultItem: string;
-    export let selectedItem: string | null = null;
+    export let selectedItem: string = null;
     export let open: boolean = false;
 
     let dispatch = createEventDispatcher();

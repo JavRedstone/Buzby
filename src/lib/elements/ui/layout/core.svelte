@@ -6,31 +6,62 @@
 	import type { User } from "firebase/auth";
 	import { onMount } from "svelte";
 	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
-	import { auth, getFirestoreDoc } from "$lib/elements/firebase/firebase";
+	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
+	import { GroupConstants } from "$lib/elements/classes/data/group/GroupConstants";
+	import { groupSelected } from "$lib/elements/stores/groupstore";
+	import { Group } from "$lib/elements/classes/data/group/Group";
+	import { getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
+
+    export let sideOpen: boolean = false;
 
     let drawerOpen: boolean = false;
     let groupSelectOpen: boolean = false;
 
-    let defaultGroup: string = "Overview";
+    let defaultGroup: string = GroupConstants.DEFAULT_GROUP_NAME;
     let selectedGroup: string = defaultGroup;
     let groupNames: string[] = [defaultGroup];
+    let groups: Group[] = [];
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
     let snackbarType: string = 'neutral';
 
-    let currUser: User | null = null;
+    let currUser: User = null;
 
     function toggleDrawer(): void {
         if (selectedGroup == defaultGroup) {
-            return;
+            sideOpen = false;
         }
-        drawerOpen = !drawerOpen;
-        if (drawerOpen) {
-            groupSelectOpen = false;
+        else {
+            sideOpen = true;
+            drawerOpen = !drawerOpen;
+            if (drawerOpen) {
+                groupSelectOpen = false;
+            }
         }
+    }
+
+    function getGroups(): void {
+        let groupsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('groups');
+        groups = [];
+        groupNames = [defaultGroup];
+        getDocs(groupsCollection).then(
+            (querySnapshot) => {
+                querySnapshot.forEach(
+                    (doc) => {
+                        let group: Group = new Group(doc.data());
+                        groups.push(group);
+                        groupNames.push(group.name);
+                    }
+                );
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error getting groups. Please try again later.', 'error');
+            }
+        );
     }
 
     function toggleGroupSelect(): void {
@@ -39,6 +70,15 @@
 
     function selectGroup(): void {
         drawerOpen = false;
+        let group: Group = groups.find((group) => group.name == selectedGroup);
+        if (group) {
+            groupSelected.update((value) => {
+                value.groupName = selectedGroup;
+                value.group = group;
+                return value;
+            });
+        }
+        sideOpen = selectedGroup != defaultGroup;
     }
 
     function login(): void {
@@ -49,7 +89,7 @@
 
     function autoLogin(): void {
         auth.onAuthStateChanged(
-            (user: User | null) => {
+            (user) => {
                 if (user != null) {
                     // User is signed in.
                     authStore.update((curr: any) => {
@@ -104,6 +144,7 @@
 
     onMount(() => {
         autoLogin();
+        getGroups();
     });
 </script>
 <style>
@@ -150,7 +191,7 @@
     .core-drawer-left-container {
         position: fixed;
         top: 48px;
-        left: 50px;
+        left: 48px;
         width: 115px;
         height: calc(100vh - 48px);
         background-color: var(--off-white-dark);
@@ -162,7 +203,7 @@
         position: fixed;
         top: 48px;
         left: 0;
-        width: 50px;
+        width: 48px;
         height: calc(100vh - 48px);
         background-color: #e0e4e7;
 
@@ -172,7 +213,7 @@
     .core-drawer-icon {
         font-size: 36px;
         margin: 3px;
-        padding: 4px;
+        padding: 3px;
         color: var(--gray-700);
         border-radius: 50%;
         
@@ -263,7 +304,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div class="core-drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: 300 }}></div>
 {/if}
-{#if selectedGroup != defaultGroup}
+{#if sideOpen}
     <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: 300 }}>
         {#each RouteConstants.ALL_ROUTES as routeItem}
             <a href={routeItem.route} on:click={() => drawerOpen = false}>
