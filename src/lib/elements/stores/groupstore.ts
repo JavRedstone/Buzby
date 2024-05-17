@@ -6,3 +6,7 @@ export const groupSelected = writable({
     groupName: GroupConstants.DEFAULT_GROUP_NAME,
     group: new Group({})
 });
+
+export const member = writable({
+    member: null
+});

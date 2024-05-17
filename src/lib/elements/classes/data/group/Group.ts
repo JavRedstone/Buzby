@@ -7,12 +7,15 @@ export class Group {
     public id: string;
     public name: string;
     public description: string;
+    public color: string;
 
     public memberIds: string[];
     public members: Member[] = [];
     
     public chatId: string;
     public chat: Chat = new Chat({});
+
+    public createdAt: Date;
     
     constructor(data: any) {
         this.id = data.id;
