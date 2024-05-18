@@ -1,7 +1,7 @@
 import { SnackbarType } from "./SnackbarType";
 
 export class SnackbarConstants {
-    public static readonly DURATION: number = 1500;
+    public static readonly DURATION: number = 3000;
     public static readonly TYPES: SnackbarType[] = [
         new SnackbarType("success", "var(--success)"),
         new SnackbarType("error", "var(--error"),

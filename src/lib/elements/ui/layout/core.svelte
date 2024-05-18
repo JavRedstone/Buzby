@@ -5,14 +5,15 @@
 	import Dropdown from "../general/dropdown.svelte";
 	import type { User } from "firebase/auth";
 	import { onMount } from "svelte";
-	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
+	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
 	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 	import { GroupConstants } from "$lib/elements/classes/data/group/GroupConstants";
-	import { groupSelected } from "$lib/elements/stores/groupstore";
+	import { groupSelected } from "$lib/elements/stores/group-store";
 	import { Group } from "$lib/elements/classes/data/group/Group";
 	import { getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 
     export let sideOpen: boolean = false;
 
@@ -116,9 +117,7 @@
                 () => {
                     currUser = null;
                     openSnackbar('Logged out successfully. Good bye!', 'neutral');
-                    setTimeout(() => {
-                        window.location.href = "/";
-                    }, SnackbarConstants.DURATION);
+                    window.location.href = '/';
                 }
             ).catch(
                 (error: any) => {
@@ -295,17 +294,17 @@
     {/if}
 </div>
 {#if drawerOpen && selectedGroup != defaultGroup}
-    <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: 300 }}>
+    <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ALL_ROUTES as routeItem}
             <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
         {/each}
     </div>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="core-drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: 300 }}></div>
+    <div class="core-drawer-right-container" on:click={() => drawerOpen = false} transition:fade={{ duration: TransitionConstants.DURATION }}></div>
 {/if}
 {#if sideOpen}
-    <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: 300 }}>
+    <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ALL_ROUTES as routeItem}
             <a href={routeItem.route} on:click={() => drawerOpen = false}>
                 <span class="core-drawer-icon material-symbols-rounded">{routeItem.icon}</span>

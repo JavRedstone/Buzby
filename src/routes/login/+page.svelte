@@ -2,11 +2,10 @@
     <title>Buzby | Login</title>
 </svelte:head>
 <script lang="ts">
-	import { SnackbarConstants } from '$lib/elements/classes/ui/snackbar/SnackbarConstants';
     import type { UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
+	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from 'svelte';
     let email: string = '';
@@ -18,7 +17,7 @@
 
     function checkUser(): void {
         authStore.subscribe((value: any) => {
-            if (value.currentUser != null) {
+            if (value.currentUser != null && value.currentUser.emailVerified) {
                 window.location.href = '/';
             }
         });
@@ -33,9 +32,7 @@
                         setDoc(userDoc, { email: credential.user.email, uid: credential.user.uid, emailVerified: credential.user.emailVerified }).then(
                             () => {
                                 openSnackbar('Logged in successfully. Welcome back!', 'success');
-                                setTimeout(() => {
-                                    window.location.href = '/';
-                                }, SnackbarConstants.DURATION);
+                                window.location.href = '/';
                             }
                         );
                     }
@@ -126,10 +123,21 @@
         padding-top: 4px;
         padding-bottom: 4px;
         background-color: var(--off-white);
+        outline: none;
         border: 2px solid var(--gray-400);
         border-radius: 4px;
         font-size: 16px;
         color: var(--gray-800);
+        
+        transition: border-color var(--transition-duration);
+
+        &:hover {
+            border-color: var(--primary-light);
+        }
+
+        &:focus {
+            border-color: var(--primary);
+        }
     }
 
     .login-button {

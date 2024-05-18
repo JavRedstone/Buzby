@@ -10,8 +10,13 @@
 
     let dispatch = createEventDispatcher();
 
-    function toggle(): void {
-        open = !open;
+    function activate(): void {
+        open = true;
+        dispatch("toggle", open);
+    }
+
+    function deactivate(): void {
+        open = false;
         dispatch("toggle", open);
     }
 
@@ -40,6 +45,10 @@
         transition: border-color var(--transition-duration);
 
         &:hover {
+            border-color: var(--accent-light);
+        }
+
+        &:focus {
             border-color: var(--accent);
         }
     }
@@ -83,7 +92,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="dropdown">
-    <button class="dropdown-button" on:click={toggle}>
+    <button class="dropdown-button" on:focus={activate} on:blur={deactivate}>
         {#if selectedItem}
             {selectedItem}
         {:else}

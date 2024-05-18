@@ -5,7 +5,7 @@
     import type { UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers, authStore } from "$lib/elements/stores/authstore";
+	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 	import { onMount } from "svelte";
@@ -15,10 +15,10 @@
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
     let snackbarType: string = 'neutral';
-
+    
     function checkUser(): void {
         authStore.subscribe((value: any) => {
-            if (value.currentUser != null) {
+            if (value.currentUser != null && value.currentUser.emailVerified) {
                 window.location.href = '/';
             }
         });
@@ -33,10 +33,7 @@
                         () => {
                             authHandlers.verifyEmail(credential.user).then(
                                 () => {
-                                    openSnackbar('Signed up successfully. Please check your email for a verification link.', 'success');
-                                    setTimeout(() => {
-                                        window.location.href = '/login';
-                                    }, SnackbarConstants.DURATION);
+                                    openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
                                 }
                             ).catch(
                                 (error: any) => {
@@ -126,10 +123,21 @@
         padding-top: 4px;
         padding-bottom: 4px;
         background-color: var(--off-white);
+        outline: none;
         border: 2px solid var(--gray-400);
         border-radius: 4px;
         font-size: 16px;
         color: var(--gray-800);
+        
+        transition: border-color var(--transition-duration);
+
+        &:hover {
+            border-color: var(--accent-light);
+        }
+
+        &:focus {
+            border-color: var(--accent);
+        }
     }
 
     .signup-button {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 	import { createEventDispatcher } from "svelte";
 	import { scale } from "svelte/transition";
@@ -51,7 +52,7 @@
 </style>
 
 {#if selfOpen}
-    <button class="snackbar" style="background-color: {SnackbarConstants.getTypeByName(type).color}" on:click={hide} transition:scale={{opacity: 0, start: 0.9, duration: 300}}>
+    <button class="snackbar" style="background-color: {SnackbarConstants.getTypeByName(type).color}" on:click={hide} transition:scale={{opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
         {text}
     </button>
 {/if}

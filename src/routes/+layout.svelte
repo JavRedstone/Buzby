@@ -16,12 +16,14 @@
         overflow-x: hidden !important;
 
         --primary: #ffbe42;
+        --primary-rgb: 255, 190, 66;
         --primary-light: #ffdb7b;
         --primary-lighter: #fcefe8;
         --primary-dark: #e8763d;
         --primary-darker: #d95b1d;
 
         --accent: #4284ff;
+        --prmary-rgb: 66, 132, 255;
         --accent-light: #63a4ff;
         --accent-lighter: #b0e0e6;
         --accent-dark: #1c5fbb;
