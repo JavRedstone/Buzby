@@ -46,7 +46,8 @@
                 openSnackbar("Please enter a project color.", "error");
                 return;
             }
-            memberEmails = memberEmails.filter((email) => email !== "" && email.toLowerCase() !== currentUser.email.toLowerCase());
+            // filter empty emails, same lowercase email as lowercase current user email, and duplicate emails (lowercase)
+            memberEmails = memberEmails.filter((email) => email !== "").filter((email) => email.toLowerCase() !== currentUser.email.toLowerCase()).filter((email, index, self) => self.indexOf(email) === index);
             if (memberEmails.length === 0) {
                 memberEmails = [""];
                 openSnackbar("Please add at least one member email.", "error");
