@@ -85,6 +85,7 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
+        user-select: none;
     }
 
     .login-form {

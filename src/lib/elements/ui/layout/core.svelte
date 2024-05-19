@@ -8,22 +8,22 @@
 	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
 	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
-	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
-	import { GroupConstants } from "$lib/elements/classes/data/group/GroupConstants";
-	import { groupSelected } from "$lib/elements/stores/group-store";
-	import { Group } from "$lib/elements/classes/data/group/Group";
-	import { getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
+	import { currMember, projectSelected } from "$lib/elements/stores/project-store";
+	import { Project } from "$lib/elements/classes/data/project/Project";
+	import { DocumentReference, getDoc, getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
+	import { Member } from "$lib/elements/classes/data/project/Member";
 
     export let sideOpen: boolean = false;
 
     let drawerOpen: boolean = false;
-    let groupSelectOpen: boolean = false;
+    let projectSelectOpen: boolean = false;
 
-    let defaultGroup: string = GroupConstants.DEFAULT_GROUP_NAME;
-    let selectedGroup: string = defaultGroup;
-    let groupNames: string[] = [defaultGroup];
-    let groups: Group[] = [];
+    let defaultProject: string = ProjectConstants.DEFAULT_PROJECT_NAME;
+    let selectedProject: string = defaultProject;
+    let projectNames: string[] = [defaultProject];
+    let projects: Project[] = [];
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
@@ -32,59 +32,59 @@
     let currUser: User = null;
 
     function toggleDrawer(): void {
-        if (selectedGroup == defaultGroup) {
+        if (selectedProject == defaultProject) {
             sideOpen = false;
         }
         else {
             sideOpen = true;
             drawerOpen = !drawerOpen;
             if (drawerOpen) {
-                groupSelectOpen = false;
+                projectSelectOpen = false;
             }
         }
     }
 
     function getGroups(): void {
         let groupsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('groups');
-        groups = [];
-        groupNames = [defaultGroup];
+        projects = [];
+        projectNames = [defaultProject];
         getDocs(groupsCollection).then(
             (querySnapshot) => {
                 querySnapshot.forEach(
                     (doc) => {
-                        let group: Group = new Group(doc.data());
-                        groups.push(group);
-                        groupNames.push(group.name);
+                        let group: Project = new Project(doc.data());
+                        projects.push(group);
+                        projectNames.push(group.name);
                     }
                 );
             }
         ).catch(
             (error: any) => {
-                openSnackbar('Error getting groups. Please try again later.', 'error');
+                openSnackbar('Error getting projects. Please try again later.', 'error');
             }
         );
     }
 
-    function toggleGroupSelect(): void {
+    function toggleProjectSelect(): void {
         drawerOpen = false;
     }
 
-    function selectGroup(): void {
+    function selectProject(): void {
         drawerOpen = false;
-        let group: Group = groups.find((group) => group.name == selectedGroup);
-        if (group) {
-            groupSelected.update((value) => {
-                value.groupName = selectedGroup;
-                value.group = group;
+        let project: Project = projects.find((group) => group.name == selectedProject);
+        if (project) {
+            projectSelected.update((value) => {
+                value.projectName = selectedProject;
+                value.project = project;
                 return value;
             });
         }
-        sideOpen = selectedGroup != defaultGroup;
+        sideOpen = selectedProject != defaultProject;
     }
 
     function login(): void {
         drawerOpen = false;
-        groupSelectOpen = false;
+        projectSelectOpen = false;
         window.location.href = "/login";
     }
 
@@ -92,7 +92,6 @@
         auth.onAuthStateChanged(
             (user) => {
                 if (user != null) {
-                    // User is signed in.
                     authStore.update((curr: any) => {
                         return {
                             ...curr,
@@ -102,6 +101,19 @@
                         }
                     });
                     currUser = user;
+
+                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', user.uid);
+                    getDoc(memberDoc).then(
+                        (doc) => {
+                            if (doc.exists()) {
+                                let member: Member = new Member(doc.data());
+                                currMember.update((value) => {
+                                    value.member = member;
+                                    return value;
+                                });
+                            }
+                        }
+                    )
                 } else {
                     // No user is signed in.
                 }
@@ -111,7 +123,7 @@
 
     function logout(): void {
         drawerOpen = false;
-        groupSelectOpen = false;
+        projectSelectOpen = false;
         try {
             authHandlers.logout().then(
                 () => {
@@ -132,7 +144,7 @@
 
     function editProfile(): void {
         drawerOpen = false;
-        groupSelectOpen = false;
+        projectSelectOpen = false;
     }
 
     function openSnackbar(text: string, type: string): void {
@@ -259,7 +271,7 @@
     <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer}>
         {#if drawerOpen}
             close
-        {:else if selectedGroup != defaultGroup}
+        {:else if selectedProject != defaultProject}
             menu_open
         {:else}
             hexagon
@@ -269,7 +281,7 @@
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
     <div class="core-server-dropdown">
-        <Dropdown label="Select group" items={groupNames} bind:defaultItem={defaultGroup} bind:selectedItem={selectedGroup} bind:open={groupSelectOpen} on:toggle={toggleGroupSelect} on:select={selectGroup} />
+        <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProject} bind:selectedItem={selectedProject} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
     </div>
     {#if currUser == null}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -293,7 +305,7 @@
         </a>
     {/if}
 </div>
-{#if drawerOpen && selectedGroup != defaultGroup}
+{#if drawerOpen && selectedProject != defaultProject}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ALL_ROUTES as routeItem}
             <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>

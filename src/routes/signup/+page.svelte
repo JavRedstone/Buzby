@@ -2,6 +2,7 @@
     <title>Buzby | Sign Up</title>
 </svelte:head>
 <script lang="ts">
+	import { StringHelper } from '$lib/elements/helpers/StringHelper';
     import type { UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
@@ -9,6 +10,8 @@
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 	import { onMount } from "svelte";
+	import { currMember } from "$lib/elements/stores/project-store";
+	import { Member } from "$lib/elements/classes/data/project/Member";
     let email: string = '';
     let password: string = '';
     
@@ -31,17 +34,42 @@
                     let userDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('users', credential.user.uid);
                     setDoc(userDoc, { email: credential.user.email, uid: credential.user.uid, emailVerified: credential.user.emailVerified }).then(
                         () => {
-                            authHandlers.verifyEmail(credential.user).then(
-                                () => {
-                                    openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
-                                }
-                            ).catch(
-                                (error: any) => {
-                                    openSnackbar('Error sending email verification. Please try again.', 'error');
-                                }
-                            );
+                            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', credential.user.uid);
+                            let member: Member = new Member({
+                                id: credential.user.uid,
+                                displayName: credential.user.displayName == null ? StringHelper.getEmailName(credential.user.email) : credential.user.displayName,
+                                email: credential.user.email,
+
+                                avatarHat: 0,
+                                avatarGlasses: 0,
+
+                                projectIds: [],
+
+                                pingIds: [],
+
+                                createdAt: new Date(),
+                            });
+                            setDoc(memberDoc, JSON.parse(JSON.stringify(member))).then(() => {
+                                currMember.update((value) => {
+                                    value.member = member;
+                                    return value;
+                                });
+                                authHandlers.verifyEmail(credential.user).then(
+                                    () => {
+                                        openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
+                                    }
+                                ).catch(
+                                    (error: any) => {
+                                        openSnackbar('Error sending email verification. Please try again.', 'error');
+                                    }
+                                );
+                            }).catch(() => {
+                                openSnackbar('Error signing up. Please try again.', 'error');
+                            });
                         }
-                    );
+                    ).catch(() => {
+                        openSnackbar('Error signing up. Please try again.', 'error');
+                    });
                 }
             ).catch(
                 (error: any) => {
@@ -85,6 +113,7 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
+        user-select: none;
     }
 
     .signup-form {

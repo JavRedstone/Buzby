@@ -1,10 +1,12 @@
 import { DocumentReference, getDoc, type DocumentData } from "firebase/firestore";
-import { Member } from "../group/Member";
+import { Member } from "../project/Member";
 import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 
 export class Message {
     public id: string;
     public text: string;
+
+    public read: boolean;
 
     public memberId: string;
     public member: Member = new Member({});
@@ -14,6 +16,8 @@ export class Message {
     constructor(data: any) {
         this.id = data.id;
         this.text = data.text;
+
+        this.read = data.read;
 
         this.memberId = data.memberId;
 
