@@ -1,7 +1,26 @@
 <script lang="ts">
+	import Home from './../lib/elements/ui/layout/home.svelte';
+	import Reminder from './../lib/elements/ui/layout/reminder.svelte';
+	import { type User } from 'firebase/auth';
+	import { authStore } from '$lib/elements/stores/auth-store';
 	import Core from "$lib/elements/ui/layout/core.svelte";
+	import { onMount } from "svelte";
 
     let sideOpen: boolean = false;
+
+    let currentUser: User = null;
+    let w: Window = null;
+
+    function getUser(): void {
+        authStore.subscribe((value) => {
+            currentUser = value.currentUser;
+        });
+    }
+
+    onMount(() => {
+        w = window;
+        getUser();
+    });
 </script>
 <style>
     :global(body),
@@ -42,16 +61,17 @@
         --transition-duration: 0.3s;
         
         /* https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors */
-        --gray-900: #212121;
-        --gray-800: #424242;
-        --gray-700: #616161;
-        --gray-600: #757575;
-        --gray-500: #9e9e9e;
-        --gray-400: #bdbdbd;
-        --gray-300: #e0e0e0;
-        --gray-200: #eeeeee;
-        --gray-100: #f5f5f5;
-        --gray-50: #fafafa;
+        --grey-900: #212121;
+        --grey-800: #424242;
+        --grey-800-rgb: 66, 66, 66;
+        --grey-700: #616161;
+        --grey-600: #757575;
+        --grey-500: #9e9e9e;
+        --grey-400: #bdbdbd;
+        --grey-300: #e0e0e0;
+        --grey-200: #eeeeee;
+        --grey-100: #f5f5f5;
+        --grey-50: #fafafa;
         
         background-color: var(--off-white-light);
         font-family: var(--font-family) !important;
@@ -116,6 +136,12 @@
     }
 </style>
 <div class="layout-slot-container" style="{sideOpen ? 'left: 48px; width: calc(100vw - 48px);' : 'left: 0; width: 100vw;'}">
-    <slot />
+    {#if currentUser || (w && (w.location.pathname == '/login' || w.location.pathname == '/signup'))}
+        <slot />
+    {:else if w && w.location.pathname == '/'}
+        <Home />
+    {:else}
+        <Reminder />
+    {/if}
 </div>
 <Core bind:sideOpen={sideOpen} />

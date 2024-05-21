@@ -6,7 +6,7 @@ export class SnackbarConstants {
         new SnackbarType("success", "var(--success)"),
         new SnackbarType("error", "var(--error"),
         new SnackbarType("warning", "var(--warning)"),
-        new SnackbarType("neutral", "var(--gray-800)")
+        new SnackbarType("neutral", "var(--grey-800)")
     ];
 
     public static getTypeByName(name: string): SnackbarType {

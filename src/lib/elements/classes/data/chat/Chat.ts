@@ -12,20 +12,27 @@ export class Chat {
         this.id = data.id;
 
         this.messageIds = data.messageIds;
-
-        this.getObjects();
     }
 
-    public getObjects(): void {
+    public async getObjects(): Promise<void> {
         this.messages = [];
         if (this.messageIds && this.messageIds.length > 0) {
             let messagesCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('messages');
             let messagesQuery = query(messagesCollection, where('id', 'in', this.messageIds));
-            getDocs(messagesQuery).then((querySnapshot) => {
+            await getDocs(messagesQuery).then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
-                    this.messages.push(new Message(doc.data()));
+                    let message: Message = new Message(doc.data());
+                    message.getObjects();
+                    this.messages.push(message);
                 });
             });
         }
+    }
+
+    public compactify(): any {
+        return {
+            id: this.id,
+            messageIds: this.messageIds
+        };
     }
 }

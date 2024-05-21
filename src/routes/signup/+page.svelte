@@ -45,11 +45,11 @@
 
                                 projectIds: [],
 
-                                pingIds: [],
+                                pings: [],
 
                                 createdAt: new Date(),
                             });
-                            setDoc(memberDoc, JSON.parse(JSON.stringify(member))).then(() => {
+                            setDoc(memberDoc, member.compactify()).then(() => {
                                 currMember.update((value) => {
                                     value.member = member;
                                     return value;
@@ -124,13 +124,13 @@
         padding-left: 16px;
         padding-right: 16px;
         padding-bottom: 16px;
-        border: 2px solid var(--gray-400);
+        border: 2px solid var(--grey-400);
         border-radius: 8px;
     }
 
     .signup-title {
         font-size: 32px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 
     .signup-input-container {
@@ -142,7 +142,7 @@
     .signup-icon {
         float: left;
         font-size: 32px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 
     .signup-input {
@@ -153,10 +153,10 @@
         padding-bottom: 4px;
         background-color: var(--off-white);
         outline: none;
-        border: 2px solid var(--gray-400);
+        border: 2px solid var(--grey-400);
         border-radius: 4px;
         font-size: 16px;
-        color: var(--gray-800);
+        color: var(--grey-800);
         
         transition: border-color var(--transition-duration);
 
@@ -175,7 +175,7 @@
         padding-top: 8px;
         padding-bottom: 8px;
         background-color: var(--accent-dark);
-        color: var(--gray-100);
+        color: var(--grey-100);
         border: none;
         border-radius: 4px;
         font-size: 16px;
@@ -191,7 +191,7 @@
     .signup-signup {
         margin-top: 16px;
         font-size: 16px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 </style>
 <div class="signup-container">
@@ -209,4 +209,4 @@
         <div class="signup-signup">Returning? <a href="/login">Log In</a></div>
     </form>
 </div>
-<Snackbar text={snackbarText} type={snackbarType} bind:open={snackbarOpen} />
+<Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

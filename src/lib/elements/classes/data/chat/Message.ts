@@ -22,14 +22,12 @@ export class Message {
         this.memberId = data.memberId;
 
         this.sentAt = data.sentAt;
-
-        this.getObjects();
     }
 
-    public getObjects(): void {
+    public async getObjects(): Promise<void> {
         if (this.memberId) {
             let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.memberId);
-            getDoc(membersDoc).then((doc) => {
+            await getDoc(membersDoc).then((doc) => {
                 if (doc.exists()) {
                     this.member = new Member(doc.data());
                 }

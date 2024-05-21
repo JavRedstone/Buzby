@@ -14,6 +14,9 @@ export class Project {
 
     public memberIds: string[];
     public members: Member[] = [];
+
+    public joinedMemberIds: string[];
+    public joinedMembers: Member[] = [];
     
     public chatId: string;
     public chat: Chat = new Chat({});
@@ -29,40 +32,53 @@ export class Project {
         this.ownerId = data.ownerId;
 
         this.memberIds = data.memberIds;
+        this.joinedMemberIds = data.joinedMemberIds;
         
         this.chatId = data.chatId;
-
-        this.getObjects();
     }
 
-    public getObjects(): void {
-        if (this.ownerId) {
-            let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.ownerId);
-            getDoc(ownerDoc).then((doc) => {
-                if (doc.exists()) {
-                    this.owner = new Member(doc.data());
-                }
-            });            
-        }
-        
+    public async getObjects(): Promise<void> {        
         this.members = [];
         if (this.memberIds && this.memberIds.length > 0) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
             let membersQuery = query(membersCollection, where('id', 'in', this.memberIds));
-            getDocs(membersQuery).then((querySnapshot) => {
+            await getDocs(membersQuery).then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
                     this.members.push(new Member(doc.data()));
+
+                    if (doc.data().id === this.ownerId) {
+                        this.owner = new Member(doc.data());
+                    }
+
+                    if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
+                        this.joinedMembers.push(new Member(doc.data()));
+                    }
                 });
             });
         }
 
         if (this.chatId) {
             let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('chats', this.chatId);
-            getDoc(chatDoc).then((doc) => {
+            await getDoc(chatDoc).then(async (doc) => {
                 if (doc.exists()) {
                     this.chat = new Chat(doc.data());
+                    await this.chat.getObjects();
                 }
             });            
         }
+    }
+
+    public compactify(): any {
+        return {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            color: this.color,
+            
+            ownerId: this.ownerId,
+            memberIds: this.memberIds,
+            joinedMemberIds: this.joinedMemberIds,
+            chatId: this.chatId
+        };
     }
 }

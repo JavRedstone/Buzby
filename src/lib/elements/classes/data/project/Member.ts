@@ -1,6 +1,4 @@
-import { CollectionReference, getDocs, query, where, type DocumentData } from "firebase/firestore";
 import { Ping } from "../chat/Ping";
-import { getFirestoreCollection } from "$lib/elements/firebase/firebase";
 
 export class Member {
     public id: string;
@@ -11,8 +9,8 @@ export class Member {
     public avatarGlasses: number;
 
     public projectIds: string[];
+    public requestedProjectIds: string[] = [];
     
-    public pingIds: string[];
     public pings: Ping[] = [];
 
     public createdAt: Date;
@@ -25,23 +23,30 @@ export class Member {
         this.avatarHat = data.avatarHat;
         this.avatarGlasses = data.avatarGlasses;
 
-        this.projectIds = data.groupsIds;
+        this.projectIds = data.projectIds;
+        this.requestedProjectIds = data.requestedProjectIds;
 
-        this.createdAt = data.createdAt;
-
-        this.getObjects();
-    }
-
-    public getObjects(): void {
-        this.pings = [];
-        if (this.pingIds && this.pingIds.length > 0) {
-            let pingsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('pings');
-            let pingsQuery = query(pingsCollection, where('id', 'in', this.pingIds));
-            getDocs(pingsQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.pings.push(new Ping(doc.data()));
-                });
+        let dataPings = data.pings;
+        if (dataPings) {
+            dataPings.forEach(ping => {
+                this.pings.push(new Ping(ping));
             });
         }
+
+        this.createdAt = data.createdAt;
+    }
+
+    public compactify(): any {
+        return {
+            id: this.id,
+            displayName: this.displayName,
+            email: this.email,
+            avatarHat: this.avatarHat,
+            avatarGlasses: this.avatarGlasses,
+            projectIds: this.projectIds,
+            requestedProjectIds: this.requestedProjectIds,
+            pings: this.pings ? this.pings.map(ping => ping.stringify()) : [],
+            createdAt: this.createdAt
+        };
     }
 }

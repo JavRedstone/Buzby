@@ -9,7 +9,7 @@
 	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
-	import { currMember, projectSelected } from "$lib/elements/stores/project-store";
+	import { allProjects, currMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { Project } from "$lib/elements/classes/data/project/Project";
 	import { DocumentReference, getDoc, getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
@@ -44,17 +44,23 @@
         }
     }
 
-    function getGroups(): void {
-        let groupsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('groups');
+    function getProjects(): void {
+        let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
         projects = [];
         projectNames = [defaultProject];
-        getDocs(groupsCollection).then(
+        getDocs(projectsCollection).then(
             (querySnapshot) => {
                 querySnapshot.forEach(
-                    (doc) => {
-                        let group: Project = new Project(doc.data());
-                        projects.push(group);
-                        projectNames.push(group.name);
+                    async (doc) => {
+                        let project: Project = new Project(doc.data());
+                        await project.getObjects();
+                        projects.push(project);
+                        projectNames.push(project.name);
+
+                        allProjects.update((value) => {
+                            value.projects = projects;
+                            return value;
+                        });
                     }
                 );
             }
@@ -72,7 +78,7 @@
     function selectProject(): void {
         drawerOpen = false;
         let project: Project = projects.find((group) => group.name == selectedProject);
-        if (project) {
+        if (project || selectedProject == defaultProject) {
             projectSelected.update((value) => {
                 value.projectName = selectedProject;
                 value.project = project;
@@ -155,7 +161,7 @@
 
     onMount(() => {
         autoLogin();
-        getGroups();
+        getProjects();
     });
 </script>
 <style>
@@ -193,7 +199,7 @@
         }
     }
 
-    .core-server-dropdown {
+    .core-group-dropdown {
         position: absolute;
         top: 6px;
         left: 200px;
@@ -225,7 +231,7 @@
         font-size: 36px;
         margin: 3px;
         padding: 3px;
-        color: var(--gray-700);
+        color: var(--grey-700);
         border-radius: 50%;
         
         cursor: pointer;
@@ -245,7 +251,7 @@
         margin: 6px;
         margin-bottom: 12px;
         border-radius: 8px;
-        color: var(--gray-700);
+        color: var(--grey-700);
         
         transition: background-color var(--transition-duration);
 
@@ -280,9 +286,6 @@
     <a href="/">
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
-    <div class="core-server-dropdown">
-        <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProject} bind:selectedItem={selectedProject} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
-    </div>
     {#if currUser == null}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -291,6 +294,9 @@
             <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
         </a>
     {:else}
+        <div class="core-group-dropdown">
+            <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProject} bind:selectedItem={selectedProject} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
+        </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <!-- svelte-ignore a11y-missing-attribute -->
@@ -307,7 +313,7 @@
 </div>
 {#if drawerOpen && selectedProject != defaultProject}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: TransitionConstants.DURATION }}>
-        {#each RouteConstants.ALL_ROUTES as routeItem}
+        {#each RouteConstants.ROUTES as routeItem}
             <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
         {/each}
     </div>
@@ -317,11 +323,11 @@
 {/if}
 {#if sideOpen}
     <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: TransitionConstants.DURATION }}>
-        {#each RouteConstants.ALL_ROUTES as routeItem}
+        {#each RouteConstants.ROUTES as routeItem}
             <a href={routeItem.route} on:click={() => drawerOpen = false}>
                 <span class="core-drawer-icon material-symbols-rounded">{routeItem.icon}</span>
             </a>
         {/each}
     </div>
 {/if}
-<Snackbar text={snackbarText} type={snackbarType} bind:open={snackbarOpen} />
+<Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

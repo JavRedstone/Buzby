@@ -5,7 +5,6 @@
 	import { scale } from "svelte/transition";
 
     export let open: boolean = false;
-    export let text: string = '';
     export let type: string = 'neutral';
 
     let dispatch = createEventDispatcher();
@@ -37,7 +36,7 @@
         left: 50%;
         transform: translateX(-50%);
         width: 40vw;
-        background-color: var(--gray-800);
+        background-color: var(--grey-800);
         color: white;
         text-align: center;
         padding: 8px;
@@ -53,6 +52,6 @@
 
 {#if selfOpen}
     <button class="snackbar" style="background-color: {SnackbarConstants.getTypeByName(type).color}" on:click={hide} transition:scale={{opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
-        {text}
+        <slot></slot>
     </button>
 {/if}

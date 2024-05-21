@@ -5,18 +5,13 @@
     export let label: string;
     export let items: string[];
     export let defaultItem: string;
-    export let selectedItem: string = null;
+    export let selectedItem: string = defaultItem;
     export let open: boolean = false;
 
     let dispatch = createEventDispatcher();
 
-    function activate(): void {
-        open = true;
-        dispatch("toggle", open);
-    }
-
-    function deactivate(): void {
-        open = false;
+    function toggle(): void {
+        open = !open;
         dispatch("toggle", open);
     }
 
@@ -34,10 +29,11 @@
         padding-top: 4px;
         padding-bottom: 4px;
         padding-right: 26px;
-        font-size: 16px;
         outline: none;
-        border: 2px solid var(--gray-400);
+        border: 2px solid var(--grey-400);
         border-radius: 4px;
+        color: var(--grey-800);
+        font-size: 16px;
         
         cursor: pointer;
         user-select: none;
@@ -55,7 +51,8 @@
 
     .dropdown-button-arrow {
         position: absolute;
-        right: 4px;
+        margin-right: 4px;
+        color: var(--grey-800);
     }
 
     .dropdown-content {
@@ -75,7 +72,7 @@
         padding-right: 8px;
         padding-top: 4px;
         padding-bottom: 4px;
-        color: var(--gray-800);
+        color: var(--grey-800);
         text-decoration: none;
         background-color: var(--off-white);
         
@@ -92,7 +89,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="dropdown">
-    <button class="dropdown-button" on:focus={activate} on:blur={deactivate}>
+    <button class="dropdown-button" on:click={toggle} on:blur={close}>
         {#if selectedItem}
             {selectedItem}
         {:else}
@@ -110,7 +107,7 @@
                 <!-- svelte-ignore a11y-missing-attribute -->
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <a class="dropdown-a" style="{i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--gray-400)' : 'border-bottom: 1px solid var(--gray-300)' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px'};" on:click={() => select(item)}>{item}</a>
+                <a class="dropdown-a" style="{i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--grey-400)' : 'border-bottom: 1px solid var(--grey-300)' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px'};" on:click={() => select(item)}>{item}</a>
             {/each}
         </div>
     {/if}

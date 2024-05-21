@@ -96,13 +96,13 @@
         padding-left: 16px;
         padding-right: 16px;
         padding-bottom: 16px;
-        border: 2px solid var(--gray-400);
+        border: 2px solid var(--grey-400);
         border-radius: 8px;
     }
 
     .login-title {
         font-size: 32px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 
     .login-input-container {
@@ -114,7 +114,7 @@
     .login-icon {
         float: left;
         font-size: 32px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 
     .login-input {
@@ -125,10 +125,10 @@
         padding-bottom: 4px;
         background-color: var(--off-white);
         outline: none;
-        border: 2px solid var(--gray-400);
+        border: 2px solid var(--grey-400);
         border-radius: 4px;
         font-size: 16px;
-        color: var(--gray-800);
+        color: var(--grey-800);
         
         transition: border-color var(--transition-duration);
 
@@ -147,7 +147,7 @@
         padding-top: 8px;
         padding-bottom: 8px;
         background-color: var(--primary-dark);
-        color: var(--gray-100);
+        color: var(--grey-100);
         border: none;
         border-radius: 4px;
         font-size: 16px;
@@ -163,7 +163,7 @@
     .login-signup {
         margin-top: 16px;
         font-size: 16px;
-        color: var(--gray-800);
+        color: var(--grey-800);
     }
 </style>
 <div class="login-container">
@@ -181,4 +181,4 @@
         <div class="login-signup">New here? <a href="/signup">Sign up</a></div>
     </form>
 </div>
-<Snackbar text={snackbarText} type={snackbarType} bind:open={snackbarOpen} />
+<Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

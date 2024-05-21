@@ -13,7 +13,7 @@ export class RouteConstants {
     public static readonly LOGOUT: string = "/logout";
     public static readonly PROFILE: string = "/profile";
 
-    public static readonly ALL_ROUTES: RouteItem[] = [
+    public static readonly ROUTES: RouteItem[] = [
         new RouteItem(RouteConstants.HIVE, "hive", "Hive"),
         new RouteItem(RouteConstants.OFFICE, "group", "Office"),
         new RouteItem(RouteConstants.GANTT, "view_timeline", "Gantt"),
