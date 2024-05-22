@@ -1,7 +1,8 @@
 export class PingConstants {
-    public static readonly PING_TYPES: any = {
+    public static readonly TYPES: any = {
         PROJECT: 0,
         USER: 1,
-        SYSTEM: 2
+        SYSTEM: 2,
+        ERROR: 3
     };
 }

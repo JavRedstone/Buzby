@@ -3,7 +3,8 @@ import { ProjectConstants } from "../classes/data/project/ProjectConstants";
 import { Project } from "$lib/elements/classes/data/project/Project";
 
 export const allProjects = writable({
-    projects: []
+    projects: [],
+    requestedProjects: []
 });
 
 export const projectSelected = writable({
@@ -11,6 +12,6 @@ export const projectSelected = writable({
     project: new Project({})
 });
 
-export const currMember = writable({
-    member: null
+export const memberStatus = writable({
+    currentMember: null
 });

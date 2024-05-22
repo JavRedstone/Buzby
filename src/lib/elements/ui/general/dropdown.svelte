@@ -59,6 +59,8 @@
         position: absolute;
         border-bottom-left-radius: 8px;
         border-bottom-right-radius: 8px;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--grey-300);
         
         user-select: none;
     }

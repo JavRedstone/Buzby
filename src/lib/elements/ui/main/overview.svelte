@@ -5,7 +5,7 @@
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 	import { Member } from '$lib/elements/classes/data/project/Member';
-	import { getDoc, setDoc } from 'firebase/firestore';
+	import { setDoc } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference } from 'firebase/firestore';
 	import { Chat } from '$lib/elements/classes/data/chat/Chat';
@@ -17,17 +17,18 @@
 	import { Project } from '$lib/elements/classes/data/project/Project';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
 	import type { User } from 'firebase/auth';
-	import { authStore } from '$lib/elements/stores/auth-store';
+	import { userStatus } from '$lib/elements/stores/auth-store';
 	import { onMount } from 'svelte';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
-	import { allProjects, currMember } from '$lib/elements/stores/project-store';
+	import { allProjects, memberStatus } from '$lib/elements/stores/project-store';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
 
     let currentUser: User = null;
     let currentMember: Member = null;
     let projects: Project[] = [];
+    let requestedProjects: Project[] = [];
 
     let createOpen: boolean = false;
     let projectName: string = "";
@@ -61,7 +62,9 @@
                 openSnackbar("Please enter a project color.", "error");
                 return;
             }
-            memberEmails = memberEmails.filter((email) => email !== "").filter((email) => email.toLowerCase() !== currentUser.email.toLowerCase()).filter((email, index, self) => self.indexOf(email) === index);
+            
+            memberEmails = memberEmails.filter((email) => email !== "").filter((email) => email.toLowerCase() !== currentUser.email.toLowerCase()).filter((email, index, self) => self.indexOf(email) === index).map((email) => email.toLowerCase());
+            
             if (memberEmails.length === 0) {
                 memberEmails = [""];
                 openSnackbar("Please add at least one member email.", "error");
@@ -97,15 +100,18 @@
                             memberIds: memberIds,
                             joinedMemberIds: [currentUser.uid],
                             chatId: chat.id,
+                            taskIds: [],
+                            eventIds: [],
+                            createdAt: new Date(),
                         });
 
                         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
                         setDoc(projectDoc, project.compactify()).then(async () => {
                             for (let member of members) {
                                 let ping: Ping = new Ping({
-                                    type: PingConstants.PING_TYPES.PROJECT,
+                                    type: PingConstants.TYPES.PROJECT,
                                     title: "Project request",
-                                    message: `${currentMember.displayName} requested to add you to the project ${project.name}.`,
+                                    message: `Member "${currentMember.displayName}" requested to add you to the project "${project.name}."`,
                                     read: false,
                                     createdAt: new Date(),
                                 });
@@ -121,6 +127,7 @@
 
                                 allProjects.update((value) => {
                                     value.projects = [...value.projects, project];
+                                    value.projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
                                     return value;
                                 });
                                 
@@ -152,15 +159,15 @@
     }
 
     function getUser(): void {
-        authStore.subscribe((value) => {
+        userStatus.subscribe((value) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
                 currentUser = value.currentUser;                
             }
         });
 
-        currMember.subscribe((value) => {
-            if (value.member != null) {
-                currentMember = value.member;
+        memberStatus.subscribe((value) => {
+            if (value.currentMember != null) {
+                currentMember = value.currentMember;
             }
         });
     }
@@ -168,6 +175,7 @@
     function getProjects(): void {
         allProjects.subscribe((value) => {
             projects = value.projects;
+            requestedProjects = value.requestedProjects;
         });
     }
 
@@ -359,7 +367,14 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 16px;
-        padding-top: 16px;
+        padding-bottom: 16px;
+        color: var(--grey-800);
+    }
+
+    .overview-requested-projects-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
         padding-bottom: 32px;
         color: var(--grey-800);
     }
@@ -414,12 +429,22 @@
         </div>
     {/if}
 
+    <h2>Projects</h2>
     <div class="overview-projects-container">
         {#each projects as project}
-            <ProjectOverview bind:project={project} />
+            <ProjectOverview bind:project={project} isRequested={false} />
         {/each}
         {#if projects.length === 0}
             <div class="overview-no-projects">No projects found. Create one above!</div>
+        {/if}
+    </div>
+    <h2>Requested Projects</h2>
+    <div class="overview-requested-projects-container">
+        {#each requestedProjects as project}
+            <ProjectOverview bind:project={project} isRequested={true} />
+        {/each}
+        {#if requestedProjects.length === 0}
+            <div class="overview-no-projects">No requested projects found.</div>
         {/if}
     </div>
 </div>

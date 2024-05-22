@@ -12,11 +12,20 @@ export class Ping {
         this.type = data.type;
 
         this.title = data.title;
+        if (!this.title) {
+            this.title = "";
+        }
         this.message = data.message;
+        if (!this.message) {
+            this.message = "";
+        }
 
         this.read = data.read;
+        if (this.read == null || this.read == undefined) {
+            this.read = false;
+        }
 
-        this.createdAt = data.createdAt;
+        this.createdAt = new Date(data.createdAt);
     }
 
     public stringify(): any {
@@ -25,7 +34,7 @@ export class Ping {
             title: this.title,
             message: this.message,
             read: this.read,
-            createdAt: this.createdAt
+            createdAt: this.createdAt.getTime()
         });
     }
 }

@@ -11,17 +11,26 @@ export class Message {
     public memberId: string;
     public member: Member = new Member({});
 
-    public sentAt: Date;
+    public createdAt: Date;
 
     constructor(data: any) {
         this.id = data.id;
         this.text = data.text;
+        if (!this.text) {
+            this.text = "";
+        }
 
         this.read = data.read;
+        if (this.read == null || this.read == undefined) {
+            this.read = false;
+        }
 
         this.memberId = data.memberId;
+        if (!this.memberId) {
+            this.memberId = "";
+        }
 
-        this.sentAt = data.sentAt;
+        this.createdAt = new Date(data.createdAt);
     }
 
     public async getObjects(): Promise<void> {
@@ -33,5 +42,18 @@ export class Message {
                 }
             });
         }
+        else {
+            this.member = new Member({});
+        }
+    }
+
+    public compactify(): any {
+        return {
+            id: this.id,
+            text: this.text,
+            read: this.read,
+            memberId: this.memberId,
+            createdAt: this.createdAt.getTime()
+        };
     }
 }

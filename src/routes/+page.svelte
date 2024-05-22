@@ -1,12 +1,15 @@
+<svelte:head>
+    <title>Buzby | {!isOverview && currentProject ? currentProject.name : 'Overview'}</title>
+</svelte:head>
 <script lang="ts">
 	import { projectSelected } from '$lib/elements/stores/project-store';
 	import { Member } from '$lib/elements/classes/data/project/Member';
 	import { Project } from '$lib/elements/classes/data/project/Project';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
 	import type { User } from 'firebase/auth';
-	import { authStore } from '$lib/elements/stores/auth-store';
+	import { userStatus } from '$lib/elements/stores/auth-store';
 	import { onMount } from 'svelte';
-	import { currMember } from '$lib/elements/stores/project-store';
+	import { memberStatus } from '$lib/elements/stores/project-store';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Overview from '$lib/elements/ui/main/overview.svelte';
     
@@ -20,15 +23,15 @@
     let snackbarType: string = "neutral";
 
     function getUser(): void {
-        authStore.subscribe((value) => {
+        userStatus.subscribe((value) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
                 currentUser = value.currentUser;                
             }
         });
 
-        currMember.subscribe((value) => {
-            if (value.member != null) {
-                currentMember = value.member;
+        memberStatus.subscribe((value) => {
+            if (value.currentMember != null) {
+                currentMember = value.currentMember;
             }
         });
     }

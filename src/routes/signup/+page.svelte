@@ -6,11 +6,10 @@
     import type { UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
+	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
-	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
 	import { onMount } from "svelte";
-	import { currMember } from "$lib/elements/stores/project-store";
+	import { memberStatus } from "$lib/elements/stores/project-store";
 	import { Member } from "$lib/elements/classes/data/project/Member";
     let email: string = '';
     let password: string = '';
@@ -20,7 +19,7 @@
     let snackbarType: string = 'neutral';
     
     function checkUser(): void {
-        authStore.subscribe((value: any) => {
+        userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
                 window.location.href = '/';
             }
@@ -31,43 +30,37 @@
         try {
             authHandlers.signup(email, password).then(
                 (credential: UserCredential) => {
-                    let userDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('users', credential.user.uid);
-                    setDoc(userDoc, { email: credential.user.email, uid: credential.user.uid, emailVerified: credential.user.emailVerified }).then(
-                        () => {
-                            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', credential.user.uid);
-                            let member: Member = new Member({
-                                id: credential.user.uid,
-                                displayName: credential.user.displayName == null ? StringHelper.getEmailName(credential.user.email) : credential.user.displayName,
-                                email: credential.user.email,
+                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', credential.user.uid);
+                    let member: Member = new Member({
+                        id: credential.user.uid,
+                        displayName: credential.user.displayName == null ? StringHelper.getEmailName(credential.user.email) : credential.user.displayName,
+                        email: credential.user.email.toLowerCase(),
 
-                                avatarHat: 0,
-                                avatarGlasses: 0,
+                        avatarHat: 0,
+                        avatarGlasses: 0,
 
-                                projectIds: [],
+                        projectIds: [],
+                        requestedProjectIds: [],
 
-                                pings: [],
+                        pings: [],
 
-                                createdAt: new Date(),
-                            });
-                            setDoc(memberDoc, member.compactify()).then(() => {
-                                currMember.update((value) => {
-                                    value.member = member;
-                                    return value;
-                                });
-                                authHandlers.verifyEmail(credential.user).then(
-                                    () => {
-                                        openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
-                                    }
-                                ).catch(
-                                    (error: any) => {
-                                        openSnackbar('Error sending email verification. Please try again.', 'error');
-                                    }
-                                );
-                            }).catch(() => {
-                                openSnackbar('Error signing up. Please try again.', 'error');
-                            });
-                        }
-                    ).catch(() => {
+                        createdAt: new Date(),
+                    });
+                    setDoc(memberDoc, member.compactify()).then(() => {
+                        memberStatus.update((value) => {
+                            value.currentMember = member;
+                            return value;
+                        });
+                        authHandlers.verifyEmail(credential.user).then(
+                            () => {
+                                openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
+                            }
+                        ).catch(
+                            (error: any) => {
+                                openSnackbar('Error sending email verification. Please try again.', 'error');
+                            }
+                        );
+                    }).catch(() => {
                         openSnackbar('Error signing up. Please try again.', 'error');
                     });
                 }

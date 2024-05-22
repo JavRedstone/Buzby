@@ -3,9 +3,7 @@
 </svelte:head>
 <script lang="ts">
     import type { UserCredential } from "firebase/auth";
-	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
-    import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
+	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from 'svelte';
     let email: string = '';
@@ -16,7 +14,7 @@
     let snackbarType: string = 'neutral';
 
     function checkUser(): void {
-        authStore.subscribe((value: any) => {
+        userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
                 window.location.href = '/';
             }
@@ -28,13 +26,8 @@
             authHandlers.login(email, password).then(
                 (credential: UserCredential) => {
                     if (credential.user.emailVerified) {
-                        let userDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('users', credential.user.uid);
-                        setDoc(userDoc, { email: credential.user.email, uid: credential.user.uid, emailVerified: credential.user.emailVerified }).then(
-                            () => {
-                                openSnackbar('Logged in successfully. Welcome back!', 'success');
-                                window.location.href = '/';
-                            }
-                        );
+                        openSnackbar('Logged in successfully. Welcome back!', 'success');
+                        window.location.href = '/';
                     }
                     else {
                         openSnackbar('Please verify your email before logging in.', 'warning');

@@ -12,6 +12,9 @@ export class Chat {
         this.id = data.id;
 
         this.messageIds = data.messageIds;
+        if (!this.messageIds) {
+            this.messageIds = [];
+        }
     }
 
     public async getObjects(): Promise<void> {
@@ -26,6 +29,9 @@ export class Chat {
                     this.messages.push(message);
                 });
             });
+        }
+        else {
+            this.messages = [];
         }
     }
 

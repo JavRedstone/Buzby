@@ -1,8 +1,11 @@
+<svelte:head>
+    <title>Buzby</title>
+</svelte:head>
 <script lang="ts">
 	import Home from './../lib/elements/ui/layout/home.svelte';
 	import Reminder from './../lib/elements/ui/layout/reminder.svelte';
 	import { type User } from 'firebase/auth';
-	import { authStore } from '$lib/elements/stores/auth-store';
+	import { userStatus } from '$lib/elements/stores/auth-store';
 	import Core from "$lib/elements/ui/layout/core.svelte";
 	import { onMount } from "svelte";
 
@@ -12,7 +15,7 @@
     let w: Window = null;
 
     function getUser(): void {
-        authStore.subscribe((value) => {
+        userStatus.subscribe((value) => {
             currentUser = value.currentUser;
         });
     }

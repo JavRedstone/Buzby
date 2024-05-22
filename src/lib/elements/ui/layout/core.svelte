@@ -1,19 +1,22 @@
 <script lang="ts">
+	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
     import logo from "$lib/elements/assets/logo.svg";
 	import { RouteConstants } from "$lib/elements/classes/ui/core/RouteConstants";
 	import { fade, fly } from "svelte/transition";
 	import Dropdown from "../general/dropdown.svelte";
 	import type { User } from "firebase/auth";
 	import { onMount } from "svelte";
-	import { authHandlers, authStore } from "$lib/elements/stores/auth-store";
+	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
 	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
-	import { allProjects, currMember, projectSelected } from "$lib/elements/stores/project-store";
+	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { Project } from "$lib/elements/classes/data/project/Project";
-	import { DocumentReference, getDoc, getDocs, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { DocumentReference, getDoc, getDocs, query, where, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { Member } from "$lib/elements/classes/data/project/Member";
+	import Menu from "../general/menu.svelte";
+	import type { Ping } from "$lib/elements/classes/data/chat/Ping";
 
     export let sideOpen: boolean = false;
 
@@ -24,12 +27,16 @@
     let selectedProject: string = defaultProject;
     let projectNames: string[] = [defaultProject];
     let projects: Project[] = [];
+    let requestedProjects: Project[] = [];
+    let pingsOpen: boolean = false;
+    let pings: Ping[] = [];
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
     let snackbarType: string = 'neutral';
 
     let currUser: User = null;
+    let currMember: Member = null;
 
     function toggleDrawer(): void {
         if (selectedProject == defaultProject) {
@@ -45,20 +52,58 @@
     }
 
     function getProjects(): void {
-        let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
+        if (currMember == null) return;
         projects = [];
         projectNames = [defaultProject];
-        getDocs(projectsCollection).then(
+        let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
+        let projectsQuery = null;
+        if (currMember.projectIds.length == 0) {
+            projectsQuery = query(projectsCollection, where('id', 'in', ['']));
+        } else {
+            projectsQuery = query(projectsCollection, where('id', 'in', currMember.projectIds));
+        }
+            
+        getDocs(projectsQuery).then(
             (querySnapshot) => {
                 querySnapshot.forEach(
                     async (doc) => {
                         let project: Project = new Project(doc.data());
                         await project.getObjects();
                         projects.push(project);
-                        projectNames.push(project.name);
+                        projectNames = [...projectNames, project.name];
+
+                        projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                         allProjects.update((value) => {
                             value.projects = projects;
+                            return value;
+                        });
+                    }
+                );
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error getting projects. Please try again later.', 'error');
+            }
+        );
+        let requestedProjectsQuery = null;
+        if (currMember.requestedProjectIds.length == 0) {
+            requestedProjectsQuery = query(projectsCollection, where('id', 'in', ['']));
+        } else {
+            requestedProjectsQuery = query(projectsCollection, where('id', 'in', currMember.requestedProjectIds));
+        }
+        getDocs(requestedProjectsQuery).then(
+            (querySnapshot) => {
+                querySnapshot.forEach(
+                    async (doc) => {
+                        let project: Project = new Project(doc.data());
+                        await project.getObjects();
+                        requestedProjects.push(project);
+
+                        requestedProjects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+                        allProjects.update((value) => {
+                            value.requestedProjects = requestedProjects;
                             return value;
                         });
                     }
@@ -98,13 +143,9 @@
         auth.onAuthStateChanged(
             (user) => {
                 if (user != null) {
-                    authStore.update((curr: any) => {
-                        return {
-                            ...curr,
-                            isLoading: false,
-                            currentUser: user,
-                            userDoc: getFirestoreDoc('users', user.uid)
-                        }
+                    userStatus.update((value) => {
+                        value.currentUser = user;
+                        return value;
                     });
                     currUser = user;
 
@@ -113,10 +154,14 @@
                         (doc) => {
                             if (doc.exists()) {
                                 let member: Member = new Member(doc.data());
-                                currMember.update((value) => {
-                                    value.member = member;
+                                memberStatus.update((value) => {
+                                    value.currentMember = member;
                                     return value;
                                 });
+                                currMember = member;
+
+                                getProjects();
+                                pings = member.pings;
                             }
                         }
                     )
@@ -153,6 +198,12 @@
         projectSelectOpen = false;
     }
 
+    function togglePings(): void {
+        drawerOpen = false;
+        projectSelectOpen = false;
+        pingsOpen = !pingsOpen;
+    }
+
     function openSnackbar(text: string, type: string): void {
         snackbarText = text;
         snackbarType = type;
@@ -161,7 +212,6 @@
 
     onMount(() => {
         autoLogin();
-        getProjects();
     });
 </script>
 <style>
@@ -197,6 +247,10 @@
         &:hover {
             color: var(--accent-dark);
         }
+    }
+
+    .core-header-icon-container {
+        position: absolute;
     }
 
     .core-group-dropdown {
@@ -270,6 +324,41 @@
 
         z-index: 999;
     }
+
+    .core-pings-container {
+        position: absolute;
+        top: 48px;
+        right: 0;
+        width: 200px;
+        height: 200px;
+    }
+
+    .core-pings-title {
+        border-bottom: 1px solid var(--grey-400);
+        font-size: 16px;
+        padding-bottom: 4px;
+        text-align: center;
+    }
+
+    .core-ping-container {
+        padding: 4px;
+        border-bottom: 1px solid var(--grey-300);
+
+        transition: background-color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--off-white-light);
+        }
+    }
+
+    .core-ping-title {
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .core-ping-message {
+        font-size: 10px;
+    }
 </style>
 <div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -286,7 +375,7 @@
     <a href="/">
         <img class="core-header-logo" src={logo} alt="logo" />
     </a>
-    {#if currUser == null}
+    {#if currUser == null || !currUser.emailVerified || currMember == null}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <!-- svelte-ignore a11y-missing-attribute -->
@@ -297,18 +386,41 @@
         <div class="core-group-dropdown">
             <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProject} bind:selectedItem={selectedProject} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
         </div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a on:click={logout}>
-            <span class="core-header-icon material-symbols-rounded" style="right: 42px;">logout</span>
-        </a>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a on:click={editProfile}>
-            <span class="core-header-icon material-symbols-rounded" style="right: 8px;">account_circle</span>
-        </a>
+        <div class="core-header-icon-container" style="right: 108px;">
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a on:click={togglePings}>
+                <span class="core-header-icon material-symbols-rounded">notifications_active</span>
+            </a>
+            <div class="core-pings-container">
+                <Menu bind:open={pingsOpen}>
+                    <div class="core-pings-title">Notifications</div>
+                    {#each pings as ping, i}
+                        <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
+                            <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
+                            <div class="core-ping-message">{ping.message}</div>
+                        </div>
+                    {/each}
+                </Menu>
+            </div>
+        </div>
+        <div class="core-header-icon-container" style="right: 74px;">
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a on:click={logout}>
+                <span class="core-header-icon material-symbols-rounded">logout</span>
+            </a>
+        </div>
+        <div class="core-header-icon-container" style="right: 40px;">
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a on:click={editProfile}>
+                <span class="core-header-icon material-symbols-rounded">account_circle</span>
+            </a>
+        </div>
     {/if}
 </div>
 {#if drawerOpen && selectedProject != defaultProject}
