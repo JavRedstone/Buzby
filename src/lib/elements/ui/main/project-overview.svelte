@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { allProjects, memberStatus } from '$lib/elements/stores/project-store';
+	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
 	import { CollectionReference, DocumentReference, deleteDoc, getDocs, query, setDoc, where, type DocumentData } from 'firebase/firestore';
 	import { getFirestoreCollection, getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { scale } from 'svelte/transition';
@@ -9,11 +9,15 @@
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
 	import { onMount } from "svelte";
 	import Tooltip from "../general/tooltip.svelte";
-	import type { Member } from '$lib/elements/classes/data/project/Member';
+	import { Member } from '$lib/elements/classes/data/project/Member';
 	import Snackbar from '../general/snackbar.svelte';
+	import { Ping } from '$lib/elements/classes/data/chat/Ping';
+	import { StringHelper } from '$lib/elements/helpers/StringHelper';
+	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 
     export let project: Project = null;
     export let isRequested: boolean = false;
+    export let isOwner: boolean = false;
 
     let currMember: Member = null;
     
@@ -27,10 +31,19 @@
     let inviteOpen: boolean = false;
     let editOpen: boolean = false;
     let deleteOpen: boolean = false;
+    let leaveOpen: boolean = false;
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
+
+    function gotoProject(): void {
+        console.log("gotoProject");
+        projectSelected.update((value) => {
+            value.project = project;
+            return value;
+        });
+    }
 
     function getUser(): void {
         memberStatus.subscribe((value) => {
@@ -42,33 +55,95 @@
         inviteOpen = true;
         editOpen = false;
         deleteOpen = false;
+        leaveOpen = false;
     }
 
     function editProject(): void {
         inviteOpen = false;
         editOpen = true;
         deleteOpen = false;
+        leaveOpen = false;
     }
 
     function deleteProject(): void {
         inviteOpen = false;
         editOpen = false;
         deleteOpen = true;
+        leaveOpen = false;
     }
 
-    function inviteProjectConfirmed(): void {
-        if (inviteEmail.length == 0) {
+    function leaveProject(): void {
+        inviteOpen = false;
+        editOpen = false;
+        deleteOpen = false;
+        leaveOpen = true;
+    }
+
+    function inviteMemberConfirmed(): void {
+        if (inviteEmail.trim().length == 0) {
             return;
         }
 
-        // let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
-        // let membersQuery = query(membersCollection, where("email", "==", inviteEmail));
-        // let memberIds: string[] = [];
-        // let members: Member[] = [];
-        // getDocs(membersQuery).then((querySnapshot) => {
+        let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
+        let membersQuery = query(membersCollection, where("email", "==", inviteEmail));
+        let memberIds: string[] = [];
+        let members: Member[] = [];
+        getDocs(membersQuery).then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                let member: Member = new Member(doc.data());
+                memberIds.push(member.id);
+                members.push(member);
+            });
+            if (memberIds.length == 0) {
+                openSnackbar("No member found with that email.", "error");
+                return;
+            } else if (memberIds.length > 1) {
+                openSnackbar("Multiple members found with that email. Please try again.", "error");
+                return;
+            } else if (memberIds[0] == currMember.id) {
+                openSnackbar("You cannot invite yourself to a project.", "error");
+                return;
+            } else if (project.joinedMemberIds.includes(memberIds[0])) {
+                openSnackbar("Member is already in the project.", "error");
+                return;
+            } else if (project.memberIds.includes(memberIds[0])) {
+                openSnackbar("Member is already requested to join the project.", "error");
+                return;
+            } else if (project.owner.id == memberIds[0]) {
+                openSnackbar("Member is already the owner of the project.", "error");
+                return;
+            }
 
+            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
+            project.memberIds = [...project.memberIds, ...memberIds];
+            project.members = [...project.members, ...members];
+            setDoc(projectDoc, project.compactify()).then(() => {
+                for (let member of members) {
+                    member.requestedProjectIds.push(project.id);
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Invited to project",
+                        message: `You have been invited to the project "${project.name}" by the owner "${project.owner.displayName}".`,
+                        createdAt: new Date(),
+                    });
+                    member.pings.push(ping);
+                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
+                    setDoc(memberDoc, member.compactify());
+                }
+                allProjects.update((value) => {
+                    value.requestedProjects = [...value.requestedProjects, project];
+                    return value;
+                });
+                openSnackbar("Successfully invited member.", "success");
 
-        let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
+                hideExtras();
+            }).catch(() => {
+                openSnackbar("An error occurred while inviting the member. Please try again.", "error");
+            });
+        }).catch(() => {
+            openSnackbar("An error occurred while inviting the member. Please try again.", "error");
+        });
     }
 
     function editProjectConfirmed(): void {
@@ -104,6 +179,20 @@
         projectEdited.description = projectDescription;
         projectEdited.color = projectColor;
         setDoc(projectDoc, projectEdited.compactify()).then(() => {
+            for (let member of project.members) {
+                if (member.id != project.owner.id) {
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Project edited",
+                        message: `The project "${project.name}" has been edited by the owner "${project.owner.displayName} to have the name "${projectName}", description "${projectDescription}", and color "${ProjectConstants.findColorByHex(projectColor).displayName}".`,
+                        createdAt: new Date(),
+                    });
+                    member.pings.push(ping);
+                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
+                    setDoc(memberDoc, member.compactify());
+                }
+            }
             allProjects.update((value) => {
                 value.projects = value.projects.map((p) => {
                     if (p.id == project.id) {
@@ -127,13 +216,24 @@
             deleteDoc(chatDoc).then(async () => {
                 for (let member of project.members) {
                     member.projectIds = member.projectIds.filter((id) => id != project.id);
+                    let isMemberRequested: boolean = member.requestedProjectIds.includes(project.id);
                     member.requestedProjectIds = member.requestedProjectIds.filter((id) => id != project.id);
                     if (member.id == currMember.id) {
                         memberStatus.update((value) => {
                             value.currentMember = member;
                             return value;
                         });
-                    }   
+                    }
+                    else if (isMemberRequested) {
+                        let ping: Ping = new Ping({
+                            id: StringHelper.generateID(),
+                            type: PingConstants.TYPES.PROJECT,
+                            title: "Project deleted",
+                            message: `The project "${project.name}" has been deleted by the owner "${project.owner.displayName}".`,
+                            createdAt: new Date(),
+                        });
+                        member.pings.push(ping);
+                    }
                     let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                     await setDoc(memberDoc, member.compactify());
                 }
@@ -142,10 +242,61 @@
                     return value;
                 });
                 openSnackbar("Project successfully deleted.", "success");
+
                 hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while deleting the project. Please try again.", "error");
             });
+        });
+    }
+
+    function leaveProjectConfirmed(): void {
+        let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
+        project.joinedMemberIds = project.joinedMemberIds.filter((id) => id != currMember.id);
+        project.memberIds = project.memberIds.filter((id) => id != currMember.id);
+        setDoc(projectDoc, project.compactify()).then(() => {            
+            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
+            currMember.projectIds = currMember.projectIds.filter((id) => id != project.id);
+            setDoc(memberDoc, currMember.compactify()).then(() => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
+                openSnackbar("Successfully left project.", "success");
+
+                if (project.owner) {
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Member left",
+                        message: `Member "${currMember.displayName}" has left the project "${project.name}".`,
+                        createdAt: new Date(),
+                    });
+                    project.owner.pings.push(ping);
+                    let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
+                    setDoc(ownerDoc, project.owner.compactify());
+                }
+
+                allProjects.update((value) => {
+                    value.projects = value.projects.map((p) => {
+                        if (p.id == project.id) {
+                            p.joinedMemberIds = p.joinedMemberIds.filter((id) => id != currMember.id);
+                            p.joinedMembers = p.joinedMembers.filter((m) => m.id != currMember.id);
+                            p.memberIds = p.memberIds.filter((id) => id != currMember.id);
+                            p.members = p.members.filter((m) => m.id != currMember.id);
+                        }
+                        return p;
+                    });
+                    value.projects = value.projects.filter((p) => p.id != project.id);
+                    return value;
+                });
+
+                hideExtras();
+            }).catch(() => {
+                openSnackbar("An error occurred while leaving the project. Please try again.", "error");
+            });
+        }).catch(() => {
+            openSnackbar("An error occurred while leaving the project. Please try again.", "error");
         });
     }
 
@@ -163,6 +314,25 @@
                     return value;
                 });
                 openSnackbar("Successfully joined project.", "success");
+
+                if (project.owner) {
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Member joined",
+                        message: `Member "${currMember.displayName}" has joined the project "${project.name}".`,
+                        createdAt: new Date(),
+                    });
+                    project.owner.pings.push(ping);
+                    let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
+                    setDoc(ownerDoc, project.owner.compactify());
+                }
+                allProjects.update((value) => {
+                    value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
+                    value.projects = [...value.projects, project];
+                    return value;
+                });
+                hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while joining the project. Please try again.", "error");
             });
@@ -171,10 +341,53 @@
         });
     }
 
+    function rejectProjectConfirmed(): void {
+        let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
+        project.memberIds = project.memberIds.filter((id) => id != currMember.id);
+        setDoc(projectDoc, project.compactify()).then(() => {
+            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
+            currMember.requestedProjectIds = currMember.requestedProjectIds.filter((id) => id != project.id);
+            setDoc(memberDoc, currMember.compactify()).then(() => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
+                openSnackbar("Successfully rejected project.", "success");
+
+                if (project.owner) {
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Member rejected",
+                        message: `Member "${currMember.displayName}" has rejected the project "${project.name}".`,
+                        createdAt: new Date(),
+                    });
+                    project.owner.pings.push(ping);
+                    let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
+                    setDoc(ownerDoc, project.owner.compactify());
+                }
+                allProjects.update((value) => {
+                    value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
+                    return value;
+                });
+            }).catch(() => {
+                openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
+            });
+        }).catch(() => {
+            openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
+        });
+    }
+
     function hideExtras(): void {
         inviteOpen = false;
         editOpen = false;
         deleteOpen = false;
+        leaveOpen = false;
+
+        inviteEmail = "";
+        projectName = project.name;
+        projectDescription = project.description;
+        projectColor = project.color;
     }
 
     function openSnackbar(text: string, type: string): void {
@@ -256,20 +469,21 @@
         margin-top: 8px;
     }
 
-    .project-overview-delete {
+    .project-overview-remove {
         margin-top: 8px;
         color: var(--error);
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--error-dark);
+        }
     }
 
     .project-overview-project-field {
         display: flex;
         align-items: center;
         margin-bottom: 8px;
-    }
-
-    .project-overview-project-email-info {
-        font-size: 10px;
-        color: var(--grey-500);
     }
 
     .project-overview-project-input {
@@ -344,7 +558,7 @@
         padding-right: 4px;
         padding-top: 2px;
         padding-bottom: 2px;
-        background-color: var(--primary-dark);
+        background-color: var(--accent-dark);
         font-size: 12px;
         color: var(--grey-100);
         border: none;
@@ -355,11 +569,11 @@
         transition: background-color var(--transition-duration);
 
         &:hover {
-            background-color: var(--accent-dark);
+            background-color: var(--primary-dark);
         }
     }
-
-    .project-overview-project-delete {
+    
+    .project-overview-project-remove {
         padding-left: 4px;
         padding-right: 4px;
         padding-top: 2px;
@@ -371,6 +585,12 @@
         outline: none;
         border-radius: 4px;
         cursor: pointer;
+
+        transition: background-color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--error-dark);
+        }
     }
 
     .project-overview-project-cancel {
@@ -395,7 +615,10 @@
 </style>
 
 {#if existed}
-    <div class="project-overview-container" transition:scale={{opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
+    <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="project-overview-click-area" on:click={gotoProject}></div>
         <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
         <div class="project-overview-name">{project.name}</div>
         <div class="project-overview-description">{project.description}</div>
@@ -407,7 +630,8 @@
         </div>
         <div class="project-overview-date">Created: {project.createdAt.toString()}</div>
         {#if isRequested}
-            <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join Project</button>
+            <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join project</button>
+            <button class="project-overview-project-remove" on:click={rejectProjectConfirmed}>Reject request</button>
         {:else}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -415,58 +639,81 @@
             <a on:click={inviteMember}>
                 <span class="project-overview-action material-symbols-rounded">person_add</span>
             </a>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={editProject}>
-                <span class="project-overview-action material-symbols-rounded">edit</span>
-            </a>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={deleteProject}>
-                <span class="project-overview-delete material-symbols-rounded">delete</span>
-            </a>
+            {#if isOwner}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a on:click={editProject}>
+                    <span class="project-overview-action material-symbols-rounded">edit</span>
+                </a>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a on:click={deleteProject}>
+                    <span class="project-overview-remove material-symbols-rounded">delete</span>
+                </a>
+            {:else}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a on:click={leaveProject}>
+                    <span class="project-overview-remove material-symbols-rounded">door_open</span>
+                </a>
+            {/if}
             {#if inviteOpen}
                 <div transition:slide={{duration: TransitionConstants.DURATION}}>
                     <div class="project-overview-project-field">
-                        <div class="project-overview-project-email-info">*If they have an account, they will receive a ping. Otherwise, they will not be added.</div>
+                        <span class="project-overview-project-icon material-symbols-rounded">email</span>
                         <input class="project-overview-project-input" type="text" placeholder="Enter email" bind:value={inviteEmail} />
                     </div>
-                    <button class="project-overview-project-action" on:click={inviteProjectConfirmed}>Invite</button>
+                    <button class="project-overview-project-action" on:click={inviteMemberConfirmed}>Invite</button>
                     <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
                 </div>
             {/if}
-            {#if editOpen}
-                <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                    <div class="project-overview-project-field">
-                        <input class="project-overview-project-input" type="text" placeholder="Project name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
+            {#if isOwner}
+                {#if editOpen}
+                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                        <div class="project-overview-project-field">
+                            <span class="project-overview-project-icon material-symbols-rounded">badge</span>
+                            <input class="project-overview-project-input" type="text" placeholder="Project name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
+                        </div>
+                        <div class="project-overview-project-field">
+                            <span class="project-overview-project-icon material-symbols-rounded">description</span>
+                            <input class="project-overview-project-input" type="text" placeholder="Project description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
+                        </div>
+                        <div class="project-overview-project-field">
+                            <span class="project-overview-project-icon material-symbols-rounded">colors</span>
+                            {#each ProjectConstants.COLORS as color}
+                                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                <div class="project-overview-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
+                                    <Tooltip>{color.displayName}</Tooltip>
+                                </div>
+                            {/each}
+                        </div>
+                        <button class="project-overview-project-action" on:click={editProjectConfirmed}>Save</button>
+                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
                     </div>
-                    <div class="project-overview-project-field">
-                        <input class="project-overview-project-input" type="text" placeholder="Project description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
+                {/if}
+                {#if deleteOpen}
+                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                        <div class="project-overview-project-field">
+                            <div class="project-overview-is-sure">Are you sure you want to delete this project?</div>
+                        </div>
+                        <button class="project-overview-project-remove" on:click={deleteProjectConfirmed}>Delete</button>
+                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
                     </div>
-                    <div class="project-overview-project-field">
-                        <span class="project-overview-project-icon material-symbols-rounded">colors</span>
-                        {#each ProjectConstants.COLORS as color}
-                            <!-- svelte-ignore a11y-click-events-have-key-events -->
-                            <!-- svelte-ignore a11y-no-static-element-interactions -->
-                            <div class="project-overview-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
-                                <Tooltip>{color.displayName}</Tooltip>
-                            </div>
-                        {/each}
+                {/if}
+            {:else}
+                {#if leaveOpen}
+                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                        <div class="project-overview-project-field">
+                            <div class="project-overview-is-sure">Are you sure you want to leave this project?</div>
+                        </div>
+                        <button class="project-overview-project-remove" on:click={leaveProjectConfirmed}>Leave</button>
+                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
                     </div>
-                    <button class="project-overview-project-action" on:click={editProjectConfirmed}>Save</button>
-                    <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                </div>
-            {/if}
-            {#if deleteOpen}
-                <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                    <div class="project-overview-project-field">
-                        <div class="project-overview-is-sure">Are you sure you want to delete this project?</div>
-                    </div>
-                    <button class="project-overview-project-delete" on:click={deleteProjectConfirmed}>Delete</button>
-                    <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                </div>
+                {/if}
             {/if}
         {/if}
     </div>

@@ -3,7 +3,7 @@
 </svelte:head>
 <script lang="ts">
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
-    import type { UserCredential } from "firebase/auth";
+    import type { User, UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
@@ -11,8 +11,12 @@
 	import { onMount } from "svelte";
 	import { memberStatus } from "$lib/elements/stores/project-store";
 	import { Member } from "$lib/elements/classes/data/project/Member";
+	import { goto } from '$app/navigation';
+
     let email: string = '';
     let password: string = '';
+
+    let currUser: User = null;
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
@@ -21,7 +25,7 @@
     function checkUser(): void {
         userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
-                window.location.href = '/';
+                goto('/');
             }
         });
     }
@@ -30,6 +34,7 @@
         try {
             authHandlers.signup(email, password).then(
                 (credential: UserCredential) => {
+                    currUser = credential.user;
                     let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', credential.user.uid);
                     let member: Member = new Member({
                         id: credential.user.uid,
@@ -51,15 +56,7 @@
                             value.currentMember = member;
                             return value;
                         });
-                        authHandlers.verifyEmail(credential.user).then(
-                            () => {
-                                openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
-                            }
-                        ).catch(
-                            (error: any) => {
-                                openSnackbar('Error sending email verification. Please try again.', 'error');
-                            }
-                        );
+                        sendVerificationEmail();
                     }).catch(() => {
                         openSnackbar('Error signing up. Please try again.', 'error');
                     });
@@ -87,6 +84,22 @@
         catch (error: any) {
             openSnackbar('Error signing up. Please try again.', 'error');
         }
+    }
+
+    function sendVerificationEmail(again: boolean = false): void {
+        authHandlers.verifyEmail(currUser).then(
+            () => {
+                if (again) {
+                    openSnackbar('Email verification sent. Please check your email to verify, then login.', 'success');
+                } else {
+                    openSnackbar('Signed up successfully. Please check your email to verify, then login.', 'success');
+                }
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error sending email verification. Please try again.', 'error');
+            }
+        );
     }
     
     function openSnackbar(text: string, type: string): void {
@@ -186,6 +199,12 @@
         font-size: 16px;
         color: var(--grey-800);
     }
+
+    .signup-resend {
+        margin-top: 4px;
+        font-size: 12px;
+        cursor: pointer;
+    }
 </style>
 <div class="signup-container">
     <form class="signup-form" on:submit|preventDefault={signup}>
@@ -200,6 +219,12 @@
         </div>
         <button class="signup-button" type="submit">Sign Up</button>
         <div class="signup-signup">Returning? <a href="/login">Log In</a></div>
+        {#if currUser != null}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a class="signup-resend" on:click={() => sendVerificationEmail(true)}>Resend verification email</a>
+        {/if}
     </form>
 </div>
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

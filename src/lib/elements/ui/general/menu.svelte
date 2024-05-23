@@ -20,7 +20,7 @@
 </style>
 
 {#if open}
-    <div class="menu-container" transition:scale={{opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
+    <div class="menu-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
         <slot></slot>
     </div>
 {/if}

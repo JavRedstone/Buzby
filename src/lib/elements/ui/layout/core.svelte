@@ -12,11 +12,13 @@
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { Project } from "$lib/elements/classes/data/project/Project";
-	import { DocumentReference, getDoc, getDocs, query, where, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { DocumentReference, getDoc, getDocs, query, setDoc, where, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import Menu from "../general/menu.svelte";
 	import type { Ping } from "$lib/elements/classes/data/chat/Ping";
+	import { goto } from '$app/navigation';
+	import Badge from '../general/badge.svelte';
 
     export let sideOpen: boolean = false;
 
@@ -47,7 +49,14 @@
             drawerOpen = !drawerOpen;
             if (drawerOpen) {
                 projectSelectOpen = false;
+                pingsOpen = false;
             }
+        }
+    }
+
+    function autoRedirect(): void {
+        if (selectedProject == defaultProject) {
+            goto('/');
         }
     }
 
@@ -129,6 +138,7 @@
                 value.project = project;
                 return value;
             });
+            goto(selectedProject != defaultProject ? '/hive' : '/')
         }
         sideOpen = selectedProject != defaultProject;
     }
@@ -136,7 +146,7 @@
     function login(): void {
         drawerOpen = false;
         projectSelectOpen = false;
-        window.location.href = "/login";
+        goto('/login');
     }
 
     function autoLogin(): void {
@@ -162,6 +172,7 @@
 
                                 getProjects();
                                 pings = member.pings;
+                                pings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
                             }
                         }
                     )
@@ -179,8 +190,28 @@
             authHandlers.logout().then(
                 () => {
                     currUser = null;
+                    allProjects.update((value) => {
+                        value.projects = [];
+                        value.requestedProjects = [];
+                        return value;
+                    });
+                    projectSelected.update((value) => {
+                        value.projectName = defaultProject;
+                        value.project = null;
+                        return value;
+                    });
+                    memberStatus.update((value) => {
+                        value.currentMember = null;
+                        return value;
+                    });
+                    userStatus.update((value) => {
+                        value.currentUser = null;
+                        return value;
+                    });
                     openSnackbar('Logged out successfully. Good bye!', 'neutral');
-                    window.location.href = '/';
+                    goto('/').then(() => {
+                        location.reload();
+                    });
                 }
             ).catch(
                 (error: any) => {
@@ -204,6 +235,29 @@
         pingsOpen = !pingsOpen;
     }
 
+    function markPingRead(ping: Ping): void {
+        drawerOpen = false;
+        projectSelectOpen = false;
+
+        currMember.pings = currMember.pings.filter((p) => p.id != ping.id);
+
+        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
+        setDoc(memberDoc, currMember.compactify()).then(
+            () => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
+                pings = currMember.pings;
+                openSnackbar('Notification marked as read.', 'neutral');
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error marking notification as read. Please try again.', 'error');
+            }
+        );
+    }
+
     function openSnackbar(text: string, type: string): void {
         snackbarText = text;
         snackbarType = type;
@@ -212,6 +266,7 @@
 
     onMount(() => {
         autoLogin();
+        autoRedirect();
     });
 </script>
 <style>
@@ -341,6 +396,7 @@
     }
 
     .core-ping-container {
+        position: relative;
         padding: 4px;
         border-bottom: 1px solid var(--grey-300);
 
@@ -352,12 +408,20 @@
     }
 
     .core-ping-title {
-        font-size: 12px;
+        font-size: 14px;
         font-weight: bold;
+        margin-bottom: 2px; 
     }
 
     .core-ping-message {
         font-size: 10px;
+    }
+
+    .core-ping-mark-read {
+        position: absolute;
+        right: 4px;
+        top: 4px;
+        cursor: pointer;
     }
 </style>
 <div class="core-header-container">
@@ -393,6 +457,9 @@
             <a on:click={togglePings}>
                 <span class="core-header-icon material-symbols-rounded">notifications_active</span>
             </a>
+            {#if pings.length > 0}
+                <Badge>{pings.length}</Badge>
+            {/if}
             <div class="core-pings-container">
                 <Menu bind:open={pingsOpen}>
                     <div class="core-pings-title">Notifications</div>
@@ -400,6 +467,12 @@
                         <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
                             <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
                             <div class="core-ping-message">{ping.message}</div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <!-- svelte-ignore a11y-missing-attribute -->
+                            <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
+                                <span class="material-symbols-rounded">mark_email_read</span>
+                            </a>
                         </div>
                     {/each}
                 </Menu>

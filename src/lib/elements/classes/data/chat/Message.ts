@@ -4,8 +4,8 @@ import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 
 export class Message {
     public id: string;
-    public text: string;
 
+    public text: string;
     public read: boolean;
 
     public memberId: string;

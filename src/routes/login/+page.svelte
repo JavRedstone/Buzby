@@ -2,12 +2,16 @@
     <title>Buzby | Login</title>
 </svelte:head>
 <script lang="ts">
-    import type { UserCredential } from "firebase/auth";
+    import type { User, UserCredential } from "firebase/auth";
 	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from 'svelte';
+	import { goto } from "$app/navigation";
+
     let email: string = '';
     let password: string = '';
+
+    let currUser: User = null;
 
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
@@ -16,7 +20,7 @@
     function checkUser(): void {
         userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
-                window.location.href = '/';
+                goto('/');
             }
         });
     }
@@ -25,9 +29,10 @@
         try {
             authHandlers.login(email, password).then(
                 (credential: UserCredential) => {
+                    currUser = credential.user;
                     if (credential.user.emailVerified) {
                         openSnackbar('Logged in successfully. Welcome back!', 'success');
-                        window.location.href = '/';
+                        goto('/');
                     }
                     else {
                         openSnackbar('Please verify your email before logging in.', 'warning');
@@ -59,6 +64,30 @@
         catch(error: any) {
             openSnackbar('Error logging in. Please try again.', 'error');
         }
+    }
+
+    function sendVerificationEmail(): void {
+        authHandlers.verifyEmail(currUser).then(
+            () => {
+                openSnackbar('Email verification sent. Please check your email to verify, then login.', 'success');
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error sending email verification. Please try again.', 'error');
+            }
+        );
+    }
+
+    function forgotPassword(): void {
+        authHandlers.forgotPassword(email).then(
+            () => {
+                openSnackbar('Password reset email sent. Please check your email to reset your password.', 'success');
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error sending password reset email. Please try again.', 'error');
+            }
+        );
     }
 
     function openSnackbar(text: string, type: string): void {
@@ -158,6 +187,19 @@
         font-size: 16px;
         color: var(--grey-800);
     }
+
+    .login-forgot-password {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--grey-800);
+        cursor: pointer;
+    }
+    
+    .login-resend {
+        margin-top: 4px;
+        font-size: 12px;
+        cursor: pointer;
+    }
 </style>
 <div class="login-container">
     <form class="login-form" on:submit|preventDefault={login}>
@@ -172,6 +214,16 @@
         </div>
         <button class="login-button" type="submit">Login</button>
         <div class="login-signup">New here? <a href="/signup">Sign up</a></div>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-missing-attribute -->
+        <div class="login-forgot-password">Forgot password? <a on:click={forgotPassword}>Set a new one</a></div>
+        {#if currUser != null}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a class="login-resend" on:click={sendVerificationEmail}>Resend verification email</a>
+        {/if}
     </form>
 </div>
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

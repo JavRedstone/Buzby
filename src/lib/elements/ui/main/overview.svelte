@@ -109,10 +109,10 @@
                         setDoc(projectDoc, project.compactify()).then(async () => {
                             for (let member of members) {
                                 let ping: Ping = new Ping({
+                                    id: StringHelper.generateID(),
                                     type: PingConstants.TYPES.PROJECT,
                                     title: "Project request",
                                     message: `Member "${currentMember.displayName}" requested to add you to the project "${project.name}."`,
-                                    read: false,
                                     createdAt: new Date(),
                                 });
                                 member.requestedProjectIds.push(project.id);
@@ -367,7 +367,6 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 16px;
-        padding-bottom: 16px;
         color: var(--grey-800);
     }
 
@@ -409,7 +408,7 @@
                 </div>
                 <div class="overview-create-project-email-container">
                     <div>Member emails</div>
-                    <div class="overview-create-project-email-info">*If they have an account, they will receive a ping. Otherwise, they will not be added.</div>
+                    <div class="overview-create-project-email-info">*If they have an account, they will be requested to join. Otherwise, they will not be added.</div>
                     {#each memberEmails as email, i}
                         <div class="overview-create-project-field" transition:slide={{duration: TransitionConstants.DURATION}}>
                             <span class="overview-create-project-icon material-symbols-rounded">email</span>
@@ -432,7 +431,7 @@
     <h2>Projects</h2>
     <div class="overview-projects-container">
         {#each projects as project}
-            <ProjectOverview bind:project={project} isRequested={false} />
+            <ProjectOverview bind:project={project} isRequested={false} isOwner={project.ownerId === currentMember.id} />
         {/each}
         {#if projects.length === 0}
             <div class="overview-no-projects">No projects found. Create one above!</div>
@@ -441,10 +440,10 @@
     <h2>Requested Projects</h2>
     <div class="overview-requested-projects-container">
         {#each requestedProjects as project}
-            <ProjectOverview bind:project={project} isRequested={true} />
+            <ProjectOverview bind:project={project} isRequested={true} isOwner={false} />
         {/each}
         {#if requestedProjects.length === 0}
-            <div class="overview-no-projects">No requested projects found.</div>
+            <div class="overview-no-projects">No requested projects found. Receive a request to join a project!</div>
         {/if}
     </div>
 </div>

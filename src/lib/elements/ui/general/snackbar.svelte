@@ -51,7 +51,7 @@
 </style>
 
 {#if selfOpen}
-    <button class="snackbar" style="background-color: {SnackbarConstants.getTypeByName(type).color}" on:click={hide} transition:scale={{opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
+    <button class="snackbar" style="background-color: {SnackbarConstants.getTypeByName(type).color}" on:click={hide} transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
         <slot></slot>
     </button>
 {/if}

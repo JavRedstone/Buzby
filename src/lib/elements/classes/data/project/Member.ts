@@ -2,6 +2,7 @@ import { Ping } from "../chat/Ping";
 
 export class Member {
     public id: string;
+    
     public displayName: string;
     public email: string;
 

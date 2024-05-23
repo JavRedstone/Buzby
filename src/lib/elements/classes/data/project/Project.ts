@@ -8,6 +8,7 @@ import { Event } from "../time/Event";
 
 export class Project {
     public id: string;
+    
     public name: string;
     public description: string;
     public color: string;

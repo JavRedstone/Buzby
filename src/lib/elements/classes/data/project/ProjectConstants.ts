@@ -19,4 +19,12 @@ export class ProjectConstants {
         new DisplayColor("African Elephant", "#95a5a6"),
         new DisplayColor("Silver Fox", "#607d8b"),
     ];
+
+    public static findColorByName(name: string): DisplayColor {
+        return ProjectConstants.COLORS.find(color => color.displayName === name);
+    }
+
+    public static findColorByHex(hex: string): DisplayColor {
+        return ProjectConstants.COLORS.find(color => color.hex === hex);
+    }
 }

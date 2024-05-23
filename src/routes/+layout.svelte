@@ -52,8 +52,14 @@
         --accent-darker: #0d4aa2;
 
         --success: #4caf50;
+        --success-light: #c8e6c9;
+        --success-dark: #2e7d32;
         --error: #f44336;
+        --error-light: #f8d7da;
+        --error-dark: #b71c1c;
         --warning: #ff9800;
+        --warning-light: #ffe0b2;
+        --warning-dark: #e65100;
 
         --off-white: #ebedef;
         --off-white-lightish: #eeefef;

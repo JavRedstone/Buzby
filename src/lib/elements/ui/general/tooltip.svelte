@@ -48,7 +48,7 @@
 <!-- svelte-ignore a11y-mouse-events-have-key-events -->
 <div class="tooltip-container" on:mouseover={open} on:mouseleave={close}>
     {#if visible}
-        <div class="tooltip" transition:scale={{ opacity: 0, start: 0.9, duration: TransitionConstants.DURATION}}>
+        <div class="tooltip" transition:scale={{ opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
             <slot></slot>
         </div>
     {/if}
