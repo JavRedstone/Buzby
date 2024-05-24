@@ -14,6 +14,7 @@
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
+	import { goto } from '$app/navigation';
 
     export let project: Project = null;
     export let isRequested: boolean = false;
@@ -32,15 +33,22 @@
     let editOpen: boolean = false;
     let deleteOpen: boolean = false;
     let leaveOpen: boolean = false;
+
+    let inviteProcessing: boolean = false;
+    let editProcessing: boolean = false;
+    let deleteProcessing: boolean = false;
+    let leaveProcessing: boolean = false;
+    let joinProcessing: boolean = false;
+    let rejectProcessing: boolean = false;
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
 
     function gotoProject(): void {
-        console.log("gotoProject");
         projectSelected.update((value) => {
             value.project = project;
+            value.projectName = project.name;
             return value;
         });
     }
@@ -80,7 +88,15 @@
     }
 
     function inviteMemberConfirmed(): void {
+        if (inviteProcessing) {
+            return;
+        } else {
+            inviteProcessing = true;
+        }
+
         if (inviteEmail.trim().length == 0) {
+            openSnackbar("Please enter an email.", "error");
+            inviteProcessing = false;
             return;
         }
 
@@ -96,21 +112,27 @@
             });
             if (memberIds.length == 0) {
                 openSnackbar("No member found with that email.", "error");
+                inviteProcessing = false;
                 return;
             } else if (memberIds.length > 1) {
                 openSnackbar("Multiple members found with that email. Please try again.", "error");
+                inviteProcessing = false;
                 return;
             } else if (memberIds[0] == currMember.id) {
                 openSnackbar("You cannot invite yourself to a project.", "error");
+                inviteProcessing = false;
                 return;
             } else if (project.joinedMemberIds.includes(memberIds[0])) {
                 openSnackbar("Member is already in the project.", "error");
+                inviteProcessing = false;
                 return;
             } else if (project.memberIds.includes(memberIds[0])) {
                 openSnackbar("Member is already requested to join the project.", "error");
+                inviteProcessing = false;
                 return;
             } else if (project.owner.id == memberIds[0]) {
                 openSnackbar("Member is already the owner of the project.", "error");
+                inviteProcessing = false;
                 return;
             }
 
@@ -132,44 +154,64 @@
                     setDoc(memberDoc, member.compactify());
                 }
                 allProjects.update((value) => {
-                    value.requestedProjects = [...value.requestedProjects, project];
+                    value.projects = value.projects.map((p) => {
+                        if (p.id == project.id) {
+                            p.memberIds = project.memberIds;
+                            p.members = project.members;
+                        }
+                        return p;
+                    });
                     return value;
                 });
                 openSnackbar("Successfully invited member.", "success");
-
+                inviteProcessing = false;
                 hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while inviting the member. Please try again.", "error");
+                inviteProcessing = false;
             });
         }).catch(() => {
             openSnackbar("An error occurred while inviting the member. Please try again.", "error");
+            inviteProcessing = false;
         });
     }
 
     function editProjectConfirmed(): void {
+        if (editProcessing) {
+            return;
+        } else {
+            editProcessing = true;
+        }
+
         if (projectName == project.name && projectDescription == project.description && projectColor == project.color) {
+            editProcessing = false;
             hideExtras();
             return;
         }
 
         if (projectName.trim() === "") {
             openSnackbar("Please enter a project name.", "error");
+            editProcessing = false;
             return;
         }
         if (projectName.length > ProjectConstants.PROJECT_NAME_MAX_LENGTH) {
             openSnackbar("Project name is too long.", "error");
+            editProcessing = false;
             return;
         }
         if (projectDescription.trim() === "") {
             openSnackbar("Please enter a project description.", "error");
+            editProcessing = false;
             return;
         }
         if (projectDescription.length > ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH) {
             openSnackbar("Project description is too long.", "error");
+            editProcessing = false;
             return;
         }
         if (projectColor.trim() === "") {
             openSnackbar("Please enter a project color.", "error");
+            editProcessing = false;
             return;
         }
 
@@ -204,12 +246,22 @@
                 });
                 return value;
             });
-
+            openSnackbar("Project successfully edited.", "success");
+            editProcessing = false;
             hideExtras();
+        }).catch(() => {
+            openSnackbar("An error occurred while editing the project. Please try again.", "error");
+            editProcessing = false;
         });
     }
 
     function deleteProjectConfirmed(): void {
+        if (deleteProcessing) {
+            return;
+        } else {
+            deleteProcessing = true;
+        }
+
         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
         deleteDoc(projectDoc).then(() => {
             let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('chats', project.chatId);
@@ -242,15 +294,25 @@
                     return value;
                 });
                 openSnackbar("Project successfully deleted.", "success");
-
+                deleteProcessing = false;
                 hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while deleting the project. Please try again.", "error");
+                deleteProcessing = false;
             });
+        }).catch(() => {
+            openSnackbar("An error occurred while deleting the project. Please try again.", "error");
+            deleteProcessing = false;
         });
     }
 
     function leaveProjectConfirmed(): void {
+        if (leaveProcessing) {
+            return;
+        } else {
+            leaveProcessing = true;
+        }
+
         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
         project.joinedMemberIds = project.joinedMemberIds.filter((id) => id != currMember.id);
         project.memberIds = project.memberIds.filter((id) => id != currMember.id);
@@ -262,7 +324,6 @@
                     value.currentMember = currMember;
                     return value;
                 });
-                openSnackbar("Successfully left project.", "success");
 
                 if (project.owner) {
                     let ping: Ping = new Ping({
@@ -290,17 +351,26 @@
                     value.projects = value.projects.filter((p) => p.id != project.id);
                     return value;
                 });
-
+                openSnackbar("Successfully left project.", "success");
+                leaveProcessing = false;
                 hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while leaving the project. Please try again.", "error");
+                leaveProcessing = false;
             });
         }).catch(() => {
             openSnackbar("An error occurred while leaving the project. Please try again.", "error");
+            leaveProcessing = false;
         });
     }
 
     function joinProjectConfirmed(): void {
+        if (joinProcessing) {
+            return;
+        } else {
+            joinProcessing = true;
+        }
+
         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
         project.joinedMemberIds.push(currMember.id);
         project.joinedMembers.push(currMember);
@@ -313,7 +383,6 @@
                     value.currentMember = currMember;
                     return value;
                 });
-                openSnackbar("Successfully joined project.", "success");
 
                 if (project.owner) {
                     let ping: Ping = new Ping({
@@ -332,16 +401,26 @@
                     value.projects = [...value.projects, project];
                     return value;
                 });
+                openSnackbar("Successfully joined project.", "success");
+                joinProcessing = false;
                 hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while joining the project. Please try again.", "error");
+                joinProcessing = false;
             });
         }).catch(() => {
             openSnackbar("An error occurred while joining the project. Please try again.", "error");
+            joinProcessing = false;
         });
     }
 
     function rejectProjectConfirmed(): void {
+        if (rejectProcessing) {
+            return;
+        } else {
+            rejectProcessing = true;
+        }
+
         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
         project.memberIds = project.memberIds.filter((id) => id != currMember.id);
         setDoc(projectDoc, project.compactify()).then(() => {
@@ -352,7 +431,6 @@
                     value.currentMember = currMember;
                     return value;
                 });
-                openSnackbar("Successfully rejected project.", "success");
 
                 if (project.owner) {
                     let ping: Ping = new Ping({
@@ -370,11 +448,16 @@
                     value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
                     return value;
                 });
+                openSnackbar("Successfully rejected project.", "success");
+                rejectProcessing = false;
+                hideExtras();
             }).catch(() => {
                 openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
+                rejectProcessing = false;
             });
         }).catch(() => {
             openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
+            rejectProcessing = false;
         });
     }
 
@@ -612,13 +695,34 @@
             background-color: var(--grey-400);
         }
     }
+
+    .project-overview-goto {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+        padding-left: 8px;
+        padding-right: 4px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        background-color: var(--primary);
+        font-size: 14px;
+        color: var(--grey-800);
+        border: none;
+        outline: none;
+        border-radius: 4px;
+        cursor: pointer;
+
+        transition: background-color var(--transition-duration), color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--primary-dark);
+            color: var(--grey-100);
+        }
+    }
 </style>
 
 {#if existed}
     <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="project-overview-click-area" on:click={gotoProject}></div>
         <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
         <div class="project-overview-name">{project.name}</div>
         <div class="project-overview-description">{project.description}</div>
@@ -716,6 +820,10 @@
                 {/if}
             {/if}
         {/if}
+        <button class="project-overview-goto" on:click={gotoProject}>
+            Go to project
+            <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
     </div>
 {/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

@@ -25,9 +25,10 @@
     let drawerOpen: boolean = false;
     let projectSelectOpen: boolean = false;
 
-    let defaultProject: string = ProjectConstants.DEFAULT_PROJECT_NAME;
-    let selectedProject: string = defaultProject;
-    let projectNames: string[] = [defaultProject];
+    let defaultProjectName: string = ProjectConstants.DEFAULT_PROJECT_NAME;
+    let selectedProject: Project = null;
+    let selectedProjectName: string = defaultProjectName;
+    let projectNames: string[] = [defaultProjectName];
     let projects: Project[] = [];
     let requestedProjects: Project[] = [];
     let pingsOpen: boolean = false;
@@ -41,7 +42,7 @@
     let currMember: Member = null;
 
     function toggleDrawer(): void {
-        if (selectedProject == defaultProject) {
+        if (selectedProjectName == defaultProjectName) {
             sideOpen = false;
         }
         else {
@@ -54,16 +55,25 @@
         }
     }
 
+    function gotoHome(): void {
+        goto('/');
+        projectSelected.update((value) => {
+            value.projectName = defaultProjectName;
+            value.project = null;
+            return value;
+        });
+    }
+
     function autoRedirect(): void {
-        if (selectedProject == defaultProject) {
-            goto('/');
+        if (selectedProjectName == defaultProjectName) {
+            gotoHome();
         }
     }
 
     function getProjects(): void {
         if (currMember == null) return;
         projects = [];
-        projectNames = [defaultProject];
+        projectNames = [defaultProjectName];
         let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
         let projectsQuery = null;
         if (currMember.projectIds.length == 0) {
@@ -95,6 +105,7 @@
                 openSnackbar('Error getting projects. Please try again later.', 'error');
             }
         );
+        requestedProjects = [];
         let requestedProjectsQuery = null;
         if (currMember.requestedProjectIds.length == 0) {
             requestedProjectsQuery = query(projectsCollection, where('id', 'in', ['']));
@@ -123,29 +134,57 @@
                 openSnackbar('Error getting projects. Please try again later.', 'error');
             }
         );
+
+        allProjects.subscribe((value) => {
+            projects = value.projects;
+            projectNames = [defaultProjectName];
+            for (let project of projects) {
+                projectNames = [...projectNames, project.name];
+            }
+            requestedProjects = value.requestedProjects;
+        });
+
+        projectSelected.subscribe((value) => {
+            selectedProjectName = value.projectName;
+            if (selectedProjectName == defaultProjectName) {
+                sideOpen = false;
+                drawerOpen = false;
+            } else {
+                sideOpen = true;
+                if (location.pathname == '/') {
+                    goto('/hive');
+                }
+            }
+            pingsOpen = false;
+            projectSelectOpen = false;
+        });
     }
 
     function toggleProjectSelect(): void {
         drawerOpen = false;
+        pingsOpen = false;
     }
 
     function selectProject(): void {
         drawerOpen = false;
-        let project: Project = projects.find((group) => group.name == selectedProject);
-        if (project || selectedProject == defaultProject) {
+        pingsOpen = false;
+        let project: Project = projects.find((group) => group.name == selectedProjectName);
+        if (project || selectedProjectName == defaultProjectName) {
+            selectedProject = project;
             projectSelected.update((value) => {
-                value.projectName = selectedProject;
+                value.projectName = selectedProjectName;
                 value.project = project;
                 return value;
             });
-            goto(selectedProject != defaultProject ? '/hive' : '/')
+            goto(selectedProjectName != defaultProjectName ? '/hive' : '/')
         }
-        sideOpen = selectedProject != defaultProject;
+        sideOpen = selectedProjectName != defaultProjectName;
     }
 
     function login(): void {
         drawerOpen = false;
         projectSelectOpen = false;
+        pingsOpen = false;
         goto('/login');
     }
 
@@ -186,6 +225,7 @@
     function logout(): void {
         drawerOpen = false;
         projectSelectOpen = false;
+        pingsOpen = false;
         try {
             authHandlers.logout().then(
                 () => {
@@ -196,7 +236,7 @@
                         return value;
                     });
                     projectSelected.update((value) => {
-                        value.projectName = defaultProject;
+                        value.projectName = defaultProjectName;
                         value.project = null;
                         return value;
                     });
@@ -254,6 +294,29 @@
         ).catch(
             (error: any) => {
                 openSnackbar('Error marking notification as read. Please try again.', 'error');
+            }
+        );
+    }
+
+    function markAllPingsRead(): void {
+        drawerOpen = false;
+        projectSelectOpen = false;
+
+        currMember.pings = [];
+
+        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
+        setDoc(memberDoc, currMember.compactify()).then(
+            () => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
+                pings = currMember.pings;
+                openSnackbar('All notifications marked as read.', 'neutral');
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error marking notifications as read. Please try again.', 'error');
             }
         );
     }
@@ -423,6 +486,12 @@
         top: 4px;
         cursor: pointer;
     }
+
+    .core-pings-mark-all {
+        position: absolute;
+        top: 8px;
+        cursor: pointer;
+    }
 </style>
 <div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -430,15 +499,15 @@
     <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer}>
         {#if drawerOpen}
             close
-        {:else if selectedProject != defaultProject}
+        {:else if selectedProjectName != defaultProjectName}
             menu_open
         {:else}
             hexagon
         {/if}
     </span>
-    <a href="/">
-        <img class="core-header-logo" src={logo} alt="logo" />
-    </a>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <img class="core-header-logo" src={logo} alt="logo" on:click={gotoHome} />
     {#if currUser == null || !currUser.emailVerified || currMember == null}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -448,7 +517,7 @@
         </a>
     {:else}
         <div class="core-group-dropdown">
-            <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProject} bind:selectedItem={selectedProject} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
+            <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
         </div>
         <div class="core-header-icon-container" style="right: 108px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -463,6 +532,12 @@
             <div class="core-pings-container">
                 <Menu bind:open={pingsOpen}>
                     <div class="core-pings-title">Notifications</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <a class="core-pings-mark-all" on:click={markAllPingsRead}>
+                        <span class="material-symbols-rounded">clear_all</span>
+                    </a>
                     {#each pings as ping, i}
                         <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
                             <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
@@ -496,7 +571,7 @@
         </div>
     {/if}
 </div>
-{#if drawerOpen && selectedProject != defaultProject}
+{#if drawerOpen && selectedProjectName != defaultProjectName}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ROUTES as routeItem}
             <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>

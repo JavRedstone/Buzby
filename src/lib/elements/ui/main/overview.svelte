@@ -31,6 +31,8 @@
     let requestedProjects: Project[] = [];
 
     let createOpen: boolean = false;
+    let createProcessing: boolean = false;
+
     let projectName: string = "";
     let projectDescription: string = "";
     let projectColor: string = ObjectHelper.pickRandom(ProjectConstants.COLORS).hex;
@@ -41,25 +43,36 @@
     let snackbarType: string = "neutral";
 
     function createProject(): void {
+        if (createProcessing) {
+            return;
+        } else {
+            createProcessing = true;
+        }
+
         if (createOpen && currentUser && currentMember) {
             if (projectName.trim() === "") {
                 openSnackbar("Please enter a project name.", "error");
+                createProcessing = false;
                 return;
             }
             if (projectName.length > ProjectConstants.PROJECT_NAME_MAX_LENGTH) {
                 openSnackbar("Project name is too long.", "error");
+                createProcessing = false;
                 return;
             }
             if (projectDescription.trim() === "") {
                 openSnackbar("Please enter a project description.", "error");
+                createProcessing = false;
                 return;
             }
             if (projectDescription.length > ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH) {
                 openSnackbar("Project description is too long.", "error");
+                createProcessing = false;
                 return;
             }
             if (projectColor.trim() === "") {
                 openSnackbar("Please enter a project color.", "error");
+                createProcessing = false;
                 return;
             }
             
@@ -68,6 +81,7 @@
             if (memberEmails.length === 0) {
                 memberEmails = [""];
                 openSnackbar("Please add at least one member email.", "error");
+                createProcessing = false;
                 return;
             }
 
@@ -132,26 +146,29 @@
                                 });
                                 
                                 openSnackbar("Project created successfully.", "success");
+                                createProcessing = false;
                                 cancel();
                             });
                         }).catch((error) => {
                             openSnackbar("An error occurred while creating the project.", "error");
+                            createProcessing = false;
                         });
                     });
                 }
                 else {
                     openSnackbar("No members found with the provided emails.", "error");
+                    createProcessing = false;
                 }
             });
         }
     }
 
     function cancel(): void {
-        createOpen = false;
         projectName = "";
         projectDescription = "";
         projectColor = ObjectHelper.pickRandom(ProjectConstants.COLORS).hex;
         memberEmails = [""];
+        createOpen = false;
     }
 
     function removeEmail(idx: number): void {
