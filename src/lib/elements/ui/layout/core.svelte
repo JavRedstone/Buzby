@@ -81,15 +81,17 @@
         } else {
             projectsQuery = query(projectsCollection, where('id', 'in', currMember.projectIds));
         }
-            
+        
         getDocs(projectsQuery).then(
             (querySnapshot) => {
                 querySnapshot.forEach(
                     async (doc) => {
                         let project: Project = new Project(doc.data());
                         await project.getObjects();
-                        projects.push(project);
-                        projectNames = [...projectNames, project.name];
+                        if (projects.find((p) => p.id == project.id) == null) {
+                            projects = [...projects, project];
+                            projectNames = [...projectNames, project.name];
+                        }
 
                         projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -118,7 +120,9 @@
                     async (doc) => {
                         let project: Project = new Project(doc.data());
                         await project.getObjects();
-                        requestedProjects.push(project);
+                        if (requestedProjects.find((p) => p.id == project.id) == null) {
+                            requestedProjects = [...requestedProjects, project];
+                        }
 
                         requestedProjects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -168,7 +172,7 @@
     function selectProject(): void {
         drawerOpen = false;
         pingsOpen = false;
-        let project: Project = projects.find((group) => group.name == selectedProjectName);
+        let project: Project = projects.find((project) => project.name == selectedProjectName);
         if (project || selectedProjectName == defaultProjectName) {
             selectedProject = project;
             projectSelected.update((value) => {
@@ -371,7 +375,7 @@
         position: absolute;
     }
 
-    .core-group-dropdown {
+    .core-project-dropdown {
         position: absolute;
         top: 6px;
         left: 200px;
@@ -516,8 +520,8 @@
             <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
         </a>
     {:else}
-        <div class="core-group-dropdown">
-            <Dropdown label="Select group" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
+        <div class="core-project-dropdown">
+            <Dropdown label="Select project" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
         </div>
         <div class="core-header-icon-container" style="right: 108px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->
