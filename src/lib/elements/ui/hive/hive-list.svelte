@@ -14,11 +14,21 @@
     }
 
     let tasks: Task[] = [];
+    let taskPositions: Vector2[] = [];
+    let projectPercentage: number = 0;
 
     function getTasks(): void {
         projectSelected.subscribe((value) => {
             if (value.project) {
                 tasks = value.project.tasks;
+
+                let total = 0;
+                for (let i = 0; i < tasks.length; i++) {
+                    total += tasks[i].percentage;
+
+                    
+                }
+                projectPercentage = total / tasks.length;
             }
         });
     }

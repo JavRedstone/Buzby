@@ -1,3 +1,6 @@
+import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import type { DocumentData, DocumentReference } from "firebase/firestore";
+
 export class Task {
     public id: string;
     public name: string;
@@ -7,7 +10,8 @@ export class Task {
     public startDate: Date;
     public endDate: Date;
 
-    public parentTaskId: string;
+    public parentId: string;
+    public childIds: string[] = [];
     
     constructor(data: any) {
         this.id = data.id;
@@ -36,7 +40,8 @@ export class Task {
             this.endDate = new Date();
         }
 
-        this.parentTaskId = data.parentTaskId;
+        this.parentId = data.parentTaskId;
+        this.childIds = data.childTaskIds;
     }
 
     public compactify(): any {
@@ -47,7 +52,8 @@ export class Task {
             percentage: this.percentage,
             start: this.startDate.getTime(),
             end: this.endDate.getTime(),
-            parentTaskId: this.parentTaskId
+            parentId: this.parentId,
+            childIds: this.childIds
         };
     }
 }

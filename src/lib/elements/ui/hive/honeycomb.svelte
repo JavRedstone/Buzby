@@ -3,19 +3,19 @@
 	import { HiveConstants } from "$lib/elements/classes/ui/hive/HiveConstants";
 	import Tooltip from "../general/tooltip.svelte";
 
-    export let x: number = 100;
-    export let y: number = 100;
+    export let x: number = 0;
+    export let y: number = 0;
     export let task: Task = new Task({name:"Example task"});
 
     function addFill(): void {
         if (task.percentage < 100) {
-            task.percentage += 10;
+            task.percentage += HiveConstants.HONEYCOMB_FILL_INCREMENT;
         }
     }
 
     function removeFill(): void {
         if (task.percentage > 0) {
-            task.percentage -= 10;
+            task.percentage -= HiveConstants.HONEYCOMB_FILL_INCREMENT;
         }
     }
 </script>

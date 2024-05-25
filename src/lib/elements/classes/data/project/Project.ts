@@ -113,7 +113,7 @@ export class Project {
                     this.chat = new Chat(doc.data());
                     await this.chat.getObjects();
                 }
-            });            
+            });
         }
         else {
             this.chat = new Chat({});
