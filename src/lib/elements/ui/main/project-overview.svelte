@@ -14,7 +14,6 @@
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
-	import { goto } from '$app/navigation';
 
     export let project: Project = null;
     export let isRequested: boolean = false;
@@ -709,7 +708,7 @@
         color: var(--grey-800);
         border: none;
         outline: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
 
         transition: background-color var(--transition-duration), color var(--transition-duration);

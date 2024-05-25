@@ -26,9 +26,7 @@
     });
 </script>
 <style>
-    :global(body),
-    :global(html)
-    :global(main) {
+    :global(body), :global(html) :global(main) {
         display: block !important;
         height: auto !important;
         width: auto !important;
@@ -68,7 +66,7 @@
 
         --font-family: 'Poppins', sans-serif;
         --transition-duration: 0.3s;
-        
+
         /* https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors */
         --grey-900: #212121;
         --grey-800: #424242;
@@ -81,7 +79,7 @@
         --grey-200: #eeeeee;
         --grey-100: #f5f5f5;
         --grey-50: #fafafa;
-        
+
         background-color: var(--off-white-light);
         font-family: var(--font-family) !important;
     }
@@ -123,16 +121,27 @@
     }
 
     :global(::-webkit-scrollbar-thumb:hover) {
-        background-color: #00000080
+        background-color: #00000080;
     }
 
     :global(.material-symbols-rounded) {
         user-select: none;
         font-variation-settings:
-        'FILL' 0,
-        'wght' 250,
-        'GRAD' 0,
-        'opsz' 24
+            'FILL' 0,
+            'wght' 250,
+            'GRAD' 0,
+            'opsz' 24;
+    }
+
+    :global(.hexagon) {
+        aspect-ratio: 1 / cos(30deg);
+        clip-path: polygon(50% -50%, 100% 50%, 50% 150%, 0 50%);
+    }
+
+    :global(.hexagon-alt) {
+        aspect-ratio: cos(30deg);
+        clip-path: polygon(-50% 50%, 50% 100%, 150% 50%, 50% 0);
+        /* Switch x and y of previous polygon */
     }
 
     .layout-slot-container {
@@ -145,9 +154,9 @@
     }
 </style>
 <div class="layout-slot-container" style="{sideOpen ? 'left: 48px; width: calc(100vw - 48px);' : 'left: 0; width: 100vw;'}">
-    {#if currentUser || (w && (w.location.pathname == '/login' || w.location.pathname == '/signup'))}
+    {#if currentUser || (w && (location.pathname == '/login' || location.pathname == '/signup'))}
         <slot />
-    {:else if w && w.location.pathname == '/'}
+    {:else if w && location.pathname == '/'}
         <Home />
     {:else}
         <Reminder />

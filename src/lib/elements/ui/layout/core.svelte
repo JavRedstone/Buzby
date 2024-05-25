@@ -19,19 +19,26 @@
 	import type { Ping } from "$lib/elements/classes/data/chat/Ping";
 	import { goto } from '$app/navigation';
 	import Badge from '../general/badge.svelte';
+	import { navigating } from '$app/stores';
 
     export let sideOpen: boolean = false;
 
+    let w: Window = null;
+    let pathname: string = '';
+
     let drawerOpen: boolean = false;
     let projectSelectOpen: boolean = false;
+    let pingsOpen: boolean = false;
 
     let defaultProjectName: string = ProjectConstants.DEFAULT_PROJECT_NAME;
+    
     let selectedProject: Project = null;
     let selectedProjectName: string = defaultProjectName;
+    
     let projectNames: string[] = [defaultProjectName];
     let projects: Project[] = [];
     let requestedProjects: Project[] = [];
-    let pingsOpen: boolean = false;
+
     let pings: Ping[] = [];
     
     let snackbarOpen: boolean = false;
@@ -65,8 +72,12 @@
     }
 
     function autoRedirect(): void {
+        navigating.subscribe((value) => {
+            w = window;
+            pathname = w.location.pathname;
+        });
         if (selectedProjectName == defaultProjectName) {
-            gotoHome();
+            gotoHome(); // this works as it reloads page when manually changing link
         }
     }
 
@@ -180,7 +191,11 @@
                 value.project = project;
                 return value;
             });
-            goto(selectedProjectName != defaultProjectName ? '/hive' : '/')
+            if (selectedProjectName != defaultProjectName && location.pathname == '/') {
+                goto('/hive');
+            } else if (selectedProjectName == defaultProjectName) {
+                goto('/');
+            }
         }
         sideOpen = selectedProjectName != defaultProjectName;
     }
@@ -332,8 +347,8 @@
     }
 
     onMount(() => {
-        autoLogin();
         autoRedirect();
+        autoLogin();
     });
 </script>
 <style>
@@ -423,7 +438,7 @@
 
     .core-drawer-link {
         display: block;
-        padding: 7px;
+        padding: 6px;
         margin: 6px;
         margin-bottom: 12px;
         border-radius: 8px;
@@ -578,7 +593,7 @@
 {#if drawerOpen && selectedProjectName != defaultProjectName}
     <div class="core-drawer-left-container" transition:fly={{ x: -115, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ROUTES as routeItem}
-            <a class="core-drawer-link" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
+            <a class="core-drawer-link" style="{w && pathname == routeItem.route ? 'color: var(--primary-dark); background-color: var(--off-white);' : ''}" href={routeItem.route} on:click={() => drawerOpen = false}>{routeItem.name}</a>
         {/each}
     </div>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -589,7 +604,7 @@
     <div class="core-drawer-left-container-small" transition:fly={{ x: -50, duration: TransitionConstants.DURATION }}>
         {#each RouteConstants.ROUTES as routeItem}
             <a href={routeItem.route} on:click={() => drawerOpen = false}>
-                <span class="core-drawer-icon material-symbols-rounded">{routeItem.icon}</span>
+                <span class="core-drawer-icon material-symbols-rounded" style="{w && pathname == routeItem.route ? 'color: var(--primary-dark); background-color: var(--off-white);' : ''}">{routeItem.icon}</span>
             </a>
         {/each}
     </div>
