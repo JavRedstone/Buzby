@@ -493,7 +493,6 @@
         border-radius: 8px;
         box-shadow: 2px 2px 8px var(--grey-400);
         overflow-wrap: anywhere;
-        cursor: pointer;
         user-select: none;
 
         transition: box-shadow var(--transition-duration);
@@ -549,11 +548,20 @@
 
     .project-overview-action {
         margin-top: 8px;
+        color: var(--grey-800);
+        cursor: pointer;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
     }
 
     .project-overview-remove {
         margin-top: 8px;
         color: var(--error);
+        cursor: pointer;
 
         transition: color var(--transition-duration);
 
@@ -572,6 +580,7 @@
         box-sizing: border-box;
         width: 100%;
         padding-left: 4px;
+        padding-right: 4px;
         padding-top: 2px;
         padding-bottom: 2px;
         background-color: var(--grey-200);
@@ -738,30 +747,18 @@
         {:else}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={inviteMember}>
-                <span class="project-overview-action material-symbols-rounded">person_add</span>
-            </a>
+            <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--accent);' : ''} on:click={inviteMember}>person_add</span>
             {#if isOwner}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a on:click={editProject}>
-                    <span class="project-overview-action material-symbols-rounded">edit</span>
-                </a>
+                <span class="project-overview-action material-symbols-rounded" style={editOpen ? 'color: var(--accent);' : ''} on:click={editProject}>edit</span>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a on:click={deleteProject}>
-                    <span class="project-overview-remove material-symbols-rounded">delete</span>
-                </a>
+                <span class="project-overview-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteProject}>delete</span>
             {:else}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a on:click={leaveProject}>
-                    <span class="project-overview-remove material-symbols-rounded">door_open</span>
-                </a>
+                <span class="project-overview-remove material-symbols-rounded" style={leaveOpen ? 'color: var(--error-dark);' : ''} on:click={leaveProject}>door_open</span>
             {/if}
             {#if inviteOpen}
                 <div transition:slide={{duration: TransitionConstants.DURATION}}>

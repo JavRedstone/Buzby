@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import { HiveConstants } from "$lib/elements/classes/ui/hive/HiveConstants";
-	import Tooltip from "../general/tooltip.svelte";
+	import Tooltip from "$lib/elements/ui/general/tooltip.svelte";
 
-    export let x: number = 0;
-    export let y: number = 0;
+    export let x: number = 100;
+    export let y: number = 100;
     export let task: Task = new Task({name:"Example task"});
 
     function addFill(): void {
@@ -85,6 +85,12 @@
         color: var(--grey-100);
         font-size: 24px;
         cursor: pointer;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--grey-800);
+        }
     }
 
     .honeycomb-hexagon-remove-fill {
@@ -95,6 +101,12 @@
         color: var(--grey-100);
         font-size: 24px;
         cursor: pointer;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--grey-800);
+        }
     }
 
     .honeycomb-hexagon-overlay {

@@ -34,6 +34,7 @@
     
     let selectedProject: Project = null;
     let selectedProjectName: string = defaultProjectName;
+    let selectedProjectIdx: number = 0;
     
     let projectNames: string[] = [defaultProjectName];
     let projects: Project[] = [];
@@ -183,7 +184,7 @@
     function selectProject(): void {
         drawerOpen = false;
         pingsOpen = false;
-        let project: Project = projects.find((project) => project.name == selectedProjectName);
+        let project: Project = projects[selectedProjectIdx];
         if (project || selectedProjectName == defaultProjectName) {
             selectedProject = project;
             projectSelected.update((value) => {
@@ -366,7 +367,7 @@
         top: 3px;
         left: 44px;
         height: 42px;
-
+        cursor: pointer;
         user-select: none;
     }
 
@@ -536,7 +537,7 @@
         </a>
     {:else}
         <div class="core-project-dropdown">
-            <Dropdown label="Select project" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
+            <Dropdown label="Select project" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:selectedItemIdx={selectedProjectIdx} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
         </div>
         <div class="core-header-icon-container" style="right: 108px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->

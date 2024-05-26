@@ -6,6 +6,7 @@
     export let items: string[];
     export let defaultItem: string;
     export let selectedItem: string = defaultItem;
+    export let selectedItemIdx: number = 0;
     export let open: boolean = false;
 
     let dispatch = createEventDispatcher();
@@ -15,8 +16,9 @@
         dispatch("toggle", open);
     }
 
-    function select(item: string): void {
+    function select(item: string, idx: number): void {
         selectedItem = item;
+        selectedItemIdx = idx;
         open = false;
 
         dispatch("select", item);
@@ -109,7 +111,7 @@
                 <!-- svelte-ignore a11y-missing-attribute -->
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <a class="dropdown-a" style="{i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--grey-400)' : 'border-bottom: 1px solid var(--grey-300)' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px'};" on:click={() => select(item)}>{item}</a>
+                <a class="dropdown-a" style="{(i == selectedItemIdx ? 'background-color: var(--off-white-lightish); color: var(--primary-dark);' : '') + (i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--grey-400);' : 'border-bottom: 1px solid var(--grey-300);' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;')};" on:click={() => select(item, i)}>{item}</a>
             {/each}
         </div>
     {/if}

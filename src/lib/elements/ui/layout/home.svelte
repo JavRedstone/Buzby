@@ -17,5 +17,5 @@
     }
 </style>
 <div class="home-container">
-    <div class="home-title">Helping students work together [TODO NEED TO DO]</div>
+    <div class="home-title"></div>
 </div>
