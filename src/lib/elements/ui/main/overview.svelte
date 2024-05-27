@@ -16,8 +16,6 @@
 	import { CollectionReference, type DocumentData } from 'firebase/firestore';
 	import { Project } from '$lib/elements/classes/data/project/Project';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
-	import type { User } from 'firebase/auth';
-	import { userStatus } from '$lib/elements/stores/auth-store';
 	import { onMount } from 'svelte';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
@@ -25,8 +23,7 @@
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
 
-    let currentUser: User = null;
-    let currentMember: Member = null;
+    let currMember: Member = null;
     let projects: Project[] = [];
     let requestedProjects: Project[] = [];
 
@@ -48,43 +45,43 @@
         } else {
             createProcessing = true;
         }
-
-        if (createOpen && currentUser && currentMember) {
-            if (projectName.trim() === "") {
-                openSnackbar("Please enter a project name.", "error");
-                createProcessing = false;
-                return;
-            }
-            if (projectName.length > ProjectConstants.PROJECT_NAME_MAX_LENGTH) {
-                openSnackbar("Project name is too long.", "error");
-                createProcessing = false;
-                return;
-            }
-            if (projectDescription.trim() === "") {
-                openSnackbar("Please enter a project description.", "error");
-                createProcessing = false;
-                return;
-            }
-            if (projectDescription.length > ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH) {
-                openSnackbar("Project description is too long.", "error");
-                createProcessing = false;
-                return;
-            }
-            if (projectColor.trim() === "") {
-                openSnackbar("Please enter a project color.", "error");
-                createProcessing = false;
-                return;
-            }
-            
-            memberEmails = memberEmails.filter((email) => email !== "").filter((email) => email.toLowerCase() !== currentUser.email.toLowerCase()).filter((email, index, self) => self.indexOf(email) === index).map((email) => email.toLowerCase());
-            
-            if (memberEmails.length === 0) {
-                memberEmails = [""];
-                openSnackbar("Please add at least one member email.", "error");
-                createProcessing = false;
-                return;
-            }
-
+        
+        if (projectName.trim() === "") {
+            openSnackbar("Please enter a project name.", "error");
+            createProcessing = false;
+            return;
+        }
+        if (projectName.length > ProjectConstants.PROJECT_NAME_MAX_LENGTH) {
+            openSnackbar(`Project name is too long. Max length is ${ProjectConstants.PROJECT_NAME_MAX_LENGTH} characters.`, "error");
+            createProcessing = false;
+            return;
+        }
+        if (projectDescription.trim() === "") {
+            openSnackbar("Please enter a project description.", "error");
+            createProcessing = false;
+            return;
+        }
+        if (projectDescription.length > ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH) {
+            openSnackbar(`Project description is too long. Max length is ${ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} characters.`, "error");
+            createProcessing = false;
+            return;
+        }
+        if (projectColor.trim() === "") {
+            openSnackbar("Please enter a project color.", "error");
+            createProcessing = false;
+            return;
+        }
+        
+        memberEmails = memberEmails.filter((email) => email !== "").filter((email) => email.toLowerCase() !== currMember.email.toLowerCase()).filter((email, index, self) => self.indexOf(email) === index).map((email) => email.toLowerCase());
+        
+        if (memberEmails.length === 0) {
+            memberEmails = [""];
+            openSnackbar("Please add at least one member email.", "error");
+            createProcessing = false;
+            return;
+        }
+        
+        if (createOpen && currMember) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
             let membersQuery = query(membersCollection, where("email", "in", memberEmails));
             let memberIds: string[] = [];
@@ -96,7 +93,7 @@
                 });
 
                 if (memberIds.length > 0) {
-                    memberIds.push(currentUser.uid);
+                    memberIds.push(currMember.id);
 
                     let chat: Chat = new Chat({
                         id: StringHelper.generateID(),
@@ -110,9 +107,9 @@
                             name: projectName,
                             description: projectDescription,
                             color: projectColor,
-                            ownerId: currentUser.uid,
+                            ownerId: currMember.id,
                             memberIds: memberIds,
-                            joinedMemberIds: [currentUser.uid],
+                            joinedMemberIds: [currMember.id],
                             chatId: chat.id,
                             taskIds: [],
                             eventIds: [],
@@ -126,7 +123,7 @@
                                     id: StringHelper.generateID(),
                                     type: PingConstants.TYPES.PROJECT,
                                     title: "Project request",
-                                    message: `Member "${currentMember.displayName}" requested to add you to the project "${project.name}."`,
+                                    message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
                                     createdAt: new Date(),
                                 });
                                 member.requestedProjectIds.push(project.id);
@@ -134,9 +131,9 @@
                                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", member.id);
                                 await setDoc(memberDoc, member.compactify());
                             }
-                            currentMember.projectIds.push(project.id);
-                            let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currentMember.id);
-                            setDoc(currentMemberDoc, currentMember.compactify()).then(async () => {
+                            currMember.projectIds.push(project.id);
+                            let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currMember.id);
+                            setDoc(currentMemberDoc, currMember.compactify()).then(async () => {
                                 await project.getObjects();
 
                                 allProjects.update((value) => {
@@ -160,6 +157,9 @@
                     createProcessing = false;
                 }
             });
+        } else {
+            openSnackbar("An error occurred while creating the project.", "error");
+            createProcessing = false;
         }
     }
 
@@ -176,15 +176,9 @@
     }
 
     function getUser(): void {
-        userStatus.subscribe((value) => {
-            if (value.currentUser != null && value.currentUser.emailVerified) {
-                currentUser = value.currentUser;                
-            }
-        });
-
         memberStatus.subscribe((value) => {
             if (value.currentMember != null) {
-                currentMember = value.currentMember;
+                currMember = value.currentMember;
             }
         });
     }
@@ -449,7 +443,7 @@
     <h2>Projects</h2>
     <div class="overview-projects-container">
         {#each projects as project}
-            <ProjectOverview bind:project={project} isRequested={false} isOwner={project.ownerId === currentMember.id} />
+            <ProjectOverview bind:project={project} isRequested={false} isOwner={project.ownerId === currMember.id} />
         {/each}
         {#if projects.length === 0}
             <div class="overview-no-projects">No projects found. Create one above!</div>

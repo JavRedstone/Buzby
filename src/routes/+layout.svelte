@@ -1,6 +1,3 @@
-<svelte:head>
-    <title>Buzby</title>
-</svelte:head>
 <script lang="ts">
 	import Home from './../lib/elements/ui/layout/home.svelte';
 	import Reminder from './../lib/elements/ui/layout/reminder.svelte';

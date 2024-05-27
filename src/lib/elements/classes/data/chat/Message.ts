@@ -1,15 +1,21 @@
-import { DocumentReference, getDoc, type DocumentData } from "firebase/firestore";
+import { CollectionReference, DocumentReference, getDoc, getDocs, query, where, type DocumentData } from "firebase/firestore";
 import { Member } from "../project/Member";
-import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { DataConstants } from "../general/DataConstants";
 
 export class Message {
     public id: string;
 
     public text: string;
-    public read: boolean;
 
-    public memberId: string;
-    public member: Member = new Member({});
+    public senderId: string;
+    public sender: Member = new Member({});
+
+    public readIds: string[] = [];
+    public reads: Member[] = [];
+
+    public replyId: string;
+    public reply: Message;
 
     public createdAt: Date;
 
@@ -20,30 +26,51 @@ export class Message {
             this.text = "";
         }
 
-        this.read = data.read;
-        if (this.read == null || this.read == undefined) {
-            this.read = false;
+        this.senderId = data.senderId;
+        if (!this.senderId) {
+            this.senderId = "";
         }
 
-        this.memberId = data.memberId;
-        if (!this.memberId) {
-            this.memberId = "";
+        this.readIds = data.readIds;
+        if (!this.readIds) {
+            this.readIds = [];
         }
+
+        this.replyId = data.replyId;
 
         this.createdAt = new Date(data.createdAt);
     }
 
-    public async getObjects(): Promise<void> {
-        if (this.memberId) {
-            let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.memberId);
+    public async getSender(): Promise<void> {
+        if (this.senderId) {
+            let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.senderId);
             await getDoc(membersDoc).then((doc) => {
                 if (doc.exists()) {
-                    this.member = new Member(doc.data());
+                    this.sender = new Member(doc.data());
                 }
             });
         }
         else {
-            this.member = new Member({});
+            this.sender = new Member({});
+        }
+    }
+
+    public async getReads(): Promise<void> {
+        this.reads = [];
+        if (this.readIds && this.readIds.length > 0) {
+            let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
+            let clonedReadIds: string[] = this.readIds.slice();
+            while (clonedReadIds.length > 0) {
+                let batchReadIds = clonedReadIds.splice(0, DataConstants.MAX_BATCH_SIZE);
+                let membersQuery = query(membersCollection, where('id', 'in', batchReadIds));
+                await getDocs(membersQuery).then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.reads.push(new Member(doc.data()));
+                    });
+                });
+            }
+        } else {
+            this.reads = [];
         }
     }
 
@@ -51,8 +78,9 @@ export class Message {
         return {
             id: this.id,
             text: this.text,
-            read: this.read,
-            memberId: this.memberId,
+            senderId: this.senderId,
+            readIds: this.readIds,
+            replyId: this.replyId,
             createdAt: this.createdAt.getTime()
         };
     }

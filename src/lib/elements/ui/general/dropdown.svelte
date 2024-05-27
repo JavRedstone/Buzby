@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { createEventDispatcher } from "svelte";
 	import { slide } from "svelte/transition";
 
@@ -13,7 +14,7 @@
 
     function toggle(): void {
         open = !open;
-        dispatch("toggle", open);
+        dispatch("toggle");
     }
 
     function select(item: string, idx: number): void {
@@ -21,7 +22,7 @@
         selectedItemIdx = idx;
         open = false;
 
-        dispatch("select", item);
+        dispatch("select");
     }
 </script>
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -106,12 +107,11 @@
         {/if}
     </button>
     {#if open}
-        <div class="dropdown-content" transition:slide={{duration: 200}}>
+        <div class="dropdown-content" transition:slide={{duration: TransitionConstants.DURATION}}>
             {#each items as item, i}
-                <!-- svelte-ignore a11y-missing-attribute -->
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <a class="dropdown-a" style="{(i == selectedItemIdx ? 'background-color: var(--off-white-lightish); color: var(--primary-dark);' : '') + (i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--grey-400);' : 'border-bottom: 1px solid var(--grey-300);' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;')};" on:click={() => select(item, i)}>{item}</a>
+                <div class="dropdown-a" style="{(i == selectedItemIdx ? 'background-color: var(--off-white-lightish); color: var(--primary-dark);' : '') + (i != items.length - 1 ? item == defaultItem ? 'border-bottom: 3px solid var(--grey-400);' : 'border-bottom: 1px solid var(--grey-300);' : 'border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;')};" on:click={() => select(item, i)}>{item}</div>
             {/each}
         </div>
     {/if}

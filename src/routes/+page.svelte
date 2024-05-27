@@ -1,5 +1,5 @@
 <svelte:head>
-    <title>Buzby | {!isOverview && currentProject ? currentProject.name : 'Overview'}</title>
+    <title>Buzby</title>
 </svelte:head>
 <script lang="ts">
 	import { projectSelected } from '$lib/elements/stores/project-store';

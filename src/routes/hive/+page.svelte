@@ -1,8 +1,8 @@
 <svelte:head>
-    <title>Buzby | Login</title>
+    <title>Buzby | Hive</title>
 </svelte:head>
 <script lang="ts">
-	import HiveList from './../../lib/elements/ui/hive/hive-list.svelte';
+	import HiveList from '$lib/elements/ui/hive/hive-list.svelte';
 
 </script>
 <style>

@@ -1,6 +1,7 @@
 import { CollectionReference, getDocs, query, where, type DocumentData } from "firebase/firestore";
 import { Message } from "./Message";
 import { getFirestoreCollection } from "$lib/elements/firebase/firebase";
+import { DataConstants } from "../general/DataConstants";
 
 export class Chat {
     public id: string;
@@ -21,14 +22,21 @@ export class Chat {
         this.messages = [];
         if (this.messageIds && this.messageIds.length > 0) {
             let messagesCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('messages');
-            let messagesQuery = query(messagesCollection, where('id', 'in', this.messageIds));
-            await getDocs(messagesQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    let message: Message = new Message(doc.data());
-                    message.getObjects();
-                    this.messages.push(message);
+            let clonedMessageIds: string[] = this.messageIds.slice();
+            while (clonedMessageIds.length > 0) {
+                let batchMessageIds = clonedMessageIds.splice(0, DataConstants.MAX_BATCH_SIZE);
+                let messagesQuery = query(messagesCollection, where('id', 'in', batchMessageIds));
+                await getDocs(messagesQuery).then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        let message: Message = new Message(doc.data());
+                        this.messages.push(message);
+                    });
+
+                    this.messages.sort((a, b) => {
+                        return a.createdAt.getTime() - b.createdAt.getTime();
+                    });
                 });
-            });
+            }
         }
         else {
             this.messages = [];

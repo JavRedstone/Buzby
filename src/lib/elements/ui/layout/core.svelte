@@ -76,6 +76,10 @@
         navigating.subscribe((value) => {
             w = window;
             pathname = w.location.pathname;
+
+            if (pathname != '/') {
+                localStorage.setItem('selectedProjectRoute', pathname);
+            }
         });
         if (selectedProjectName == defaultProjectName) {
             gotoHome(); // this works as it reloads page when manually changing link
@@ -84,8 +88,6 @@
 
     function getProjects(): void {
         if (currMember == null) return;
-        projects = [];
-        projectNames = [defaultProjectName];
         let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
         let projectsQuery = null;
         if (currMember.projectIds.length == 0) {
@@ -94,52 +96,89 @@
             projectsQuery = query(projectsCollection, where('id', 'in', currMember.projectIds));
         }
         
+        let projectsClone: Project[] = [];
+
         getDocs(projectsQuery).then(
-            (querySnapshot) => {
+            async (querySnapshot) => {
                 querySnapshot.forEach(
                     async (doc) => {
                         let project: Project = new Project(doc.data());
                         await project.getObjects();
-                        if (projects.find((p) => p.id == project.id) == null) {
-                            projects = [...projects, project];
-                            projectNames = [...projectNames, project.name];
+                        if (projectsClone.find((p) => p.id == project.id) == null) {
+                            projectsClone = [...projectsClone, project];
                         }
 
-                        projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+                        projectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                         allProjects.update((value) => {
-                            value.projects = projects;
+                            value.projects = projectsClone;
                             return value;
                         });
                     }
                 );
+
+                let prjs: Project[] = [];
+                for (let doc of querySnapshot.docs) {
+                    let prj: Project = new Project(doc.data());
+                    prjs.push(prj);
+                }
+                prjs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+                let selectedProjectId: string = localStorage.getItem('selectedProjectId');
+                let selectedProjectRoute: string = localStorage.getItem('selectedProjectRoute');
+
+                for (let i = 0; i < prjs.length; i++) {
+                    let project: Project = prjs[i];
+                    if (selectedProjectId && selectedProjectId == project.id) {
+                        selectedProject = project;
+                        selectedProjectIdx = i + 1;
+                        await selectedProject.getObjects();
+                        projectSelected.update((value) => {
+                            value.projectName = project.name;
+                            value.project = project;
+                            return value;
+                        });
+                        if (selectedProject) {
+                            if (selectedProjectRoute) {
+                                goto(selectedProjectRoute);
+                            } else {
+                                goto('/hive');
+                            }
+                        } else {
+                            goto('/');
+                        }
+                    }
+                }
             }
         ).catch(
             (error: any) => {
                 openSnackbar('Error getting projects. Please try again later.', 'error');
             }
         );
-        requestedProjects = [];
+
         let requestedProjectsQuery = null;
         if (currMember.requestedProjectIds.length == 0) {
             requestedProjectsQuery = query(projectsCollection, where('id', 'in', ['']));
         } else {
             requestedProjectsQuery = query(projectsCollection, where('id', 'in', currMember.requestedProjectIds));
         }
+
+        let requestedProjectsClone: Project[] = [];
+
         getDocs(requestedProjectsQuery).then(
             (querySnapshot) => {
                 querySnapshot.forEach(
                     async (doc) => {
-                        let project: Project = new Project(doc.data());
-                        await project.getObjects();
-                        if (requestedProjects.find((p) => p.id == project.id) == null) {
-                            requestedProjects = [...requestedProjects, project];
+                        let requestedProject: Project = new Project(doc.data());
+                        await requestedProject.getObjects();
+                        if (requestedProjectsClone.find((p) => p.id == requestedProject.id) == null) {
+                            requestedProjectsClone = [...requestedProjectsClone, requestedProject];
                         }
 
-                        requestedProjects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+                        requestedProjectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                         allProjects.update((value) => {
-                            value.requestedProjects = requestedProjects;
+                            value.requestedProjects = requestedProjectsClone;
                             return value;
                         });
                     }
@@ -147,7 +186,7 @@
             }
         ).catch(
             (error: any) => {
-                openSnackbar('Error getting projects. Please try again later.', 'error');
+                openSnackbar('Error getting requested projects. Please try again later.', 'error');
             }
         );
 
@@ -161,11 +200,13 @@
         });
 
         projectSelected.subscribe((value) => {
+            selectedProject = value.project;
             selectedProjectName = value.projectName;
             if (selectedProjectName == defaultProjectName) {
                 sideOpen = false;
                 drawerOpen = false;
             } else {
+                selectedProjectIdx = projects.findIndex((p) => p.id == selectedProject.id) + 1;
                 sideOpen = true;
                 if (location.pathname == '/') {
                     goto('/hive');
@@ -184,7 +225,7 @@
     function selectProject(): void {
         drawerOpen = false;
         pingsOpen = false;
-        let project: Project = projects[selectedProjectIdx];
+        let project: Project = projects[selectedProjectIdx - 1];
         if (project || selectedProjectName == defaultProjectName) {
             selectedProject = project;
             projectSelected.update((value) => {
@@ -198,6 +239,8 @@
                 goto('/');
             }
         }
+        localStorage.setItem('selectedProjectId', selectedProject ? selectedProject.id : '');
+        
         sideOpen = selectedProjectName != defaultProjectName;
     }
 
@@ -250,11 +293,6 @@
             authHandlers.logout().then(
                 () => {
                     currUser = null;
-                    allProjects.update((value) => {
-                        value.projects = [];
-                        value.requestedProjects = [];
-                        return value;
-                    });
                     projectSelected.update((value) => {
                         value.projectName = defaultProjectName;
                         value.project = null;
@@ -301,14 +339,15 @@
 
         currMember.pings = currMember.pings.filter((p) => p.id != ping.id);
 
+        memberStatus.update((value) => {
+            value.currentMember = currMember;
+            return value;
+        });
+        pings = currMember.pings;
+
         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
         setDoc(memberDoc, currMember.compactify()).then(
             () => {
-                memberStatus.update((value) => {
-                    value.currentMember = currMember;
-                    return value;
-                });
-                pings = currMember.pings;
                 openSnackbar('Notification marked as read.', 'neutral');
             }
         ).catch(
@@ -323,15 +362,15 @@
         projectSelectOpen = false;
 
         currMember.pings = [];
+        memberStatus.update((value) => {
+            value.currentMember = currMember;
+            return value;
+        });
+        pings = currMember.pings;
 
         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
         setDoc(memberDoc, currMember.compactify()).then(
             () => {
-                memberStatus.update((value) => {
-                    value.currentMember = currMember;
-                    return value;
-                });
-                pings = currMember.pings;
                 openSnackbar('All notifications marked as read.', 'neutral');
             }
         ).catch(
@@ -549,7 +588,7 @@
             {#if pings.length > 0}
                 <Badge>{pings.length}</Badge>
             {/if}
-            <div class="core-pings-container">
+            <div class="core-pings-container" style="display: {pingsOpen ? 'block' : 'none'};">
                 <Menu bind:open={pingsOpen}>
                     <div class="core-pings-title">Notifications</div>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->

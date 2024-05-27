@@ -5,6 +5,7 @@ import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/
 import { ProjectConstants } from "./ProjectConstants";
 import { Task } from "../time/Task";
 import { Event } from "../time/Event";
+import { DataConstants } from "../general/DataConstants";
 
 export class Project {
     public id: string;
@@ -87,20 +88,24 @@ export class Project {
         this.members = [];
         if (this.memberIds && this.memberIds.length > 0) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
-            let membersQuery = query(membersCollection, where('id', 'in', this.memberIds));
-            await getDocs(membersQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.members.push(new Member(doc.data()));
+            let clonedMemberIds: string[] = this.memberIds.slice();
+            while (clonedMemberIds.length > 0) {
+                let batchMemberIds = clonedMemberIds.splice(0, DataConstants.MAX_BATCH_SIZE);
+                let membersQuery = query(membersCollection, where('id', 'in', batchMemberIds));
+                await getDocs(membersQuery).then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.members.push(new Member(doc.data()));
 
-                    if (doc.data().id === this.ownerId) {
-                        this.owner = new Member(doc.data());
-                    }
+                        if (doc.data().id === this.ownerId) {
+                            this.owner = new Member(doc.data());
+                        }
 
-                    if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
-                        this.joinedMembers.push(new Member(doc.data()));
-                    }
+                        if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
+                            this.joinedMembers.push(new Member(doc.data()));
+                        }
+                    });
                 });
-            });
+            }
         }
         else {
             this.members = [];
@@ -122,12 +127,16 @@ export class Project {
         this.tasks = [];
         if (this.taskIds && this.taskIds.length > 0) {
             let tasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('tasks');
-            let tasksQuery = query(tasksCollection, where('id', 'in', this.taskIds));
-            await getDocs(tasksQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.tasks.push(new Task(doc.data()));
+            let clonedTaskIds: string[] = this.taskIds.slice();
+            while (clonedTaskIds.length > 0) {
+                let batchTaskIds = clonedTaskIds.splice(0, DataConstants.MAX_BATCH_SIZE);
+                let tasksQuery = query(tasksCollection, where('id', 'in', batchTaskIds));
+                await getDocs(tasksQuery).then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.tasks.push(new Task(doc.data()));
+                    });
                 });
-            });
+            }
         }
         else {
             this.tasks = [];
@@ -136,12 +145,16 @@ export class Project {
         this.events = [];
         if (this.eventIds && this.eventIds.length > 0) {
             let eventsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('events');
-            let eventsQuery = query(eventsCollection, where('id', 'in', this.eventIds));
-            await getDocs(eventsQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.events.push(new Event(doc.data()));
+            let clonedEventIds: string[] = this.eventIds.slice();
+            while (clonedEventIds.length > 0) {
+                let batchEventIds = clonedEventIds.splice(0, DataConstants.MAX_BATCH_SIZE);
+                let eventsQuery = query(eventsCollection, where('id', 'in', batchEventIds));
+                await getDocs(eventsQuery).then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.events.push(new Event(doc.data()));
+                    });
                 });
-            });
+            }
         }
         else {
             this.events = [];
