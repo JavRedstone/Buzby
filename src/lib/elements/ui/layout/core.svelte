@@ -103,9 +103,9 @@
                 querySnapshot.forEach(
                     async (doc) => {
                         let project: Project = new Project(doc.data());
-                        await project.getObjects();
+                        await project.setObjects();
                         if (projectsClone.find((p) => p.id == project.id) == null) {
-                            projectsClone = [...projectsClone, project];
+                            projectsClone.push(project);
                         }
 
                         projectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -132,7 +132,7 @@
                     if (selectedProjectId && selectedProjectId == project.id) {
                         selectedProject = project;
                         selectedProjectIdx = i + 1;
-                        await selectedProject.getObjects();
+                        await selectedProject.setObjects();
                         projectSelected.update((value) => {
                             value.projectName = project.name;
                             value.project = project;
@@ -170,9 +170,9 @@
                 querySnapshot.forEach(
                     async (doc) => {
                         let requestedProject: Project = new Project(doc.data());
-                        await requestedProject.getObjects();
+                        await requestedProject.setObjects();
                         if (requestedProjectsClone.find((p) => p.id == requestedProject.id) == null) {
-                            requestedProjectsClone = [...requestedProjectsClone, requestedProject];
+                            requestedProjectsClone.push(requestedProject);
                         }
 
                         requestedProjectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -293,6 +293,23 @@
             authHandlers.logout().then(
                 () => {
                     currUser = null;
+                    currMember = null;
+                    selectedProject = null;
+                    selectedProjectName = defaultProjectName;
+                    selectedProjectIdx = 0;
+                    projectNames = [defaultProjectName];
+                    projects = [];
+                    requestedProjects = []; 
+                    pings = [];
+
+                    localStorage.removeItem('selectedProjectId');
+                    localStorage.removeItem('selectedProjectRoute');
+                    
+                    allProjects.update((value) => {
+                        value.projects = [];
+                        value.requestedProjects = [];
+                        return value;
+                    });
                     projectSelected.update((value) => {
                         value.projectName = defaultProjectName;
                         value.project = null;
@@ -306,6 +323,7 @@
                         value.currentUser = null;
                         return value;
                     });
+
                     openSnackbar('Logged out successfully. Good bye!', 'neutral');
                     goto('/').then(() => {
                         location.reload();

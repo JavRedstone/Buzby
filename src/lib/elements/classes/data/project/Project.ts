@@ -84,7 +84,7 @@ export class Project {
         }
     }
 
-    public async getObjects(): Promise<void> {        
+    public async setObjects(): Promise<void> {        
         this.members = [];
         if (this.memberIds && this.memberIds.length > 0) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
@@ -116,7 +116,7 @@ export class Project {
             await getDoc(chatDoc).then(async (doc) => {
                 if (doc.exists()) {
                     this.chat = new Chat(doc.data());
-                    await this.chat.getObjects();
+                    await this.chat.setObjects();
                 }
             });
         }
@@ -127,16 +127,12 @@ export class Project {
         this.tasks = [];
         if (this.taskIds && this.taskIds.length > 0) {
             let tasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('tasks');
-            let clonedTaskIds: string[] = this.taskIds.slice();
-            while (clonedTaskIds.length > 0) {
-                let batchTaskIds = clonedTaskIds.splice(0, DataConstants.MAX_BATCH_SIZE);
-                let tasksQuery = query(tasksCollection, where('id', 'in', batchTaskIds));
-                await getDocs(tasksQuery).then((querySnapshot) => {
-                    querySnapshot.forEach((doc) => {
-                        this.tasks.push(new Task(doc.data()));
-                    });
+            let tasksQuery = query(tasksCollection, where('id', 'in', this.taskIds));
+            await getDocs(tasksQuery).then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.tasks.push(new Task(doc.data()));
                 });
-            }
+            });
         }
         else {
             this.tasks = [];
@@ -145,16 +141,12 @@ export class Project {
         this.events = [];
         if (this.eventIds && this.eventIds.length > 0) {
             let eventsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('events');
-            let clonedEventIds: string[] = this.eventIds.slice();
-            while (clonedEventIds.length > 0) {
-                let batchEventIds = clonedEventIds.splice(0, DataConstants.MAX_BATCH_SIZE);
-                let eventsQuery = query(eventsCollection, where('id', 'in', batchEventIds));
-                await getDocs(eventsQuery).then((querySnapshot) => {
-                    querySnapshot.forEach((doc) => {
-                        this.events.push(new Event(doc.data()));
-                    });
+            let eventsQuery = query(eventsCollection, where('id', 'in', this.eventIds));
+            await getDocs(eventsQuery).then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.events.push(new Event(doc.data()));
                 });
-            }
+            });
         }
         else {
             this.events = [];

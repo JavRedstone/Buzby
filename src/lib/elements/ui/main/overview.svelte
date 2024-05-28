@@ -134,7 +134,7 @@
                             currMember.projectIds.push(project.id);
                             let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currMember.id);
                             setDoc(currentMemberDoc, currMember.compactify()).then(async () => {
-                                await project.getObjects();
+                                await project.setObjects();
 
                                 allProjects.update((value) => {
                                     value.projects = [...value.projects, project];

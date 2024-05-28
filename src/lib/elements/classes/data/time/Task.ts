@@ -1,18 +1,17 @@
-import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-import type { DocumentData, DocumentReference } from "firebase/firestore";
+import type { Member } from "../project/Member";
 
 export class Task {
-    public id: string;
-    public name: string;
-    public description: string;
-    public percentage: number;
+    public id: string = "";
+    public name: string = "";
+    public description: string = "";
+    public percentage: number = 0;
     
     public startDate: Date;
     public endDate: Date;
-
-    public parentId: string;
-    public childIds: string[] = [];
     
+    public assignedIds: string[] = [];
+    public assigned: Member[] = [];
+
     constructor(data: any) {
         this.id = data.id;
 
@@ -40,8 +39,10 @@ export class Task {
             this.endDate = new Date();
         }
 
-        this.parentId = data.parentTaskId;
-        this.childIds = data.childTaskIds;
+        this.assignedIds = data.assigned;
+        if (!this.assignedIds) {
+            this.assignedIds = [];
+        }
     }
 
     public compactify(): any {
@@ -52,8 +53,7 @@ export class Task {
             percentage: this.percentage,
             start: this.startDate.getTime(),
             end: this.endDate.getTime(),
-            parentId: this.parentId,
-            childIds: this.childIds
+            assignedIds: this.assignedIds
         };
     }
 }

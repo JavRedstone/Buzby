@@ -50,6 +50,7 @@
             value.projectName = project.name;
             return value;
         });
+        localStorage.setItem('selectedProjectId', project.id);
     }
 
     function getUser(): void {
@@ -59,10 +60,15 @@
     }
 
     function getProject(): void {
-        allProjects.subscribe((value) => {
-            project = value.projects.find((p) => p.id == project.id);
+        if (project) {
+            projectColor = project.color;
+        }
 
-            if (project) {
+        allProjects.subscribe((value) => {
+            let p = value.projects.find((p) => p.id == project.id);
+
+            if (p) {
+                project = p;
                 projectName = project.name;
                 projectDescription = project.description;
                 projectColor = project.color;
@@ -528,7 +534,6 @@
 
     onMount(() => {
         existed = true;
-        projectColor = project.color;
         getUser();
         getProject();
     });

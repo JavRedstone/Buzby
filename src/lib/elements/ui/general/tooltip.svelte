@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
-	import { TooltipConstants } from '$lib/elements/classes/ui/tooltip/TooltipConstants';
+	import { TooltipConstants } from '$lib/elements/classes/ui/general/tooltip/TooltipConstants';
 	import { scale } from 'svelte/transition';
 
     export let visible: boolean = false;

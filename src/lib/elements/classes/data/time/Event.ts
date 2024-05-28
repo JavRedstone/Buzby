@@ -1,3 +1,5 @@
+import type { Member } from "../project/Member";
+
 export class Event {
     public id: string;
     public name: string;
@@ -5,6 +7,9 @@ export class Event {
 
     public startTime: Date;
     public endTime: Date;
+
+    public assignedIds: string[];
+    public assigned: Member[];
 
     constructor(data: any) {
         this.id = data.id;
@@ -28,6 +33,8 @@ export class Event {
         if (!this.endTime) {
             this.endTime = new Date();
         }
+
+        this.assignedIds = data.assignedIds;
     }
 
     public compactify(): any {
@@ -35,7 +42,8 @@ export class Event {
             name: this.name,
             description: this.description,
             startTime: this.startTime.getTime(),
-            endTime: this.endTime.getTime()
+            endTime: this.endTime.getTime(),
+            assignedIds: this.assignedIds
         };
     }
 }

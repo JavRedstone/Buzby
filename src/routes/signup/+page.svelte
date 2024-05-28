@@ -155,6 +155,7 @@
         float: right;
         width: 240px;
         padding-left: 8px;
+        padding-right: 8px;
         padding-top: 4px;
         padding-bottom: 4px;
         background-color: var(--off-white);

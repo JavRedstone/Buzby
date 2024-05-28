@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
-	import { SnackbarConstants } from "$lib/elements/classes/ui/snackbar/SnackbarConstants";
+	import { SnackbarConstants } from "$lib/elements/classes/ui/general/snackbar/SnackbarConstants";
 	import { createEventDispatcher } from "svelte";
 	import { scale } from "svelte/transition";
 

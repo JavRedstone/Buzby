@@ -6,12 +6,14 @@
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { onMount } from "svelte";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
-	import { setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
+	import { deleteDoc, getDoc, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
 	import type { Member } from "$lib/elements/classes/data/project/Member";
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
+	import ProgressCircle from '../general/progress-circle.svelte';
+	import { Chat } from '$lib/elements/classes/data/chat/Chat';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -21,6 +23,7 @@
     let messageFocused: boolean = false;
     let messageText: string = "";
     let messageProcessing: boolean = false;
+    let messagePercentage: number = 100;
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
@@ -33,36 +36,67 @@
     }
 
     function getProject(): void {        
-        projectSelected.subscribe((value) => {
+        projectSelected.subscribe(async (value) => {
             if (value.project && value.project.chat) {
                 project = value.project;
                 messages = value.project.chat.messages;
 
-                for (let i = 0; i < messages.length; i++) {
-                    if (project.memberIds.includes(messages[i].senderId)) {
-                        messages[i].sender = project.members.find((m) => m.id === messages[i].senderId);
-                    } else {
-                        messages[i].getSender();
-                    }
-                }
-
-                if (messagesContainer) {
-                    setTimeout(() => {
-                        if (messagesContainer) {
-                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                        }
-                    }, 0); // Wait for the DOM to update
-                }
+                await setMessages();
             }
         })
+    }
+
+    async function setMessages(): Promise<void> {
+        for (let i = 0; i < messages.length; i++) {
+            if (project.memberIds.includes(messages[i].senderId)) {
+                messages[i].sender = project.members.find((m) => m.id === messages[i].senderId);
+            } else {
+                await messages[i].getSender();
+
+                // if this is an infinite loop, istg (it shouldn't be)
+                allProjects.update((value) => {
+                    value.projects = value.projects.map((p) => {
+                        if (p.id === project.id) {
+                            return project;
+                        }
+                        return p;
+                    });
+                    return value;
+                });
+
+                projectSelected.update((value) => {
+                    value.project = project;
+                    value.projectName = project.name;
+                    return value;
+                });
+            }
+        }
+
+        if (messagesContainer) {
+            setTimeout(() => {
+                if (messagesContainer) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }, 0); // Wait for the DOM to update
+        }
+    }
+
+    async function refreshChat(): Promise<void> {
+        let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
+        let doc = await getDoc(chatDoc);
+        if (doc.exists()) {
+            project.chat = new Chat(doc.data());
+            await project.chat.setObjects();
+            await setMessages();
+        }
     }
 
     function putExtra(): void {
         // TODO: Implement polls and stuff
     }
 
-    function sendMessage(): void {
-        if (messageProcessing) {
+    async function sendMessage(): Promise<void> {
+        if (messageProcessing && messagePercentage < 100) {
             return;
         } else {
             messageProcessing = true;
@@ -79,18 +113,33 @@
         }
 
         if (currMember) {
+            await refreshChat();
+
             let message: Message = new Message({
                 id: StringHelper.generateID(),
                 text: messageText,
                 senderId: currMember.id,
-                readIds: [currMember.id],
                 replyId: '',
                 createdAt: new Date().getTime()
             });
 
-            messages = [...messages, message];
             project.chat.messageIds = [...project.chat.messageIds, message.id];
             project.chat.messages = [...project.chat.messages, message];
+
+            project.chat.messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+            messages = project.chat.messages;
+
+            let lastMessage: Message = messages[0];
+            let lastMessageDeleted: boolean = false;
+
+            if (messages.length > ChatConstants.MESSAGE_MAX_COUNT) {
+                project.chat.messages = project.chat.messages.slice(1);
+                project.chat.messageIds = project.chat.messageIds.filter((id) => id !== lastMessage.id);
+                messages = project.chat.messages;
+                console.log(project.chat.messageIds)
+                lastMessageDeleted = true;
+            }
 
             projectSelected.update((value) => {
                 value.project = project;
@@ -109,22 +158,37 @@
             });
 
             messageText = "";
-            messageProcessing = false;
+            messagePercentage = 0;
             
             let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
             setDoc(chatDoc, project.chat.compactify()).then(() => {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
-                setDoc(messageDoc, message.compactify()).catch((error) => {
+                setDoc(messageDoc, message.compactify()).then(() => {
+                    messagePercentage = 0;
+                }).catch((error) => {
                     openSnackbar("An error occurred while sending the message.", "error");
                     messageProcessing = false;
+                    messagePercentage = 0;
                 });
+                if (lastMessageDeleted) {
+                    let lastMessageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", lastMessage.id);
+                    deleteDoc(lastMessageDoc).then(() => {
+                        messagePercentage = 0;
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while sending the message.", "error");
+                        messageProcessing = false;
+                        messagePercentage = 0;
+                    });
+                }
             }).catch((error) => {
                 openSnackbar("An error occurred while sending the message.", "error");
                 messageProcessing = false;
+                messagePercentage = 0;
             });
         } else {
             openSnackbar("An error occurred while sending the message.", "error");
             messageProcessing = false;
+            messagePercentage = 0;
         }
     }
 
@@ -194,6 +258,7 @@
         border-radius: 4px;
         font-size: 12px;
         color: var(--grey-800);
+        user-select: none;
 
         transition: border-color var(--transition-duration);
 
@@ -207,17 +272,22 @@
     }
 
     .discussion-input-icon-button {
+        position: relative;
+        margin-left: 8px;
+        margin-right: 8px;
         font-size: 24px;
         color: var(--grey-800);
         cursor: pointer;
-        margin-left: 8px;
-        margin-right: 8px;
-
         transition: color var(--transition-duration);
 
         &:hover {
             color: var(--accent);
         }
+    }
+
+    .discussion-input-icon-progress-circle-container {
+        position: absolute;
+        right: 8px;
     }
 </style>
 <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
@@ -232,6 +302,9 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="discussion-input-icon-button material-symbols-rounded" on:click={putExtra}>add_circle</span>
         <input type="text" class="discussion-input" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} />
+        <div class="discussion-input-icon-progress-circle-container">
+            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+        </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="discussion-input-icon-button material-symbols-rounded" on:click={sendMessage}>send</span>

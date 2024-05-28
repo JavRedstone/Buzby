@@ -18,11 +18,11 @@ export class Chat {
         }
     }
 
-    public async getObjects(): Promise<void> {
+    public async setObjects(): Promise<void> {
         this.messages = [];
         if (this.messageIds && this.messageIds.length > 0) {
             let messagesCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('messages');
-            let clonedMessageIds: string[] = this.messageIds.slice();
+            let clonedMessageIds: string[] = JSON.parse(JSON.stringify(this.messageIds));
             while (clonedMessageIds.length > 0) {
                 let batchMessageIds = clonedMessageIds.splice(0, DataConstants.MAX_BATCH_SIZE);
                 let messagesQuery = query(messagesCollection, where('id', 'in', batchMessageIds));
@@ -36,6 +36,7 @@ export class Chat {
                         return a.createdAt.getTime() - b.createdAt.getTime();
                     });
                 });
+                console.log('Chat messages:', this.messages);
             }
         }
         else {

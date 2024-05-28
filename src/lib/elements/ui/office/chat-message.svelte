@@ -19,12 +19,12 @@
     .chat-message-container {
         display: flex;
         align-items: center;
+        width: 100%;
         padding-left: 8px;
         padding-right: 8px;
         padding-top: 4px;
         padding-bottom: 4px;
         color: var(--grey-800);
-        user-select: none;
 
         transition: background-color var(--transition-duration);
 
@@ -36,6 +36,7 @@
     .chat-message-avatar-container {
         width: 42px;
         height: 42px;
+        flex-shrink: 0;
         border-radius: 50%;
         background-color: var(--grey-300);
         margin-right: 8px;
@@ -45,11 +46,11 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        width: 100%;
     }
 
     .chat-message-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
     }
 
@@ -65,8 +66,8 @@
     }
 
     .chat-message {
-        max-width: calc(100% - 50px);
-        font-size: 12px;
+        width: calc(100% - 50px);
+        font-size: 13px;
         word-wrap: break-word;
     }
 
@@ -74,6 +75,7 @@
         width: 50px;
         font-size: 10px;
         color: var(--grey-600);
+        user-select: none;
     }
 
     .chat-message-time-placeholder {
