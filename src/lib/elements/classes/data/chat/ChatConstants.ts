@@ -4,5 +4,5 @@ export class ChatConstants {
 
     public static readonly MESSAGE_TIMEOUT = 5000;
 
-    public static readonly MESSAGE_MAX_COUNT = 3;
+    public static readonly MESSAGE_MAX_COUNT = 150;
 }
