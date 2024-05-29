@@ -82,8 +82,8 @@
         }
     }
 
-    async function refreshChat(): Promise<void> {
-        if (messagePercentage < 100) {
+    async function refreshChat(ignorePercentage: boolean): Promise<void> {
+        if (messagePercentage < 100 && !ignorePercentage) {
             return;
         }
         let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
@@ -121,7 +121,7 @@
         messagePercentage = 0;
 
         if (currMember) {
-            await refreshChat();
+            await refreshChat(true);
 
             let message: Message = new Message({
                 id: StringHelper.generateID(),
@@ -237,7 +237,6 @@
     .discussion-title-container {
         display: flex;
         align-items: center;
-        justify-content: center;
         padding: 8px;
         border-bottom: 1px solid var(--grey-300);
     }
@@ -339,11 +338,11 @@
         </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="discussion-title-icon-button material-symbols-rounded" on:click={refreshChat}>refresh</span>
+        <span class="discussion-title-icon-button material-symbols-rounded" on:click={() => refreshChat(false)}>refresh</span>
     </div>
     <div class="discussion-messages-container" bind:this={messagesContainer}>
         {#each messages as message, i}
-            <ChatMessage bind:message={message} bind:chat={project.chat} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME} />
+            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME} />
         {/each}
     </div>
     <div class="discussion-input-container">

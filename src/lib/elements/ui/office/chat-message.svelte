@@ -7,11 +7,11 @@
 	import { deleteDoc, updateDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '../general/snackbar.svelte';
-	import type { Chat } from '$lib/elements/classes/data/chat/Chat';
 	import { projectSelected } from '$lib/elements/stores/project-store';
+	import type { Project } from '$lib/elements/classes/data/project/Project';
 
     export let message: Message = null;
-    export let chat: Chat = null;
+    export let project: Project = null;
     export let hasAvatar: boolean = false;
 
     let existed: boolean = false;
@@ -20,16 +20,22 @@
     let editOpen: boolean = false;
     let messageText: string = message.text;
 
+    let messageFormattedText: string = getMessageText();
+    let messageFormatting: string = getMessageFormatting();
+
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
+
+    $: message.text ? messageFormattedText = getMessageText() : messageFormattedText = "";
+    $: message.text ? messageFormatting = getMessageFormatting() : messageFormatting = "";
 
     function editMessage(): void {
         if (message.text === messageText) {
             cancelEdit();
             return;
         }
-        if (message.text.length === 0) {
+        if (message.text.trim().length === 0) {
             openSnackbar("Message cannot be empty.", "error");
             return;
         }
@@ -37,7 +43,7 @@
         message.text = messageText;
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
         projectSelected.update((value) => {
-            value.project.chat = chat;
+            value.project.chat = project.chat;
             return value;
         });
         updateDoc(messageDoc, message.compactify());
@@ -55,17 +61,65 @@
 
     function deleteMessage(): void {
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
-        chat.messageIds = chat.messageIds.filter((id) => id !== message.id);
-        chat.messages = chat.messages.filter((msg) => msg.id !== message.id);
+        project.chat.messageIds = project.chat.messageIds.filter((id) => id !== message.id);
+        project.chat.messages = project.chat.messages.filter((msg) => msg.id !== message.id);
         projectSelected.update((value) => {
-            value.project.chat = chat;
+            value.project.chat = project.chat;
             return value;
         });
         deleteDoc(messageDoc).then(() => {
-            let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', chat.id);
-            updateDoc(chatDoc, chat.compactify());
+            let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.chat.id);
+            updateDoc(chatDoc, project.chat.compactify());
         });
     };
+
+    function getMessageFormatting(): string {
+        // discord formatting (*italic*, **bold**, ***bold italic***, __underline__, ~~strikethrough~~, `code`, ```code block```, # header, ## header, ### header)
+        let textFormatting: string = '';
+        if (message.text.search(/\*\*\*(.*?)\*\*\*/g) != -1) {
+            textFormatting += 'font-weight: 700; font-style: italic;';
+        }
+        else if (message.text.search(/\*\*(.*?)\*\*/g) != -1) {
+            textFormatting += 'font-weight: 700;';
+        }
+        else if (message.text.search(/\*(.*?)\*/g) != -1) {
+            textFormatting += 'font-style: italic;';
+        }
+        if (message.text.search(/__(.*?)__/g) != -1) {
+            textFormatting += 'text-decoration: underline;';
+        }
+        if (message.text.search(/~~(.*?)~~/g) != -1) {
+            textFormatting += 'text-decoration: line-through;';
+        }
+        if (message.text.search(/`(.*?)`/g) != -1) {
+            textFormatting += 'background-color: var(--grey-300); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px; font-family: monospace;';
+        }
+        if (message.text.search(/### (.*?)/g) != -1) {
+            textFormatting += 'font-size: 12px; font-weight: 700;';
+        }
+        else if (message.text.search(/## (.*?)/g) != -1) {
+            textFormatting += 'font-size: 14px; font-weight: 700;';
+        }
+        else if (message.text.search(/# (.*?)/g) != -1) {
+            textFormatting += 'font-size: 16px; font-weight: 700;';
+        }
+        return textFormatting;
+    }
+
+    function getMessageText(): string {
+        // discord formatting (*italic*, **bold**, ***bold italic***, __underline__, ~~strikethrough~~, `code`, ```code block```, # header, ## header, ### header)
+        let formattedText: string = message.text;
+        formattedText = formattedText.replace(/\*\*\*(.*?)\*\*\*/g, '$1');
+        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '$1');
+        formattedText = formattedText.replace(/\*(.*?)\*/g, '$1');
+        formattedText = formattedText.replace(/__(.*?)__/g, '$1');
+        formattedText = formattedText.replace(/~~(.*?)~~/g, '$1');
+        formattedText = formattedText.replace(/`(.*?)`/g, '$1');
+        formattedText = formattedText.replace(/### (.*?)/g, '$1');
+        formattedText = formattedText.replace(/## (.*?)/g, '$1');
+        formattedText = formattedText.replace(/# (.*?)/g, '$1');
+        return formattedText;
+    }
 
     function setKeybinds(): void {
         window.addEventListener('keydown', (event) => {
@@ -140,6 +194,7 @@
     }
 
     .chat-message-small {
+        box-sizing: border-box;
         width: calc(100% - 98px);
         font-size: 13px;
         word-wrap: break-word;
@@ -151,6 +206,7 @@
     }
 
     .chat-message-large {
+        box-sizing: border-box;
         width: calc(100% - 48px);
         font-size: 13px;
         word-wrap: break-word;
@@ -260,9 +316,9 @@
                         <!-- svelte-ignore a11y-autofocus -->
                         <input class="chat-message-large-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
                     {:else}
-                        <div class="chat-message-large">{message.text}</div>
+                        <div class="chat-message-large" style={messageFormatting}>{messageFormattedText}</div>
                     {/if}
-                    {#if hovered}
+                    {#if hovered && message.senderId == project.ownerId}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <span class="chat-message-action material-symbols-rounded"  on:click={openEdit} transition:fade={{duration: TransitionConstants.DURATION}}>edit</span>
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -276,9 +332,9 @@
                 <!-- svelte-ignore a11y-autofocus -->
                 <input class="chat-message-small-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
             {:else}
-                <div class="chat-message-small">{messageText}</div>
+                <div class="chat-message-small" style={messageFormatting}>{messageFormattedText}</div>
             {/if}
-            {#if hovered}
+            {#if hovered && message.senderId == project.ownerId}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <span class="chat-message-action material-symbols-rounded" on:click={openEdit} transition:fade={{duration: TransitionConstants.DURATION}}>edit</span>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
