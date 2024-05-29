@@ -80,6 +80,7 @@
             if (pathname != '/') {
                 localStorage.setItem('selectedProjectRoute', pathname);
             }
+            history.forward();
         });
         if (selectedProjectName == defaultProjectName) {
             gotoHome(); // this works as it reloads page when manually changing link
@@ -520,14 +521,6 @@
         z-index: 999;
     }
 
-    .core-pings-container {
-        position: absolute;
-        top: 48px;
-        right: 0;
-        width: 200px;
-        height: 200px;
-    }
-
     .core-pings-title {
         border-bottom: 1px solid var(--grey-400);
         font-size: 16px;
@@ -606,29 +599,27 @@
             {#if pings.length > 0}
                 <Badge>{pings.length}</Badge>
             {/if}
-            <div class="core-pings-container" style="display: {pingsOpen ? 'block' : 'none'};">
-                <Menu bind:open={pingsOpen}>
-                    <div class="core-pings-title">Notifications</div>
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <!-- svelte-ignore a11y-missing-attribute -->
-                    <a class="core-pings-mark-all" on:click={markAllPingsRead}>
-                        <span class="material-symbols-rounded">clear_all</span>
-                    </a>
-                    {#each pings as ping, i}
-                        <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
-                            <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
-                            <div class="core-ping-message">{ping.message}</div>
-                            <!-- svelte-ignore a11y-click-events-have-key-events -->
-                            <!-- svelte-ignore a11y-no-static-element-interactions -->
-                            <!-- svelte-ignore a11y-missing-attribute -->
-                            <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
-                                <span class="material-symbols-rounded">mark_email_read</span>
-                            </a>
-                        </div>
-                    {/each}
-                </Menu>
-            </div>
+            <Menu bind:open={pingsOpen} right={PingConstants.CONTAINER.RIGHT} top={PingConstants.CONTAINER.TOP} width={PingConstants.CONTAINER.WIDTH} height={PingConstants.CONTAINER.HEIGHT}>
+                <div class="core-pings-title">Notifications</div>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="core-pings-mark-all" on:click={markAllPingsRead}>
+                    <span class="material-symbols-rounded">clear_all</span>
+                </a>
+                {#each pings as ping, i}
+                    <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
+                        <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
+                        <div class="core-ping-message">{ping.message}</div>
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <!-- svelte-ignore a11y-missing-attribute -->
+                        <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
+                            <span class="material-symbols-rounded">mark_email_read</span>
+                        </a>
+                    </div>
+                {/each}
+            </Menu>
         </div>
         <div class="core-header-icon-container" style="right: 74px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->

@@ -14,6 +14,7 @@
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import ProgressCircle from '../general/progress-circle.svelte';
 	import { Chat } from '$lib/elements/classes/data/chat/Chat';
+	import ProgressLine from '../general/progress-line.svelte';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -53,7 +54,7 @@
             } else {
                 await messages[i].getSender();
 
-                // if this is an infinite loop, istg (it shouldn't be)
+                // *this is not an infinite loop because the sender is already set
                 allProjects.update((value) => {
                     value.projects = value.projects.map((p) => {
                         if (p.id === project.id) {
@@ -82,13 +83,18 @@
     }
 
     async function refreshChat(): Promise<void> {
+        if (messagePercentage < 100) {
+            return;
+        }
         let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
         let doc = await getDoc(chatDoc);
         if (doc.exists()) {
             project.chat = new Chat(doc.data());
             await project.chat.setObjects();
+            messages = project.chat.messages;
             await setMessages();
         }
+        messagePercentage = 0;
     }
 
     function putExtra(): void {
@@ -96,7 +102,7 @@
     }
 
     async function sendMessage(): Promise<void> {
-        if (messageProcessing && messagePercentage < 100) {
+        if (messageProcessing || messagePercentage < 100) {
             return;
         } else {
             messageProcessing = true;
@@ -111,6 +117,8 @@
             messageProcessing = false;
             return;
         }
+        
+        messagePercentage = 0;
 
         if (currMember) {
             await refreshChat();
@@ -137,7 +145,6 @@
                 project.chat.messages = project.chat.messages.slice(1);
                 project.chat.messageIds = project.chat.messageIds.filter((id) => id !== lastMessage.id);
                 messages = project.chat.messages;
-                console.log(project.chat.messageIds)
                 lastMessageDeleted = true;
             }
 
@@ -156,7 +163,7 @@
                 });
                 return value;
             });
-
+            
             messageText = "";
             messagePercentage = 0;
             
@@ -164,6 +171,7 @@
             setDoc(chatDoc, project.chat.compactify()).then(() => {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
                 setDoc(messageDoc, message.compactify()).then(() => {
+                    messageProcessing = false;
                     messagePercentage = 0;
                 }).catch((error) => {
                     openSnackbar("An error occurred while sending the message.", "error");
@@ -173,6 +181,7 @@
                 if (lastMessageDeleted) {
                     let lastMessageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", lastMessage.id);
                     deleteDoc(lastMessageDoc).then(() => {
+                        messageProcessing = false;
                         messagePercentage = 0;
                     }).catch((error) => {
                         openSnackbar("An error occurred while sending the message.", "error");
@@ -225,11 +234,36 @@
         box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
     }
 
+    .discussion-title-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        border-bottom: 1px solid var(--grey-300);
+    }
+
     .discussion-title {
         font-size: 16px;
         font-weight: 500;
-        padding: 8px;
-        border-bottom: 1px solid var(--grey-300);
+        color: var(--grey-800);
+    }
+
+    .discussion-title-icon-progress-circle-container {
+        position: absolute;
+        right: 8px;
+    }
+
+    .discussion-title-icon-button {
+        position: absolute;
+        right: 10px;
+        font-size: 24px;
+        color: var(--grey-800);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
     }
     
     .discussion-messages-container {
@@ -246,7 +280,7 @@
         border-top: 1px solid var(--grey-300);
     }
 
-    .discussion-input {
+    .discussion-input-field {
         width: 100%;
         padding-left: 4px;
         padding-right: 4px;
@@ -271,6 +305,13 @@
         }
     }
 
+    .discussion-input-field-progress-line-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
     .discussion-input-icon-button {
         position: relative;
         margin-left: 8px;
@@ -291,19 +332,30 @@
     }
 </style>
 <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
-    <div class="discussion-title">Discussion</div>
+    <div class="discussion-title-container">
+        <div class="discussion-title">Discussion</div>
+        <div class="discussion-title-icon-progress-circle-container">
+            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+        </div>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="discussion-title-icon-button material-symbols-rounded" on:click={refreshChat}>refresh</span>
+    </div>
     <div class="discussion-messages-container" bind:this={messagesContainer}>
         {#each messages as message, i}
-            <ChatMessage message={message} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME} />
+            <ChatMessage bind:message={message} bind:chat={project.chat} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME} />
         {/each}
     </div>
     <div class="discussion-input-container">
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="discussion-input-icon-button material-symbols-rounded" on:click={putExtra}>add_circle</span>
-        <input type="text" class="discussion-input" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} />
+        <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} />
+        <div class="discussion-input-field-progress-line-container">
+            <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+        </div>
         <div class="discussion-input-icon-progress-circle-container">
-            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+            <ProgressCircle radius={12} percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
         </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->

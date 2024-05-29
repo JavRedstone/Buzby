@@ -10,4 +10,11 @@ export class ObjectHelper {
     public static pickRandomValue(obj: any): any {
         return obj[ObjectHelper.pickRandomKey(obj)];
     }
+
+    public static getLastItem(arr: any[], ret: any = null): any {
+        if (arr.length === 0) {
+            return ret;
+        }
+        return arr[arr.length - 1];
+    }
 }

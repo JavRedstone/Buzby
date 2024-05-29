@@ -1,5 +1,3 @@
-import { TimeConstants } from "../classes/data/time/TimeConstants";
-
 export class StringHelper {
     public static generateID(): string {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -10,15 +8,17 @@ export class StringHelper {
     }
 
     public static getFormattedDate(date: Date): string {
-        let delta: number = Date.now() - date.getTime();
-        if (delta < TimeConstants.TIME_ELAPSED_BEFORE_DATE) {
-            let hours: number = date.getHours();
-            let minutes: number = date.getMinutes();
-            let ampm: string = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12;
-            let minutesStr: string = minutes < 10 ? '0' + minutes : minutes.toString();
-            return `Today at ${hours}:${minutesStr} ${ampm}`;
+        // if it is yesterday or today, return "Yesterday" or "Today" + hh:mm AM/PM
+        let today: Date = new Date();
+        let yesterday: Date = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        let dateStr: string = date.toDateString();
+        let todayStr: string = today.toDateString();
+        let yesterdayStr: string = yesterday.toDateString();
+        if (dateStr === todayStr) {
+            return 'Today at ' + StringHelper.getFormattedTime(date);
+        } else if (dateStr === yesterdayStr) {
+            return 'Yesterday at ' + StringHelper.getFormattedTime(date);
         } else {
             let month: number = date.getMonth() + 1;
             let day: number = date.getDate();

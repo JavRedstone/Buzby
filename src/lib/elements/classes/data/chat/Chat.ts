@@ -36,7 +36,6 @@ export class Chat {
                         return a.createdAt.getTime() - b.createdAt.getTime();
                     });
                 });
-                console.log('Chat messages:', this.messages);
             }
         }
         else {

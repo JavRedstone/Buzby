@@ -5,4 +5,11 @@ export class PingConstants {
         SYSTEM: 2,
         ERROR: 3
     };
+
+    public static readonly CONTAINER: any = {
+        RIGHT: 0,
+        TOP: 48,
+        WIDTH: 200,
+        HEIGHT: 200
+    };
 }

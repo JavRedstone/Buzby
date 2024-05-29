@@ -41,10 +41,10 @@
         stroke: var(--accent);
         stroke-linecap: round;
 
-        transition: stroke-dashoffset var(--transition-duration);   
+        transition: stroke-dashoffset var(--transition-duration) linear;
     }
 </style>
-<div class="progress-circle-container" style="width: {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)}px; height: {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)}px; top: {radius * ProgressCircleConstants.STROKE_WIDTH_RATIO / 2}px;">
+<div class="progress-circle-container" style="width: {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)}px; height: {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)}px;">
     <svg class="progress-circle-svg" viewBox="0 0 {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)} {radius * 2 * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)}">
         <circle class="progress-circle-svg-circle " cx={radius * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)} cy={radius * (1 + ProgressCircleConstants.STROKE_WIDTH_RATIO)} r={radius} stroke-width={radius * ProgressCircleConstants.STROKE_WIDTH_RATIO} stroke-dasharray={2 * Math.PI * radius} stroke-dashoffset={2 * Math.PI * radius * (1 - percentage / 100)}></circle>
     </svg>

@@ -1,9 +1,21 @@
 <script lang="ts">
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
     import { scale } from 'svelte/transition';
+
     export let open: boolean = false;
+
+    export let left: number = null;
+    export let right: number = null;
+    export let top: number = null;
+    export let bottom: number = null;
+    export let width: number = null;
+    export let height: number = null;
 </script>
 <style>
+    .menu-container-parent {
+        position: absolute;
+    }
+
     .menu-container {
         width: 100%;
         height: 100%;
@@ -20,7 +32,9 @@
 </style>
 
 {#if open}
-    <div class="menu-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
-        <slot></slot>
+    <div class="menu-container-parent" style="left: {left}px; right: {right}px; top: {top}px; bottom: {bottom}px; width: {width}px; height: {height}px;">
+        <div class="menu-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
+            <slot></slot>
+        </div>
     </div>
 {/if}

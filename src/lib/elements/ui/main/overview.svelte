@@ -375,6 +375,17 @@
         }
     }
 
+    .overview-create-project-sorry {
+        margin-top: 16px;
+        margin-bottom: 16px;
+        padding: 16px;
+        background-color: rgba(var(--error-rgb), 0.025);
+        border: 1px solid var(--error);
+        border-radius: 8px;
+        color: var(--error);
+        user-select: none;
+    }
+
     .overview-projects-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -399,7 +410,7 @@
     
     {#if createOpen}
         <div class="overview-create-project-container" transition:slide={{duration: TransitionConstants.DURATION}}>
-            <div>
+            {#if projects.length < ProjectConstants.MAX_NUM_PROJECTS}
                 <div class="overview-create-project-field">
                     <span class="overview-create-project-icon material-symbols-rounded">badge</span>
                     <input class="overview-create-project-input" type="text" placeholder="Project Name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
@@ -435,8 +446,10 @@
                     <button class="overview-create-project-add-member" type="button" on:click={() => memberEmails = [...memberEmails, ""]}>Add Member</button>
                 </div>
                 <button class="overview-create-project-create" on:click={createProject}>Create</button>
-                <button class="overview-create-project-cancel" on:click={cancel}>Cancel</button>
-            </div>
+            {:else}
+                <div class="overview-create-project-sorry">You have reached the project limit of {ProjectConstants.MAX_NUM_PROJECTS} project{ProjectConstants.MAX_NUM_PROJECTS > 1 ? 's' : ''}. Please delete a project to create a new one.</div>
+            {/if}
+            <button class="overview-create-project-cancel" on:click={cancel}>Cancel</button>
         </div>
     {/if}
 
