@@ -20,22 +20,20 @@
     let editOpen: boolean = false;
     let messageText: string = message.text;
 
-    let messageFormattedText: string = getMessageText();
-    let messageFormatting: string = getMessageFormatting();
+    let messageFormattedText: string = getMessageFormattedText(message.text);
+    let messageFormatting: string = getMessageFormatting(message.text);
 
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
 
-    $: message.text ? messageFormattedText = getMessageText() : messageFormattedText = "";
-    $: message.text ? messageFormatting = getMessageFormatting() : messageFormatting = "";
+    $: message.text ? messageFormattedText = getMessageFormattedText(message.text) : messageFormattedText = "";
+    $: message.text ? messageFormatting = getMessageFormatting(message.text) : messageFormatting = "";
 
     function editMessage(): void {
-        if (message.text === messageText) {
+        messageFormattedText = getMessageFormattedText(messageText);
+        if (messageText.trim().length === 0 || messageFormattedText.trim().length === 0) {
             cancelEdit();
-            return;
-        }
-        if (message.text.trim().length === 0) {
             openSnackbar("Message cannot be empty.", "error");
             return;
         }
@@ -56,7 +54,9 @@
 
     function cancelEdit(): void {
         editOpen = false;
-        message.text = messageText;
+        messageText = message.text;
+        messageFormattedText = getMessageFormattedText(message.text);
+        messageFormatting = getMessageFormatting(message.text);
     }
 
     function deleteMessage(): void {
@@ -73,48 +73,50 @@
         });
     };
 
-    function getMessageFormatting(): string {
-        // discord formatting (*italic*, **bold**, ***bold italic***, __underline__, ~~strikethrough~~, `code`, ```code block```, # header, ## header, ### header)
+    function getMessageFormatting(text: string): string {
         let textFormatting: string = '';
-        if (message.text.search(/\*\*\*(.*?)\*\*\*/g) != -1) {
+        if (text.search(/\*\*\*(.*?)\*\*\*/g) != -1) {
             textFormatting += 'font-weight: 700; font-style: italic;';
         }
-        else if (message.text.search(/\*\*(.*?)\*\*/g) != -1) {
+        else if (text.search(/\*\*(.*?)\*\*/g) != -1) {
             textFormatting += 'font-weight: 700;';
         }
-        else if (message.text.search(/\*(.*?)\*/g) != -1) {
+        else if (text.search(/\*(.*?)\*/g) != -1) {
             textFormatting += 'font-style: italic;';
         }
-        if (message.text.search(/__(.*?)__/g) != -1) {
+        if (text.search(/__(.*?)__/g) != -1) {
             textFormatting += 'text-decoration: underline;';
         }
-        if (message.text.search(/~~(.*?)~~/g) != -1) {
+        if (text.search(/~~(.*?)~~/g) != -1) {
             textFormatting += 'text-decoration: line-through;';
         }
-        if (message.text.search(/`(.*?)`/g) != -1) {
-            textFormatting += 'background-color: var(--grey-300); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px; font-family: monospace;';
-        }
-        if (message.text.search(/### (.*?)/g) != -1) {
+        if (text.search(/### (.*?)/g) != -1) {
             textFormatting += 'font-size: 12px; font-weight: 700;';
         }
-        else if (message.text.search(/## (.*?)/g) != -1) {
+        else if (text.search(/## (.*?)/g) != -1) {
             textFormatting += 'font-size: 14px; font-weight: 700;';
         }
-        else if (message.text.search(/# (.*?)/g) != -1) {
+        else if (text.search(/# (.*?)/g) != -1) {
             textFormatting += 'font-size: 16px; font-weight: 700;';
+        }
+
+        if (text.search(/`(.*?)`/g) != -1) {
+            textFormatting = 'background-color: var(--grey-300); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px; font-family: monospace;';
         }
         return textFormatting;
     }
 
-    function getMessageText(): string {
-        // discord formatting (*italic*, **bold**, ***bold italic***, __underline__, ~~strikethrough~~, `code`, ```code block```, # header, ## header, ### header)
-        let formattedText: string = message.text;
+    function getMessageFormattedText(text: string): string {
+        let formattedText: string = text;
+        formattedText = formattedText.replace(/`(.*?)`/g, '$1');
+        if (text != formattedText) {
+            return formattedText;
+        }
         formattedText = formattedText.replace(/\*\*\*(.*?)\*\*\*/g, '$1');
         formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '$1');
         formattedText = formattedText.replace(/\*(.*?)\*/g, '$1');
         formattedText = formattedText.replace(/__(.*?)__/g, '$1');
         formattedText = formattedText.replace(/~~(.*?)~~/g, '$1');
-        formattedText = formattedText.replace(/`(.*?)`/g, '$1');
         formattedText = formattedText.replace(/### (.*?)/g, '$1');
         formattedText = formattedText.replace(/## (.*?)/g, '$1');
         formattedText = formattedText.replace(/# (.*?)/g, '$1');
@@ -128,6 +130,12 @@
             }
             else if (event.key === 'Escape' && editOpen) {
                 cancelEdit();
+            }
+            else if (event.ctrlKey && event.key === 'b' && messageText.trim().length > 0 && editOpen) {
+                messageText = `**${messageText}**`;
+            }
+            else if (event.ctrlKey && event.key === 'i' && messageText.trim().length > 0 && editOpen) {
+                messageText = `*${messageText}*`;
             }
         });
     }

@@ -206,6 +206,12 @@
             if (event.key === "Enter" && messageFocused) {
                 sendMessage();
             }
+            else if (event.ctrlKey && event.key === 'b' && messageText.trim().length > 0 && messageFocused) {
+                messageText = `**${messageText}**`;
+            }
+            else if (event.ctrlKey && event.key === 'i' && messageText.trim().length > 0 && messageFocused) {
+                messageText = `*${messageText}*`;
+            }
         });
     }
 

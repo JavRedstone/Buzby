@@ -32,6 +32,8 @@
         padding: 0 !important;
         overflow-x: hidden !important;
 
+        /* cursor: url($lib/elements/assets/cursor/cursor.png) 0 0, auto !important; */
+
         --primary: #ffbe42;
         --primary-rgb: 255, 190, 66;
         --primary-light: #ffdb7b;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
-    import logo from "$lib/elements/assets/logo.svg";
+    import logo from '$lib/elements/assets/logo/logo.svg';
 	import { RouteConstants } from "$lib/elements/classes/ui/core/RouteConstants";
 	import { fade, fly } from "svelte/transition";
 	import Dropdown from "../general/dropdown.svelte";
