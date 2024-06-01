@@ -22,6 +22,9 @@ export class Ping {
         }
 
         this.createdAt = new Date(data.createdAt);
+        if (!this.createdAt) {
+            this.createdAt = new Date();
+        }
     }
 
     public stringify(): any {

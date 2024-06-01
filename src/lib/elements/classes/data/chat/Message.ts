@@ -14,6 +14,8 @@ export class Message {
     public replyId: string;
     public reply: Message;
 
+    public edited: boolean = false;
+
     public createdAt: Date;
 
     constructor(data: any) {
@@ -30,7 +32,15 @@ export class Message {
 
         this.replyId = data.replyId;
 
+        this.edited = data.edited;
+        if (this.edited == null || this.edited == undefined) {
+            this.edited = false;
+        }
+
         this.createdAt = new Date(data.createdAt);
+        if (!this.createdAt) {
+            this.createdAt = new Date();
+        }
     }
 
     public async getSender(): Promise<void> {
@@ -53,6 +63,7 @@ export class Message {
             text: this.text,
             senderId: this.senderId,
             replyId: this.replyId,
+            edited: this.edited,
             createdAt: this.createdAt.getTime()
         };
     }

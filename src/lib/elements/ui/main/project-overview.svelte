@@ -63,17 +63,6 @@
         if (project) {
             projectColor = project.color;
         }
-
-        allProjects.subscribe((value) => {
-            let p = value.projects.find((p) => p.id == project.id);
-
-            if (p) {
-                project = p;
-                projectName = project.name;
-                projectDescription = project.description;
-                projectColor = project.color;
-            }
-        });
     }
 
     function inviteMember(): void {
@@ -443,6 +432,7 @@
                     allProjects.update((value) => {
                         value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
                         value.projects = [...value.projects, project];
+                        value.projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
                         return value;
                     });
                     openSnackbar("Successfully joined project.", "success");
@@ -870,10 +860,12 @@
                 {/if}
             {/if}
         {/if}
-        <button class="project-overview-goto" on:click={gotoProject}>
-            Go to project
-            <span class="material-symbols-rounded">arrow_forward</span>
-        </button>
+        {#if !isRequested}
+            <button class="project-overview-goto" on:click={gotoProject}>
+                Go to project
+                <span class="material-symbols-rounded">arrow_forward</span>
+            </button>
+        {/if}
     </div>
 {/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

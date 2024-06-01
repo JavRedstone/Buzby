@@ -1,11 +1,13 @@
 export class MemberConstants {
+    public static readonly REFRESH_TIMEOUT = 20000;
+
     public static readonly STATUSES: string[] = [
         "Online",
         "Do Not Disturb",
     ];
 
     public static readonly HEADS: string[] = [
-        "Default",
+        "None",
         "Bowtie",
         "Crown",
         "Fedora",

@@ -47,7 +47,11 @@
             return;
         }
         editOpen = false;
+        if (messageText === message.text) {
+            return;
+        }
         message.text = messageText;
+        message.edited = true;
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
         projectSelected.update((value) => {
             value.project.chat = project.chat;
@@ -321,7 +325,7 @@
 </style>
 {#if message && existed}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="chat-message-container" on:mouseenter={() => hovered = true} on:mouseleave={() => hovered = false} transition:fly={{x: 10, duration: TransitionConstants.DURATION}}>
+    <div class="chat-message-container" style={message.edited ? 'border-left: 2px solid var(--grey-300);' : ''} on:mouseenter={() => hovered = true} on:mouseleave={() => hovered = false} transition:fly={{x: 10, duration: TransitionConstants.DURATION}}>
         {#if hasAvatar}
             <div class="chat-message-avatar-container"></div>
             <div class="chat-message-big-container">

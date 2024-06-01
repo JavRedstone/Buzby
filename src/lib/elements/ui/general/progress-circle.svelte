@@ -4,17 +4,27 @@
 
     export let radius: number = ProgressCircleConstants.DEFAULT_RADIUS;
     export let percentage: number = 0;
+    export let storageName: string = null;
     export let autoFill: boolean = false;
     export let autofillTime: number = 0;
 
     let autofillInterval = null;
 
     onMount(() => {
+        if (storageName) {
+            let storedPercentage = localStorage.getItem(storageName);
+            if (storedPercentage) {
+                percentage = parseFloat(storedPercentage);
+            }
+        }
         if (autoFill) {
             autofillInterval = setInterval(() => {
                 percentage += 100 / (autofillTime / ProgressCircleConstants.AUTOFILL_INTERVAL);
                 if (percentage >= 100) {
                     percentage = 100;
+                }
+                if (storageName) {
+                    localStorage.setItem(storageName, percentage.toString());
                 }
             }, ProgressCircleConstants.AUTOFILL_INTERVAL);
         }

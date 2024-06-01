@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
 	import { MemberConstants } from '$lib/elements/classes/data/project/MemberConstants';
     import beeOnline from '$lib/elements/assets/member-status/bases/bee_online.svg';
     import beeDND from '$lib/elements/assets/member-status/bases/bee_dnd.svg';
@@ -15,6 +16,10 @@
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 	import { onMount } from 'svelte';
 	import { memberStatus } from '$lib/elements/stores/project-store';
+	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
+	import { setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
+	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
+	import Snackbar from '../general/snackbar.svelte';
 
     export let member: Member = null;
     export let x: number = 0;
@@ -30,10 +35,9 @@
 
     let editOpen: boolean = false;
 
-    let statusSelected: string = MemberConstants.STATUSES[0];
-    let headSelected: string = MemberConstants.HEADS[0];
-    let eyesSelected: string = MemberConstants.EYES[0];
-    let neckSelected: string = MemberConstants.NECKS[0];
+    let snackbarOpen: boolean = false;
+    let snackbarText: string = "";
+    let snackbarType: string = "neutral";
 
     function setMemberStatus(): void {
         base = member.online ? 0 : 1;
@@ -48,9 +52,87 @@
         })
     }
 
-    function openEdit(): void {
+    function toggleEdit(): void {
         editOpen = !editOpen;
-        setMemberStatus();
+        if (editOpen) {
+            setMemberStatus();            
+        }
+        else {
+            saveMemberStatus();
+        }
+    }
+
+    function saveMemberStatus(): void {
+        if (!(currMember && currMember.id === member.id)) {
+            return;
+        }
+
+        if (member.avatarHead === head && member.avatarEyes === eyes && member.avatarNeck === neck) {
+            return;
+        }
+
+        member.avatarHead = head;
+        member.avatarEyes = eyes;
+        member.avatarNeck = neck;
+
+        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
+        setDoc(memberDoc, member.compactify()).then(() => {
+            memberStatus.update((value) => {
+                value.currentMember = member;
+                return value;
+            });
+            openSnackbar('Member status saved successfully.', 'success');
+        }).catch((error) => {
+            openSnackbar('Error saving member status. Please try again.', 'error');
+        });
+    }
+
+    function shiftHeadLeft(): void {
+        head--;
+        if (head < MemberConstants.AVATAR_HEADS.DEFAULT) {
+            head = MemberConstants.HEADS.length - 2;
+        }
+    }
+
+    function shiftHeadRight(): void {
+        head++;
+        if (head >= MemberConstants.HEADS.length - 1) {
+            head = MemberConstants.AVATAR_HEADS.DEFAULT;
+        }
+    }
+
+    function shiftEyesLeft(): void {
+        eyes--;
+        if (eyes < MemberConstants.AVATAR_EYES.DEFAULT) {
+            eyes = MemberConstants.EYES.length - 2;
+        }
+    }
+
+    function shiftEyesRight(): void {
+        eyes++;
+        if (eyes >= MemberConstants.EYES.length - 1) {
+            eyes = MemberConstants.AVATAR_EYES.DEFAULT;
+        }
+    }
+
+    function shiftNeckLeft(): void {
+        neck--;
+        if (neck < MemberConstants.AVATAR_NECKS.DEFAULT) {
+            neck = MemberConstants.NECKS.length - 2;
+        }
+    }
+
+    function shiftNeckRight(): void {
+        neck++;
+        if (neck >= MemberConstants.NECKS.length - 1) {
+            neck = MemberConstants.AVATAR_NECKS.DEFAULT;
+        }
+    }
+
+    function openSnackbar(text: string, type: string): void {
+        snackbarText = text;
+        snackbarType = type;
+        snackbarOpen = true;
     }
 
     onMount(() => {
@@ -105,6 +187,36 @@
         font-weight: bold;
         color: var(--grey-800);
         user-select: none;
+        z-index: 1;
+    }
+
+    .member-status-edit {
+        position: absolute;
+        transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
+        color: var(--grey-600);
+        cursor: pointer;
+        user-select: none;
+
+        transition: color var(--transition-duration);
+        
+        &:hover {
+            color: var(--grey-800);
+        }
+    }
+
+    .member-status-cycle {
+        position: absolute;
+        transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
+        color: var(--grey-600);
+        font-size: 16px;
+        cursor: pointer;
+        user-select: none;
+
+        transition: color var(--transition-duration);
+        
+        &:hover {
+            color: var(--grey-800);
+        }
     }
 </style>
 {#if currMember && currMember.id === member.id}
@@ -126,5 +238,28 @@
 
 <div class="member-status-name" style="left: {x}px; top: {nameAbove ? y + 48 : y - 48}px;">{member.displayName}</div>
 {#if currMember && currMember.id === member.id}
-
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <span class="member-status-edit material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleEdit}>edit</span>
+    {#if editOpen}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 18}px" on:click={shiftHeadLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 18}px" on:click={shiftHeadRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>    
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 4}px" on:click={shiftEyesLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 4}px" on:click={shiftEyesRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y + 10}px" on:click={shiftNeckLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="member-status-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y + 10}px" on:click={shiftNeckRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+    {/if}
 {/if}
+<Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

@@ -2,10 +2,16 @@
     <title>Buzby | Office</title>
 </svelte:head>
 <script lang="ts">
+	import { allProjects } from '$lib/elements/stores/project-store';
+	import { getDoc } from 'firebase/firestore';
+	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
+	import { DocumentReference, type DocumentData } from 'firebase/firestore';
+	import ProgressCircle from '$lib/elements/ui/general/progress-circle.svelte';
+	import { MemberConstants } from '$lib/elements/classes/data/project/MemberConstants';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { fade } from 'svelte/transition';
 	import { projectSelected } from '$lib/elements/stores/project-store';
-	import type { Project } from "$lib/elements/classes/data/project/Project";
+	import { Project } from "$lib/elements/classes/data/project/Project";
 	import Discussion from "$lib/elements/ui/office/discussion.svelte";
 	import MemberStatus from '$lib/elements/ui/office/member-status.svelte';
 	import { onMount } from 'svelte';
@@ -17,6 +23,8 @@
     let memberAngles: number[] = [];
     let memberOffsets: Vector2[] = [];
     let memberPositions: Vector2[] = [];
+
+    let officeRefreshPercentage: number = 100;
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
@@ -39,6 +47,32 @@
         }
     }
 
+    function refreshProject(): void {
+        if (officeRefreshPercentage >= 100) {
+            officeRefreshPercentage = 0;
+            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
+            getDoc(projectDoc).then(async (doc) => {
+                let project: Project = new Project(doc.data());
+                await project.setObjects();
+                projectSelected.update((value) => {
+                    value.project = project;
+                    return value;
+                });
+                allProjects.update((value) => {
+                    value.projects = value.projects.map((p) => {
+                        if (p.id === project.id) {
+                            return project;
+                        }
+                        return p;
+                    });
+                    return value;
+                })
+                officeRefreshPercentage = 0;
+                setMemberStatusPositions();
+            });
+        }
+    }
+
     function setupWindow(): void {
         window.addEventListener('resize', () => {
             setMemberStatusPositions();
@@ -51,6 +85,38 @@
     })
 </script>
 <style>
+    .office-title-container {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-bottom: 1px solid var(--grey-300);
+    }
+
+    .office-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
+
+    .office-title-icon-progress-circle-container {
+        position: absolute;
+        left: 60px;
+        margin-top: -1px;
+    }
+
+    .office-title-icon-button {
+        position: absolute;
+        left: 62px;
+        font-size: 24px;
+        color: var(--grey-800);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
+
     .office-table {
         position: absolute;
         top: 50%;
@@ -73,6 +139,15 @@
     }
 </style>
 <div transition:fade={{duration: TransitionConstants.DURATION}}>
+    <div class="office-title-container">
+        <div class="office-title">Office</div>
+        <div class="office-title-icon-progress-circle-container">
+            <ProgressCircle radius={12} bind:percentage={officeRefreshPercentage} storageName="projectRefreshPercentage" autoFill={true} autofillTime={MemberConstants.REFRESH_TIMEOUT} />
+        </div>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="office-title-icon-button material-symbols-rounded" on:click={() => refreshProject()}>refresh</span>
+    </div>
     <div class="office-table">
         <span class="office-table-icon material-symbols-rounded">diversity_2</span>
     </div>

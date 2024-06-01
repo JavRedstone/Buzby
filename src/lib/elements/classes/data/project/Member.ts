@@ -1,6 +1,5 @@
 import { Ping } from "../chat/Ping";
 import { MemberConstants } from "./MemberConstants";
-import { ProjectConstants } from "./ProjectConstants";
 
 export class Member {
     public id: string;

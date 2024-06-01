@@ -341,7 +341,7 @@
     <div class="discussion-title-container">
         <div class="discussion-title">Discussion</div>
         <div class="discussion-title-icon-progress-circle-container">
-            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+            <ProgressCircle radius={12} bind:percentage={messagePercentage} storageName="messageRefreshPercentage" autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
         </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->

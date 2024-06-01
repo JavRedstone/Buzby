@@ -118,7 +118,7 @@
         padding-left: 16px;
         padding-right: 16px;
         padding-bottom: 16px;
-        border: 2px solid var(--grey-400);
+        border: 2px solid var(--grey-300);
         border-radius: 8px;
     }
 
@@ -148,7 +148,7 @@
         padding-bottom: 4px;
         background-color: var(--off-white);
         outline: none;
-        border: 2px solid var(--grey-400);
+        border: 2px solid var(--grey-300);
         border-radius: 4px;
         font-size: 16px;
         color: var(--grey-800);
