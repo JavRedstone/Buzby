@@ -28,10 +28,7 @@
                     total += task.percentage;
 
                     let pos: Vector2 = new Vector2();
-                    if (task.parentId.length == 0) {
-                        // TODO
-                        // pos = honeycombOffset
-                    }
+                    // no parents
                 }
                 projectPercentage = total / tasks.length;
             }

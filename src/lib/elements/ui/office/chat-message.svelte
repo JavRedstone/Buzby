@@ -7,12 +7,15 @@
 	import { deleteDoc, updateDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '../general/snackbar.svelte';
-	import { projectSelected } from '$lib/elements/stores/project-store';
+	import { memberStatus, projectSelected } from '$lib/elements/stores/project-store';
 	import type { Project } from '$lib/elements/classes/data/project/Project';
+	import type { Member } from '$lib/elements/classes/data/project/Member';
 
     export let message: Message = null;
     export let project: Project = null;
     export let hasAvatar: boolean = false;
+
+    let currMember: Member = null;
 
     let existed: boolean = false;
     let hovered: boolean = false;
@@ -29,6 +32,12 @@
 
     $: message.text ? messageFormattedText = getMessageFormattedText(message.text) : messageFormattedText = "";
     $: message.text ? messageFormatting = getMessageFormatting(message.text) : messageFormatting = "";
+
+    function getMember(): void {
+        memberStatus.subscribe((value) => {
+            currMember = value.currentMember;
+        });
+    }
 
     function editMessage(): void {
         messageFormattedText = getMessageFormattedText(messageText);
@@ -148,6 +157,7 @@
 
     onMount(() => {
         existed = true;
+        getMember();
         setKeybinds();
     });
 </script>
@@ -326,7 +336,7 @@
                     {:else}
                         <div class="chat-message-large" style={messageFormatting}>{messageFormattedText}</div>
                     {/if}
-                    {#if hovered && message.senderId == project.ownerId}
+                    {#if hovered && message.senderId == currMember.id}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <span class="chat-message-action material-symbols-rounded"  on:click={openEdit} transition:fade={{duration: TransitionConstants.DURATION}}>edit</span>
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -342,7 +352,7 @@
             {:else}
                 <div class="chat-message-small" style={messageFormatting}>{messageFormattedText}</div>
             {/if}
-            {#if hovered && message.senderId == project.ownerId}
+            {#if hovered && message.senderId == currMember.id}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <span class="chat-message-action material-symbols-rounded" on:click={openEdit} transition:fade={{duration: TransitionConstants.DURATION}}>edit</span>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->

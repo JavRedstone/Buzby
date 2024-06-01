@@ -256,6 +256,7 @@
     .discussion-title-icon-progress-circle-container {
         position: absolute;
         right: 8px;
+        margin-top: -1px;
     }
 
     .discussion-title-icon-button {

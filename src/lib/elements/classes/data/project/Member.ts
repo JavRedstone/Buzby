@@ -1,4 +1,6 @@
 import { Ping } from "../chat/Ping";
+import { MemberConstants } from "./MemberConstants";
+import { ProjectConstants } from "./ProjectConstants";
 
 export class Member {
     public id: string;
@@ -6,8 +8,10 @@ export class Member {
     public displayName: string;
     public email: string;
 
-    public avatarHat: number;
-    public avatarGlasses: number;
+    public online: boolean = false;
+    public avatarHead: number = 0;
+    public avatarEyes: number = 0;
+    public avatarNeck: number = 0;
 
     public projectIds: string[];
     public requestedProjectIds: string[] = [];
@@ -27,13 +31,21 @@ export class Member {
             this.email = "";
         }
 
-        this.avatarHat = data.avatarHat;
-        if (this.avatarHat == null || this.avatarHat == undefined) {
-            this.avatarHat = 0;
+        this.online = data.online;
+        if (this.online == null || this.online == undefined) {
+            this.online = false;
         }
-        this.avatarGlasses = data.avatarGlasses;
-        if (this.avatarGlasses == null || this.avatarGlasses == undefined) {
-            this.avatarGlasses = 0;
+        this.avatarHead = data.avatarHead;
+        if (this.avatarHead == null || this.avatarHead == undefined) {
+            this.avatarHead = MemberConstants.AVATAR_HEADS.DEFAULT;
+        }
+        this.avatarEyes = data.avatarEyes;
+        if (this.avatarEyes == null || this.avatarEyes == undefined) {
+            this.avatarEyes = MemberConstants.AVATAR_EYES.DEFAULT;
+        }
+        this.avatarNeck = data.avatarNeck;
+        if (this.avatarNeck == null || this.avatarNeck == undefined) {
+            this.avatarNeck = MemberConstants.AVATAR_NECKS.DEFAULT;
         }
 
         this.projectIds = data.projectIds;
@@ -63,8 +75,10 @@ export class Member {
             id: this.id,
             displayName: this.displayName,
             email: this.email,
-            avatarHat: this.avatarHat,
-            avatarGlasses: this.avatarGlasses,
+            online: this.online,
+            avatarHead: this.avatarHead,
+            avatarEyes: this.avatarEyes,
+            avatarNeck: this.avatarNeck,
             projectIds: this.projectIds,
             requestedProjectIds: this.requestedProjectIds,
             pings: this.pings ? this.pings.map(ping => ping.stringify()) : [],

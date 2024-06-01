@@ -78,6 +78,7 @@
             pathname = w.location.pathname;
 
             if (pathname != '/') {
+                localStorage.setItem('selectedProjectId', '');
                 localStorage.setItem('selectedProjectRoute', pathname);
             }
             history.forward();

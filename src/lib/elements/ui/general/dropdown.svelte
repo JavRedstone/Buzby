@@ -28,6 +28,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <style>
     .dropdown-button {
+        position: relative;
         padding-left: 8px;
         padding-top: 4px;
         padding-bottom: 4px;
