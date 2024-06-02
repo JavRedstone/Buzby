@@ -126,7 +126,7 @@
                                         type: PingConstants.TYPES.PROJECT,
                                         title: "Project request",
                                         message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
-                                        createdAtTemp: new Date(),
+                                        createdAtTemp: serverTimestamp(),
                                     });
                                     member.pingIds.push(ping.id);
                                     let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);

@@ -154,21 +154,6 @@
             project.joinedMembers = project.joinedMembers.filter((m) => m.id !== member.id);
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
             setDoc(projectDoc, project.compactify()).then(async () => {
-                projectSelected.update((value) => {
-                    value.project = project;
-                    value.projectName = project.name;
-                    return value;
-                });
-                allProjects.update((value) => {
-                    value.projects = value.projects.map((p) => {
-                        if (p.id === project.id) {
-                            return project;
-                        }
-                        return p;
-                    });
-                    return value;
-                });
-
                 member.projectIds = member.projectIds.filter((id) => id !== project.id);
                 let ping: Ping = new Ping({
                     id: StringHelper.generateID(),
@@ -181,7 +166,21 @@
                 let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
                 await setDoc(pingDoc, ping.compactify());
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                await setDoc(memberDoc, member.compactify()).then(() => {
+                    await setDoc(memberDoc, member.compactify()).then(() => {
+                        projectSelected.update((value) => {
+                        value.project = project;
+                        value.projectName = project.name;
+                        return value;
+                    });
+                    allProjects.update((value) => {
+                        value.projects = value.projects.map((p) => {
+                            if (p.id === project.id) {
+                                return project;
+                            }
+                            return p;
+                        });
+                        return value;
+                    });
                     openSnackbar('Member kicked successfully.', 'success');
                     cancelKick();
                 }).catch((error) => {
@@ -288,7 +287,7 @@
     .member-status-cycle {
         position: absolute;
         transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
-        color: var(--grey-600);
+        color: var(--grey-100);
         font-size: 16px;
         cursor: pointer;
         user-select: none;
@@ -296,7 +295,7 @@
         transition: color var(--transition-duration);
         
         &:hover {
-            color: var(--grey-800);
+            color: var(--grey-300);
         }
     }
 

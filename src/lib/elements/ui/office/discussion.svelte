@@ -15,6 +15,8 @@
 	import ProgressCircle from '../general/progress-circle.svelte';
 	import { Chat } from '$lib/elements/classes/data/chat/Chat';
 	import ProgressLine from '../general/progress-line.svelte';
+	import { Ping } from '$lib/elements/classes/data/chat/Ping';
+	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -161,18 +163,58 @@
             
             messageText = "";
             messagePercentage = 0;
-            cancelReply();
+
+            replyOpen = false;
             
             let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
             setDoc(chatDoc, project.chat.compactify()).then(() => {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
                 setDoc(messageDoc, message.compactify()).then(() => {
-                    getDoc(messageDoc).then((doc) => {
+                    getDoc(messageDoc).then(async (doc) => {
                         let newMessage: Message = new Message(doc.data());
                         newMessage.sender = currMember;
                         newMessage.reply = replyMessage;
                         project.chat.messages = [newMessage, ...project.chat.messages];
                         messages = project.chat.messages;
+
+                        if (newMessage.text.search(/@([^\s]+)/g) != -1) {
+                            let pingedMembers: Member[] = [];
+                            for (let match of newMessage.text.match(/@([^\s]+)/g)) {
+                                for (let m of project.joinedMembers) {
+                                    if (match.toLowerCase() === `@${m.displayName.toLowerCase()}` && !pingedMembers.includes(m) && m.id !== currMember.id) {
+                                        pingedMembers.push(m);
+                                        let ping: Ping = new Ping({
+                                            id: StringHelper.generateID(),
+                                            type: PingConstants.TYPES.USER,
+                                            title: "Member pinged",
+                                            message: `Member "${currMember.displayName}" pinged you in project "${project.name}".`,
+                                            createdAtTemp: serverTimestamp(),
+                                        });
+                                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                                        await setDoc(pingDoc, ping.compactify());
+                                        m.pingIds.push(ping.id);
+                                        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", m.id);
+                                        await setDoc(memberDoc, m.compactify());
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (newMessage.reply != null && newMessage.reply.senderId !== currMember.id) {
+                            let ping: Ping = new Ping({
+                                id: StringHelper.generateID(),
+                                type: PingConstants.TYPES.USER,
+                                title: "Member replied",
+                                message: `Member "${currMember.displayName}" replied to your message in "${project.name}".`,
+                                createdAtTemp: serverTimestamp(),
+                            });
+                            let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                            await setDoc(pingDoc, ping.compactify());
+                            newMessage.reply.sender.pingIds.push(ping.id);
+                            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", newMessage.reply.sender.id);
+                            await setDoc(memberDoc, newMessage.reply.sender.compactify());
+                        }
 
                         projectSelected.update((value) => {
                             value.project = project;
@@ -192,16 +234,19 @@
 
                         messageProcessing = false;
                         messagePercentage = 0;
+                        cancelReply();
                     }).catch((error) => {
                         openSnackbar("An error occurred while sending the message.", "error");
                         messageProcessing = false;
                         messagePercentage = 0;
+                        cancelReply();
                     });
                     messagePercentage = 0;
                 }).catch((error) => {
                     openSnackbar("An error occurred while sending the message.", "error");
                     messageProcessing = false;
                     messagePercentage = 0;
+                    cancelReply();
                 });
                 if (lastMessageDeleted) {
                     let lastMessageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", lastMessage.id);
@@ -370,11 +415,12 @@
 
     .discussion-reply-cancel {
         font-size: 16px;
+        color: var(--grey-100);
         cursor: pointer;
         transition: color var(--transition-duration);
 
         &:hover {
-            color: var(--grey-200);
+            color: var(--grey-300);
         }
     }
 

@@ -44,6 +44,8 @@
     function getMember(): void {
         memberStatus.subscribe((value) => {
             currMember = value.currentMember;
+            getMessageFormattedText(message.text);
+            getMessageFormatting(message.text);
         });
     }
 
@@ -128,9 +130,32 @@
         else if (text.search(/# (.*?)/g) != -1) {
             textFormatting += 'font-size: 16px; font-weight: 700;';
         }
-
         if (text.search(/`(.*?)`/g) != -1) {
             textFormatting = 'background-color: var(--grey-300); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px; font-family: monospace;';
+        }
+        if (currMember && (text.search(/@([^\s]+)/g) != -1 || (message.reply != null && message.reply.senderId === currMember.id))) {
+            let mentions: string[] = [];
+            let mention: string = '';
+            if (text.search(/@([^\s]+)/g) != -1) {
+                for (let match of text.match(/@([^\s]+)/g)) {
+                    for (let m of project.joinedMembers) {
+                        if (match.toLowerCase() === `@${m.displayName.toLowerCase()}`) {
+                            mentions.push(m.displayName);
+                            break;
+                        }
+                    }
+                    if (match.toLowerCase() === `@${currMember.displayName.toLowerCase()}`) {
+                        mention = currMember.displayName;
+                        break;
+                    }
+                }
+            }
+            if (mention.length > 0 || (message.reply != null && message.reply.senderId === currMember.id)) {
+                textFormatting += 'background-color: rgba(var(--accent-rgb), 0.1); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
+            }
+            if (mentions.length > 0) {
+                textFormatting += 'color: var(--accent-darker);';
+            }
         }
         return textFormatting;
     }
@@ -259,7 +284,8 @@
     }
 
     .chat-message-action {
-        font-size: 18px;
+        margin-left: 2px;
+        font-size: 16px;
         color: var(--grey-600);
         cursor: pointer;
 
@@ -271,7 +297,8 @@
     }
 
     .chat-message-remove {
-        font-size: 18px;
+        margin-left: 2px;
+        font-size: 16px;
         color: var(--error);
         cursor: pointer;
 
@@ -365,7 +392,7 @@
 </style>
 {#if message && existed}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div id="message-{message.id}" class="chat-message-container" style={(message.edited ? 'border-left: 2px solid var(--grey-300);' : '') + (message.replyId.length > 0 ? 'padding-top: 28px;' : '')} on:mouseenter={() => hovered = true} on:mouseleave={() => hovered = false} transition:fly={{x: 10, duration: TransitionConstants.DURATION}}>
+    <div id="message-{message.id}" class="chat-message-container" style={(message.edited ? 'border-left: 2px solid var(--primary);' : '') + (message.replyId.length > 0 ? 'padding-top: 28px;' : '')} on:mouseenter={() => hovered = true} on:mouseleave={() => hovered = false} transition:fly={{x: 10, duration: TransitionConstants.DURATION}}>
         {#if isHighlighted && highlightedId == message.id}
             <div class="chat-message-highlight-overlay" transition:fade={{duration: TransitionConstants.DURATION}}></div>
         {/if}

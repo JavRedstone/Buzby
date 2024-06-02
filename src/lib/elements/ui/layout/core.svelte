@@ -20,6 +20,7 @@
 	import { goto } from '$app/navigation';
 	import Badge from '../general/badge.svelte';
 	import { navigating } from '$app/stores';
+	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 
     export let sideOpen: boolean = false;
 
@@ -410,6 +411,20 @@
         );
     }
 
+    function getPingColor(ping: Ping): string {
+        if (ping.type == PingConstants.TYPES.PROJECT) {
+            return 'var(--primary-dark)';
+        } else if (ping.type == PingConstants.TYPES.USER) {
+            return 'var(--accent-dark)';
+        } else if (ping.type == PingConstants.TYPES.SYSTEM) {
+            return 'var(--grey-700)';
+        } else if (ping.type == PingConstants.TYPES.ERROR) {
+            return 'var(--error)';
+        } else {
+            return 'var(--grey-700)';
+        }
+    }
+
     function openSnackbar(text: string, type: string): void {
         snackbarText = text;
         snackbarType = type;
@@ -562,6 +577,11 @@
         font-size: 10px;
     }
 
+    .core-ping-time {
+        font-size: 10px;
+        color: var(--grey-500);
+    }
+
     .core-ping-mark-read {
         position: absolute;
         right: 4px;
@@ -621,7 +641,8 @@
                 </a>
                 {#each pings as ping, i}
                     <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
-                        <div class="core-ping-title" style="color: {ping.type == PingConstants.TYPES.PROJECT ? 'var(--primary-dark)' : ping.type == PingConstants.TYPES.USER ? 'var(--accent-dark);' : ping.type == PingConstants.TYPES.SYSTEM ? 'var(--grey-700);' : ping.type == PingConstants.TYPES.ERROR ? 'var(--error);' : 'var(--grey-700);'}">{ping.title}</div>
+                        <div class="core-ping-title" style="color: {getPingColor(ping)}">{ping.title}</div>
+                        <div class="core-ping-time">{StringHelper.getFormattedDate(ping.createdAt)}</div>
                         <div class="core-ping-message">{ping.message}</div>
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -637,16 +658,16 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={logout}>
-                <span class="core-header-icon material-symbols-rounded">logout</span>
+            <a on:click={editProfile}>
+                <span class="core-header-icon material-symbols-rounded">account_circle</span>
             </a>
         </div>
         <div class="core-header-icon-container" style="right: 40px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={editProfile}>
-                <span class="core-header-icon material-symbols-rounded">account_circle</span>
+            <a on:click={logout}>
+                <span class="core-header-icon material-symbols-rounded">logout</span>
             </a>
         </div>
     {/if}
