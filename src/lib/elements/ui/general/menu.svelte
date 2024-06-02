@@ -14,6 +14,7 @@
 <style>
     .menu-container-parent {
         position: absolute;
+        z-index: 1000;
     }
 
     .menu-container {

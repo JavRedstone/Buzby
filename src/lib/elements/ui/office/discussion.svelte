@@ -6,7 +6,7 @@
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { onMount } from "svelte";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
-	import { deleteDoc, getDoc, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
+	import { deleteDoc, getDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
@@ -48,29 +48,37 @@
     }
 
     async function setMessages(): Promise<void> {
+        let hasGottenNewSender: boolean = false;
         for (let i = 0; i < messages.length; i++) {
             if (project.memberIds.includes(messages[i].senderId)) {
                 messages[i].sender = project.members.find((m) => m.id === messages[i].senderId);
-            } else {
+            } else if (messages[i].sender.id == null) {
                 await messages[i].getSender();
-
-                // *this is not an infinite loop because the sender is already set
-                allProjects.update((value) => {
-                    value.projects = value.projects.map((p) => {
-                        if (p.id === project.id) {
-                            return project;
-                        }
-                        return p;
-                    });
-                    return value;
-                });
-
-                projectSelected.update((value) => {
-                    value.project = project;
-                    value.projectName = project.name;
-                    return value;
-                });
+                hasGottenNewSender = true;
             }
+        }
+
+        messages = messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+        project.chat.messages = messages;
+
+        if (hasGottenNewSender) {
+            allProjects.update((value) => {
+                value.projects = value.projects.map((p) => {
+                    if (p.id === project.id) {
+                        return project;
+                    }
+                    return p;
+                });
+                return value;
+            });
+            
+
+            projectSelected.update((value) => {
+                value.project = project;
+                value.projectName = project.name;
+                return value;
+            });
         }
 
         if (messagesContainer) {
@@ -128,41 +136,17 @@
                 text: messageText,
                 senderId: currMember.id,
                 replyId: '',
-                createdAt: new Date().getTime()
+                createdAtTemp: serverTimestamp()
             });
 
             project.chat.messageIds = [...project.chat.messageIds, message.id];
-            project.chat.messages = [...project.chat.messages, message];
-
-            project.chat.messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-            messages = project.chat.messages;
 
             let lastMessage: Message = messages[0];
             let lastMessageDeleted: boolean = false;
-
-            if (messages.length > ChatConstants.MESSAGE_MAX_COUNT) {
-                project.chat.messages = project.chat.messages.slice(1);
+            if (project.chat.messageIds.length > ChatConstants.MESSAGE_MAX_COUNT) {
                 project.chat.messageIds = project.chat.messageIds.filter((id) => id !== lastMessage.id);
-                messages = project.chat.messages;
                 lastMessageDeleted = true;
             }
-
-            projectSelected.update((value) => {
-                value.project = project;
-                value.projectName = project.name;
-                return value;
-            });
-
-            allProjects.update((value) => {
-                value.projects = value.projects.map((p) => {
-                    if (p.id === project.id) {
-                        return project;
-                    }
-                    return p;
-                });
-                return value;
-            });
             
             messageText = "";
             messagePercentage = 0;
@@ -171,7 +155,35 @@
             setDoc(chatDoc, project.chat.compactify()).then(() => {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
                 setDoc(messageDoc, message.compactify()).then(() => {
-                    messageProcessing = false;
+                    getDoc(messageDoc).then((doc) => {
+                        let newMessage: Message = new Message(doc.data());
+                        newMessage.sender = currMember;
+                        project.chat.messages = [newMessage, ...project.chat.messages];
+                        messages = project.chat.messages;
+
+                        projectSelected.update((value) => {
+                            value.project = project;
+                            value.projectName = project.name;
+                            return value;
+                        });
+
+                        allProjects.update((value) => {
+                            value.projects = value.projects.map((p) => {
+                                if (p.id === project.id) {
+                                    return project;
+                                }
+                                return p;
+                            });
+                            return value;
+                        });
+
+                        messageProcessing = false;
+                        messagePercentage = 0;
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while sending the message.", "error");
+                        messageProcessing = false;
+                        messagePercentage = 0;
+                    });
                     messagePercentage = 0;
                 }).catch((error) => {
                     openSnackbar("An error occurred while sending the message.", "error");
@@ -181,6 +193,25 @@
                 if (lastMessageDeleted) {
                     let lastMessageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", lastMessage.id);
                     deleteDoc(lastMessageDoc).then(() => {
+                        project.chat.messages = project.chat.messages.slice(1);
+                        messages = project.chat.messages;
+
+                        projectSelected.update((value) => {
+                            value.project = project;
+                            value.projectName = project.name;
+                            return value;
+                        });
+
+                        allProjects.update((value) => {
+                            value.projects = value.projects.map((p) => {
+                                if (p.id === project.id) {
+                                    return project;
+                                }
+                                return p;
+                            });
+                            return value;
+                        });
+
                         messageProcessing = false;
                         messagePercentage = 0;
                     }).catch((error) => {

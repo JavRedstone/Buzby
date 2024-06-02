@@ -117,7 +117,20 @@
         }
     }
 
+    .office-table-connector {
+        box-sizing: border-box;
+        position: absolute;
+        top: 50%;
+        left: 25%;
+        transform: translate(-50%, -50%);
+        width: 25vw;
+        height: 25vw;
+        border: 2px solid var(--grey-300);
+        border-radius: 100%;
+    }
+
     .office-table {
+        box-sizing: border-box;
         position: absolute;
         top: 50%;
         left: 25%;
@@ -125,6 +138,7 @@
         width: calc(25vw - 84px);
         height: calc(25vw - 84px);
         background: linear-gradient(135deg, var(--primary-light), var(--primary), var(--primary-dark));
+        border: 2px solid var(--primary-dark);
         border-radius: 100%;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
     }
@@ -148,12 +162,13 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="office-title-icon-button material-symbols-rounded" on:click={() => refreshProject()}>refresh</span>
     </div>
+    <div class="office-table-connector"></div>
     <div class="office-table">
         <span class="office-table-icon material-symbols-rounded">diversity_2</span>
     </div>
     {#if project}
         {#each project.joinedMembers as member, i}
-            <MemberStatus member={member} x={memberPositions[i].x} y={memberPositions[i].y} nameAbove={memberOffsets[i].y >= 0} />
+            <MemberStatus member={member} project={project} x={memberPositions[i].x} y={memberPositions[i].y} nameAbove={memberOffsets[i].y >= 0} />
         {/each}
     {/if}
 </div>

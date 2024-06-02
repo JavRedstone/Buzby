@@ -7,6 +7,7 @@
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from 'svelte';
 	import { goto } from "$app/navigation";
+	import { RouteConstants } from "$lib/elements/classes/ui/core/RouteConstants";
 
     let email: string = '';
     let password: string = '';
@@ -20,7 +21,7 @@
     function checkUser(): void {
         userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
-                goto('/');
+                goto(RouteConstants.HOME);
             }
         });
     }
@@ -32,7 +33,7 @@
                     currUser = credential.user;
                     if (credential.user.emailVerified) {
                         openSnackbar('Logged in successfully. Welcome back!', 'success');
-                        goto('/');
+                        goto(RouteConstants.HOME);
                     }
                     else {
                         openSnackbar('Please verify your email before logging in.', 'warning');

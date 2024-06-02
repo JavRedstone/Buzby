@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
     import type { User, UserCredential } from "firebase/auth";
-	import { type DocumentData, setDoc, DocumentReference } from "firebase/firestore";
+	import { type DocumentData, setDoc, DocumentReference, serverTimestamp, getDoc } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
@@ -12,6 +12,7 @@
 	import { memberStatus } from "$lib/elements/stores/project-store";
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import { goto } from '$app/navigation';
+	import { RouteConstants } from '$lib/elements/classes/ui/core/RouteConstants';
 
     let email: string = '';
     let password: string = '';
@@ -25,7 +26,7 @@
     function checkUser(): void {
         userStatus.subscribe((value: any) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
-                goto('/');
+                goto(RouteConstants.HOME);
             }
         });
     }
@@ -49,14 +50,19 @@
 
                         pings: [],
 
-                        createdAt: new Date(),
+                        createdAtTemp: serverTimestamp(),
                     });
                     setDoc(memberDoc, member.compactify()).then(() => {
-                        memberStatus.update((value) => {
-                            value.currentMember = member;
-                            return value;
+                        getDoc(memberDoc).then((doc) => {
+                            member = new Member(doc.data());
+                            memberStatus.update((value) => {
+                                value.currentMember = member;
+                                return value;
+                            });
+                            sendVerificationEmail();
+                        }).catch(() => {
+                            openSnackbar('Error signing up. Please try again.', 'error');
                         });
-                        sendVerificationEmail();
                     }).catch(() => {
                         openSnackbar('Error signing up. Please try again.', 'error');
                     });

@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export class Ping {
     public id: string;
     
@@ -6,6 +8,7 @@ export class Ping {
     public message: string;
 
     public createdAt: Date;
+    public createdAtTemp: any;
 
     public constructor(data: any) {
         this.id = data.id;
@@ -21,19 +24,23 @@ export class Ping {
             this.message = "";
         }
 
-        this.createdAt = new Date(data.createdAt);
-        if (!this.createdAt) {
-            this.createdAt = new Date();
+        if (data.createdAt) {
+            this.createdAt = data.createdAt.toDate();
+            if (!this.createdAt) {
+                this.createdAt = new Date();
+            }
         }
+
+        this.createdAtTemp = data.createdAtTemp;
     }
 
-    public stringify(): any {
-        return JSON.stringify({
+    public compactify(): any {
+        return {
             id: this.id,
             type: this.type,
             title: this.title,
             message: this.message,
-            createdAt: this.createdAt.getTime()
-        });
+            createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
+        };
     }
 }

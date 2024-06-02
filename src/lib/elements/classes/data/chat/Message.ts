@@ -1,7 +1,6 @@
-import { CollectionReference, DocumentReference, getDoc, getDocs, query, where, type DocumentData } from "firebase/firestore";
+import { DocumentReference, getDoc, serverTimestamp, Timestamp, type DocumentData } from "firebase/firestore";
 import { Member } from "../project/Member";
-import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
-import { DataConstants } from "../general/DataConstants";
+import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 
 export class Message {
     public id: string;
@@ -17,6 +16,7 @@ export class Message {
     public edited: boolean = false;
 
     public createdAt: Date;
+    public createdAtTemp: any;
 
     constructor(data: any) {
         this.id = data.id;
@@ -37,10 +37,14 @@ export class Message {
             this.edited = false;
         }
 
-        this.createdAt = new Date(data.createdAt);
-        if (!this.createdAt) {
-            this.createdAt = new Date();
+        if (data.createdAt) {
+            this.createdAt = data.createdAt.toDate();
+            if (!this.createdAt) {
+                this.createdAt = new Date();
+            }
         }
+
+        this.createdAtTemp = data.createdAtTemp;
     }
 
     public async getSender(): Promise<void> {
@@ -64,7 +68,7 @@ export class Message {
             senderId: this.senderId,
             replyId: this.replyId,
             edited: this.edited,
-            createdAt: this.createdAt.getTime()
+            createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }
 }

@@ -12,7 +12,7 @@
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { Project } from "$lib/elements/classes/data/project/Project";
-	import { DocumentReference, getDoc, getDocs, query, setDoc, where, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { DocumentReference, deleteDoc, getDoc, getDocs, query, setDoc, where, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import Menu from "../general/menu.svelte";
@@ -64,7 +64,7 @@
     }
 
     function gotoHome(): void {
-        goto('/');
+        goto(RouteConstants.HOME);
         projectSelected.update((value) => {
             value.projectName = defaultProjectName;
             value.project = null;
@@ -143,10 +143,10 @@
                             if (selectedProjectRoute) {
                                 goto(selectedProjectRoute);
                             } else {
-                                goto('/hive');
+                                goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
                             }
                         } else {
-                            goto('/');
+                            goto(RouteConstants.HOME);
                         }
                     }
                 }
@@ -210,7 +210,7 @@
                 selectedProjectIdx = projects.findIndex((p) => p.id == selectedProject.id) + 1;
                 sideOpen = true;
                 if (location.pathname == '/') {
-                    goto('/hive');
+                    goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
                 }
             }
             pingsOpen = false;
@@ -235,9 +235,9 @@
                 return value;
             });
             if (selectedProjectName != defaultProjectName && location.pathname == '/') {
-                goto('/hive');
+                goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
             } else if (selectedProjectName == defaultProjectName) {
-                goto('/');
+                goto(RouteConstants.HOME);
             }
         }
         localStorage.setItem('selectedProjectId', selectedProject ? selectedProject.id : '');
@@ -264,9 +264,10 @@
 
                     let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', user.uid);
                     getDoc(memberDoc).then(
-                        (doc) => {
+                        async (doc) => {
                             if (doc.exists()) {
                                 let member: Member = new Member(doc.data());
+                                await member.setObjects();
                                 memberStatus.update((value) => {
                                     value.currentMember = member;
                                     return value;
@@ -303,8 +304,7 @@
                     requestedProjects = []; 
                     pings = [];
 
-                    localStorage.removeItem('selectedProjectId');
-                    localStorage.removeItem('selectedProjectRoute');
+                    localStorage.clear();
                     
                     allProjects.update((value) => {
                         value.projects = [];
@@ -326,7 +326,8 @@
                     });
 
                     openSnackbar('Logged out successfully. Good bye!', 'neutral');
-                    goto('/').then(() => {
+
+                    goto(RouteConstants.HOME).then(() => {
                         location.reload();
                     });
                 }
@@ -352,21 +353,27 @@
         pingsOpen = !pingsOpen;
     }
 
-    function markPingRead(ping: Ping): void {
+    async function markPingRead(ping: Ping): Promise<void> {
         drawerOpen = false;
         projectSelectOpen = false;
 
+        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+        await deleteDoc(pingDoc).catch(
+            (error: any) => {
+                openSnackbar('Error marking notification as read. Please try again.', 'error');
+            }
+        );
+
+        currMember.pingIds = currMember.pingIds.filter((id) => id != ping.id);
         currMember.pings = currMember.pings.filter((p) => p.id != ping.id);
-
-        memberStatus.update((value) => {
-            value.currentMember = currMember;
-            return value;
-        });
         pings = currMember.pings;
-
         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
-        setDoc(memberDoc, currMember.compactify()).then(
+        await setDoc(memberDoc, currMember.compactify()).then(
             () => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
                 openSnackbar('Notification marked as read.', 'neutral');
             }
         ).catch(
@@ -376,20 +383,24 @@
         );
     }
 
-    function markAllPingsRead(): void {
+    async function markAllPingsRead(): Promise<void> {
         drawerOpen = false;
         projectSelectOpen = false;
 
+        for (let pingId of currMember.pingIds) {
+            let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', pingId);
+            await deleteDoc(pingDoc);
+        }
+        currMember.pingIds = [];
         currMember.pings = [];
-        memberStatus.update((value) => {
-            value.currentMember = currMember;
-            return value;
-        });
         pings = currMember.pings;
-
         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
-        setDoc(memberDoc, currMember.compactify()).then(
+        await setDoc(memberDoc, currMember.compactify()).then(
             () => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
                 openSnackbar('All notifications marked as read.', 'neutral');
             }
         ).catch(
@@ -532,6 +543,7 @@
         position: relative;
         padding: 4px;
         border-bottom: 1px solid var(--grey-300);
+        background-color: var(--off-white);
 
         transition: background-color var(--transition-duration);
 
@@ -543,7 +555,7 @@
     .core-ping-title {
         font-size: 14px;
         font-weight: bold;
-        margin-bottom: 2px; 
+        margin-bottom: 2px;
     }
 
     .core-ping-message {

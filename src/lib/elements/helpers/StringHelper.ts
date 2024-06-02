@@ -8,7 +8,6 @@ export class StringHelper {
     }
 
     public static getFormattedDate(date: Date): string {
-        // if it is yesterday or today, return "Yesterday" or "Today" + hh:mm AM/PM
         let today: Date = new Date();
         let yesterday: Date = new Date();
         yesterday.setDate(today.getDate() - 1);

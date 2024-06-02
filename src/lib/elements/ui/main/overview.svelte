@@ -5,7 +5,7 @@
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 	import { Member } from '$lib/elements/classes/data/project/Member';
-	import { setDoc } from 'firebase/firestore';
+	import { getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference } from 'firebase/firestore';
 	import { Chat } from '$lib/elements/classes/data/chat/Chat';
@@ -113,38 +113,49 @@
                             chatId: chat.id,
                             taskIds: [],
                             eventIds: [],
-                            createdAt: new Date(),
+                            createdAtTemp: serverTimestamp(),
                         });
 
                         let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
-                        setDoc(projectDoc, project.compactify()).then(async () => {
-                            for (let member of members) {
-                                let ping: Ping = new Ping({
-                                    id: StringHelper.generateID(),
-                                    type: PingConstants.TYPES.PROJECT,
-                                    title: "Project request",
-                                    message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
-                                    createdAt: new Date(),
-                                });
-                                member.requestedProjectIds.push(project.id);
-                                member.pings.push(ping);
-                                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", member.id);
-                                await setDoc(memberDoc, member.compactify());
-                            }
-                            currMember.projectIds.push(project.id);
-                            let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currMember.id);
-                            setDoc(currentMemberDoc, currMember.compactify()).then(async () => {
-                                await project.setObjects();
+                        setDoc(projectDoc, project.compactify()).then(() => {
+                            getDoc(projectDoc).then(async (doc) => {
+                                project = new Project(doc.data());
+                                for (let member of members) {
+                                    let ping: Ping = new Ping({
+                                        id: StringHelper.generateID(),
+                                        type: PingConstants.TYPES.PROJECT,
+                                        title: "Project request",
+                                        message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
+                                        createdAtTemp: new Date(),
+                                    });
+                                    member.pingIds.push(ping.id);
+                                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                                    await setDoc(pingDoc, ping.compactify());
+                                    member.requestedProjectIds.push(project.id);
+                                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", member.id);
+                                    await setDoc(memberDoc, member.compactify());
+                                }
+                                currMember.projectIds.push(project.id);
+                                let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currMember.id);
+                                setDoc(currentMemberDoc, currMember.compactify()).then(async () => {
+                                    await project.setObjects();
 
-                                allProjects.update((value) => {
-                                    value.projects = [...value.projects, project];
-                                    value.projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-                                    return value;
+                                    allProjects.update((value) => {
+                                        value.projects = [...value.projects, project];
+                                        value.projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+                                        return value;
+                                    });
+                                    
+                                    openSnackbar("Project created successfully.", "success");
+                                    createProcessing = false;
+                                    cancel();
+                                }).catch((error) => {
+                                    openSnackbar("An error occurred while creating the project.", "error");
+                                    createProcessing = false;
                                 });
-                                
-                                openSnackbar("Project created successfully.", "success");
+                            }).catch((error) => {
+                                openSnackbar("An error occurred while creating the project.", "error");
                                 createProcessing = false;
-                                cancel();
                             });
                         }).catch((error) => {
                             openSnackbar("An error occurred while creating the project.", "error");

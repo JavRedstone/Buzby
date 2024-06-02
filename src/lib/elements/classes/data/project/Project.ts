@@ -1,4 +1,4 @@
-import { CollectionReference, getDoc, getDocs, query, where, type DocumentData, type DocumentReference } from "firebase/firestore";
+import { CollectionReference, getDoc, getDocs, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
 import { Chat } from "../chat/Chat";
 import { Member } from "./Member";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
@@ -33,6 +33,7 @@ export class Project {
     public events: Event[] = [];
 
     public createdAt: Date;
+    public createdAtTemp: any;
     
     constructor(data: any) {
         this.id = data.id;
@@ -78,34 +79,34 @@ export class Project {
             this.eventIds = [];
         }
 
-        this.createdAt = new Date(data.createdAt);
-        if (!this.createdAt) {
-            this.createdAt = new Date();
+        if (data.createdAt) {
+            this.createdAt = data.createdAt.toDate();
+            if (!this.createdAt) {
+                this.createdAt = new Date();
+            }
         }
+
+        this.createdAtTemp = data.createdAtTemp;
     }
 
     public async setObjects(): Promise<void> {        
         this.members = [];
         if (this.memberIds && this.memberIds.length > 0) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
-            let clonedMemberIds: string[] = this.memberIds.slice();
-            while (clonedMemberIds.length > 0) {
-                let batchMemberIds = clonedMemberIds.splice(0, DataConstants.MAX_BATCH_SIZE);
-                let membersQuery = query(membersCollection, where('id', 'in', batchMemberIds));
-                await getDocs(membersQuery).then((querySnapshot) => {
-                    querySnapshot.forEach((doc) => {
-                        this.members.push(new Member(doc.data()));
+            let membersQuery = query(membersCollection, where('id', 'in', this.memberIds));
+            await getDocs(membersQuery).then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.members.push(new Member(doc.data()));
 
-                        if (doc.data().id === this.ownerId) {
-                            this.owner = new Member(doc.data());
-                        }
+                    if (doc.data().id === this.ownerId) {
+                        this.owner = new Member(doc.data());
+                    }
 
-                        if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
-                            this.joinedMembers.push(new Member(doc.data()));
-                        }
-                    });
+                    if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
+                        this.joinedMembers.push(new Member(doc.data()));
+                    }
                 });
-            }
+            });
         }
         else {
             this.members = [];
@@ -167,7 +168,7 @@ export class Project {
             taskIds: this.taskIds,
             eventIds: this.eventIds,
             
-            createdAt: this.createdAt.getTime()
+            createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }
 }

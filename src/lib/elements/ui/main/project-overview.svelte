@@ -152,19 +152,21 @@
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
                 project.memberIds = [...project.memberIds, ...memberIds];
                 project.members = [...project.members, ...members];
-                setDoc(projectDoc, project.compactify()).then(() => {
+                setDoc(projectDoc, project.compactify()).then(async () => {
                     for (let member of members) {
                         member.requestedProjectIds.push(project.id);
                         let ping: Ping = new Ping({
                             id: StringHelper.generateID(),
                             type: PingConstants.TYPES.PROJECT,
-                            title: "Invited to project",
-                            message: `You have been invited to the project "${project.name}" by the owner "${project.owner.displayName}".`,
-                            createdAt: new Date(),
+                            title: "Project request",
+                            message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
+                            createdAtTemp: new Date(),
                         });
-                        member.pings.push(ping);
+                        member.pingIds.push(ping.id);
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        await setDoc(pingDoc, ping.compactify());
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                        setDoc(memberDoc, member.compactify());
+                        await setDoc(memberDoc, member.compactify());
                     }
                     allProjects.update((value) => {
                         value.projects = value.projects.map((p) => {
@@ -238,7 +240,7 @@
             projectEdited.name = projectName;
             projectEdited.description = projectDescription;
             projectEdited.color = projectColor;
-            setDoc(projectDoc, projectEdited.compactify()).then(() => {
+            setDoc(projectDoc, projectEdited.compactify()).then(async () => {
                 for (let member of project.members) {
                     if (member.id != project.owner.id) {
                         let ping: Ping = new Ping({
@@ -246,11 +248,13 @@
                             type: PingConstants.TYPES.PROJECT,
                             title: "Project edited",
                             message: `The project "${project.name}" has been edited by the owner "${project.owner.displayName} to have the name "${projectName}", description "${projectDescription}", and color "${ProjectConstants.findColorByHex(projectColor).displayName}".`,
-                            createdAt: new Date(),
+                            createdAtTemp: new Date(),
                         });
-                        member.pings.push(ping);
+                        member.pingIds.push(ping.id);
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        await setDoc(pingDoc, ping.compactify());
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                        setDoc(memberDoc, member.compactify());
+                        await setDoc(memberDoc, member.compactify());
                     }
                 }
                 allProjects.update((value) => {
@@ -305,9 +309,11 @@
                                 type: PingConstants.TYPES.PROJECT,
                                 title: "Project deleted",
                                 message: `The project "${project.name}" has been deleted by the owner "${project.owner.displayName}".`,
-                                createdAt: new Date(),
+                                createdAtTemp: new Date(),
                             });
-                            member.pings.push(ping);
+                            member.pingIds.push(ping.id);
+                            let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                            await setDoc(pingDoc, ping.compactify());
                         }
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                         await setDoc(memberDoc, member.compactify());
@@ -347,7 +353,7 @@
             setDoc(projectDoc, project.compactify()).then(() => {            
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
                 currMember.projectIds = currMember.projectIds.filter((id) => id != project.id);
-                setDoc(memberDoc, currMember.compactify()).then(() => {
+                setDoc(memberDoc, currMember.compactify()).then(async () => {
                     memberStatus.update((value) => {
                         value.currentMember = currMember;
                         return value;
@@ -359,11 +365,13 @@
                             type: PingConstants.TYPES.PROJECT,
                             title: "Member left",
                             message: `Member "${currMember.displayName}" has left the project "${project.name}".`,
-                            createdAt: new Date(),
+                            createdAtTemp: new Date(),
                         });
-                        project.owner.pings.push(ping);
+                        project.owner.pingIds.push(ping.id);
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        await setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
-                        setDoc(ownerDoc, project.owner.compactify());
+                        await setDoc(ownerDoc, project.owner.compactify());
                     }
 
                     allProjects.update((value) => {
@@ -411,7 +419,7 @@
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
                 currMember.projectIds.push(project.id);
                 currMember.requestedProjectIds = currMember.requestedProjectIds.filter((id) => id != project.id);
-                setDoc(memberDoc, currMember.compactify()).then(() => {
+                setDoc(memberDoc, currMember.compactify()).then(async () => {
                     memberStatus.update((value) => {
                         value.currentMember = currMember;
                         return value;
@@ -423,11 +431,13 @@
                             type: PingConstants.TYPES.PROJECT,
                             title: "Member joined",
                             message: `Member "${currMember.displayName}" has joined the project "${project.name}".`,
-                            createdAt: new Date(),
+                            createdAtTemp: new Date(),
                         });
-                        project.owner.pings.push(ping);
+                        project.owner.pingIds.push(ping.id);
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        await setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
-                        setDoc(ownerDoc, project.owner.compactify());
+                        await setDoc(ownerDoc, project.owner.compactify());
                     }
                     allProjects.update((value) => {
                         value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
@@ -465,7 +475,7 @@
             setDoc(projectDoc, project.compactify()).then(() => {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
                 currMember.requestedProjectIds = currMember.requestedProjectIds.filter((id) => id != project.id);
-                setDoc(memberDoc, currMember.compactify()).then(() => {
+                setDoc(memberDoc, currMember.compactify()).then(async () => {
                     memberStatus.update((value) => {
                         value.currentMember = currMember;
                         return value;
@@ -477,11 +487,13 @@
                             type: PingConstants.TYPES.PROJECT,
                             title: "Member rejected",
                             message: `Member "${currMember.displayName}" has rejected the project "${project.name}".`,
-                            createdAt: new Date(),
+                            createdAtTemp: new Date(),
                         });
-                        project.owner.pings.push(ping);
+                        project.owner.pingIds.push(ping.id);
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        await setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
-                        setDoc(ownerDoc, project.owner.compactify());
+                        await setDoc(ownerDoc, project.owner.compactify());
                     }
                     allProjects.update((value) => {
                         value.requestedProjects = value.requestedProjects.filter((p) => p.id != project.id);
@@ -592,13 +604,13 @@
 
     .project-overview-action {
         margin-top: 8px;
-        color: var(--grey-800);
+        color: var(--grey-600);
         cursor: pointer;
 
         transition: color var(--transition-duration);
 
         &:hover {
-            color: var(--accent);
+            color: var(--grey-800);
         }
     }
 
@@ -791,11 +803,11 @@
         {:else}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--accent);' : ''} on:click={inviteMember}>person_add</span>
+            <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>
             {#if isOwner}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="project-overview-action material-symbols-rounded" style={editOpen ? 'color: var(--accent);' : ''} on:click={editProject}>edit</span>
+                <span class="project-overview-action material-symbols-rounded" style={editOpen ? 'color: var(--grey-800);' : ''} on:click={editProject}>edit</span>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="project-overview-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteProject}>delete</span>
@@ -860,8 +872,8 @@
                 {/if}
             {/if}
         {/if}
-        {#if !isRequested}
-            <button class="project-overview-goto" on:click={gotoProject}>
+        {#if !isRequested && !inviteOpen && !editOpen && !deleteOpen && !leaveOpen}
+            <button class="project-overview-goto" on:click={gotoProject} transition:slide={{duration: TransitionConstants.DURATION}}>
                 Go to project
                 <span class="material-symbols-rounded">arrow_forward</span>
             </button>

@@ -1,5 +1,7 @@
+import { CollectionReference, getDocs, query, Timestamp, where, type DocumentData } from "firebase/firestore";
 import { Ping } from "../chat/Ping";
 import { MemberConstants } from "./MemberConstants";
+import { getFirestoreCollection } from "$lib/elements/firebase/firebase";
 
 export class Member {
     public id: string;
@@ -13,11 +15,13 @@ export class Member {
     public avatarNeck: number = 0;
 
     public projectIds: string[];
-    public requestedProjectIds: string[] = [];
+    public requestedProjectIds: string[];
     
+    public pingIds: string[];
     public pings: Ping[] = [];
 
     public createdAt: Date;
+    public createdAtTemp: any;
 
     public constructor(data: any) {
         this.id = data.id;
@@ -56,17 +60,35 @@ export class Member {
             this.requestedProjectIds = [];
         }
 
-        let dataPings = data.pings;
-        if (dataPings) {
-            dataPings.forEach(ping => {
-                this.pings.push(new Ping(JSON.parse(ping)));
+        this.pingIds = data.pingIds;
+        if (!this.pingIds) {
+            this.pingIds = [];
+        }
+
+        if (data.createdAt) {
+            this.createdAt = data.createdAt.toDate();
+            if (!this.createdAt) {
+                this.createdAt = new Date();
+            }
+        }
+
+        this.createdAtTemp = data.createdAtTemp;
+    }
+
+    public async setObjects(): Promise<void> {
+        this.pings = [];
+        if (this.pingIds && this.pingIds.length > 0) {
+            let pingsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('pings');
+            let pingsQuery = query(pingsCollection, where('id', 'in', this.pingIds));
+            await getDocs(pingsQuery).then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.pings.push(new Ping(doc.data()));
+                });
             });
         }
         else {
             this.pings = [];
         }
-
-        this.createdAt = new Date(data.createdAt);
     }
 
     public compactify(): any {
@@ -80,8 +102,8 @@ export class Member {
             avatarNeck: this.avatarNeck,
             projectIds: this.projectIds,
             requestedProjectIds: this.requestedProjectIds,
-            pings: this.pings ? this.pings.map(ping => ping.stringify()) : [],
-            createdAt: this.createdAt.getTime()
+            pingIds: this.pingIds,
+            createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }
 }
