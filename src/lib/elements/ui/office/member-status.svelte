@@ -410,7 +410,7 @@
 {#if currMember && currMember.id != member.id && currMember.id === project.ownerId}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="member-status-kick material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleKick}>door_open</span>
+    <span class="member-status-kick material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleKick}>person_remove</span>
     <Menu bind:open={kickOpen} left={x + 24} top={y - 58} width={88} height={56}>
         <div class="member-status-kick-sure">Confirm kick</div>
         <button class="member-status-kick-confirm" on:click={confirmKick}>Kick</button>

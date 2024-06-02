@@ -42,7 +42,7 @@
         --primary-darker: #d95b1d;
 
         --accent: #4284ff;
-        --prmary-rgb: 66, 132, 255;
+        --accent-rgb: 66, 132, 255;
         --accent-light: #63a4ff;
         --accent-lighter: #b0e0e6;
         --accent-dark: #1c5fbb;
