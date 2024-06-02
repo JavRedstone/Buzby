@@ -201,6 +201,7 @@
     }
 
     .chat-message-avatar-container {
+        position: absolute;
         width: 42px;
         height: 42px;
         flex-shrink: 0;
@@ -222,6 +223,7 @@
     }
 
     .chat-message-name {
+        padding-left: 50px;
         font-weight: 500;
         font-size: 14px;
     }
@@ -232,7 +234,7 @@
         color: var(--grey-600);
     }
 
-    .chat-message-small {
+    .chat-message {
         box-sizing: border-box;
         font-size: 13px;
         word-wrap: break-word;
@@ -241,13 +243,6 @@
     .chat-message-large-container {
         display: flex;
         align-items: center;
-    }
-
-    .chat-message-large {
-        box-sizing: border-box;
-        width: calc(100% - 48px);
-        font-size: 13px;
-        word-wrap: break-word;
     }
 
     .chat-message-time {
@@ -287,34 +282,8 @@
         }
     }
 
-    .chat-message-small-edit-input {
+    .chat-message-edit-input {
         box-sizing: border-box;
-        padding-left: 4px;
-        padding-right: 4px;
-        padding-top: 0;
-        padding-bottom: 0;
-        background-color: var(--grey-200);
-        outline: none;
-        border: 1px solid var(--grey-400);
-        border-radius: 4px;
-        font-size: 12px;
-        color: var(--grey-800);
-        user-select: none;
-
-        transition: border-color var(--transition-duration);
-
-        &:hover {
-            border-color: var(--accent-light);
-        }
-
-        &:focus {
-            border-color: var(--accent);
-        }
-    }
-
-    .chat-message-large-edit-input {
-        box-sizing: border-box;
-        width: calc(100% - 48px);
         padding-left: 4px;
         padding-right: 4px;
         padding-top: 0;
@@ -341,7 +310,7 @@
     .chat-message-reply-arrow {
         position: absolute;
         left: 28px;
-        bottom: 48px;
+        top: 12px;
         width: 28px;
         height: 12px;
         border-left: 2px solid var(--grey-400);
@@ -352,7 +321,7 @@
     .chat-message-reply-display {
         position: absolute;
         left: 64px;
-        bottom: 52px;
+        top: 3px;
         width: calc(100% - 136px);
         font-size: 12px;
         color: var(--grey-600);
@@ -413,7 +382,7 @@
                 {/if}
             {/if}
             
-            <div class="chat-message-avatar-container"></div>
+            <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;"></div>
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
                     <div class="chat-message-name">{message.sender.displayName}</div>
@@ -422,9 +391,9 @@
                 <div class="chat-message-large-container">
                     {#if editOpen}
                         <!-- svelte-ignore a11y-autofocus -->
-                        <input class="chat-message-large-edit-input" style="width: {message.senderId == currMember.id ? 'calc(100% - 66px)' : 'calc(100% - 30px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
+                        <input class="chat-message-edit-input" style="margin-left: 50px; width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
                     {:else}
-                        <div class="chat-message-large" style={messageFormatting + `width: ${message.senderId == currMember.id ? 'calc(100% - 66px)' : 'calc(100% - 30px)'};`}>{messageFormattedText}</div>
+                        <div class="chat-message" style={messageFormatting + 'margin-left: 50px;' + `width: ${message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};`}>{messageFormattedText}</div>
                     {/if}
                     {#if hovered}
                         {#if message.senderId == currMember.id}
@@ -445,9 +414,9 @@
             <div class="chat-message-time">{StringHelper.getFormattedTime(message.createdAt)}</div>
             {#if editOpen}
                 <!-- svelte-ignore a11y-autofocus -->
-                <input class="chat-message-small-edit-input" style="width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
+                <input class="chat-message-edit-input" style="width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
             {:else}
-                <div class="chat-message-small" style={messageFormatting + `width: ${message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};`}>{messageFormattedText}</div>
+                <div class="chat-message" style={messageFormatting + `width: ${message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};`}>{messageFormattedText}</div>
             {/if}
             {#if hovered}
                 {#if message.senderId == currMember.id}
