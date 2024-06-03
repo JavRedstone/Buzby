@@ -4,12 +4,12 @@
 
     export let open: boolean = false;
 
-    export let left: number = null;
-    export let right: number = null;
-    export let top: number = null;
-    export let bottom: number = null;
-    export let width: number = null;
-    export let height: number = null;
+    export let left: string = "";
+    export let right: string = "";
+    export let top: string = "";
+    export let bottom: string = "";
+    export let width: string = "";
+    export let height: string = "";
 </script>
 <style>
     .menu-container-parent {
@@ -33,7 +33,7 @@
 </style>
 
 {#if open}
-    <div class="menu-container-parent" style="left: {left}px; right: {right}px; top: {top}px; bottom: {bottom}px; width: {width}px; height: {height}px;">
+    <div class="menu-container-parent" style="left: {left}; right: {right}; top: {top}; bottom: {bottom}; width: {width}; height: {height};">
         <div class="menu-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
             <slot></slot>
         </div>

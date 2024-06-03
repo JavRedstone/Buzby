@@ -151,7 +151,7 @@
                 }
             }
             if (mention.length > 0 || (message.reply != null && message.reply.senderId === currMember.id)) {
-                textFormatting += 'background-color: rgba(var(--accent-rgb), 0.1); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
+                textFormatting += 'background-color: rgba(var(--accent-rgb), 0.25); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
             }
             if (mentions.length > 0) {
                 textFormatting += 'color: var(--accent-darker);';
@@ -257,6 +257,12 @@
         margin-left: 8px;
         font-size: 10px;
         color: var(--grey-600);
+    }
+
+    .chat-message-extra-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
     }
 
     .chat-message {
@@ -389,6 +395,24 @@
         height: 100%;
         background-color: rgba(var(--primary-rgb), 0.1);
     }
+
+    .chat-message-link-container {
+        display: flex;
+        align-items: center;
+        margin-top: 4px;
+    }
+
+    .chat-message-link-icon {
+        font-size: 20px;
+        color: var(--grey-600);
+        margin-right: 4px;
+    }
+
+    .chat-message-link {
+        font-size: 12px;
+        width: calc(100% - 48px);
+        word-wrap: break-word;
+    }
 </style>
 {#if message && existed}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -416,12 +440,20 @@
                     <div class="chat-message-date">{StringHelper.getFormattedDate(message.createdAt)}</div>
                 </div>
                 <div class="chat-message-large-container">
-                    {#if editOpen}
-                        <!-- svelte-ignore a11y-autofocus -->
-                        <input class="chat-message-edit-input" style="margin-left: 50px; width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
-                    {:else}
-                        <div class="chat-message" style={messageFormatting + 'margin-left: 50px;' + `width: ${message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};`}>{messageFormattedText}</div>
-                    {/if}
+                    <div class="chat-message-extra-container" style="margin-left: 50px; width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
+                        {#if editOpen}
+                            <!-- svelte-ignore a11y-autofocus -->
+                            <input class="chat-message-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
+                        {:else}
+                            <div class="chat-message" style={messageFormatting}>{messageFormattedText}</div>
+                        {/if}
+                        {#if message.link.length > 0}
+                            <div class="chat-message-link-container">
+                                <span class="chat-message-link-icon material-symbols-rounded">link</span>
+                                <a class="chat-message-link" href={message.link} target="_blank" rel="noopener noreferrer">{message.linkName}</a>
+                            </div>
+                        {/if}
+                    </div>
                     {#if hovered}
                         {#if message.senderId == currMember.id}
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -439,12 +471,20 @@
             </div>
         {:else}
             <div class="chat-message-time">{StringHelper.getFormattedTime(message.createdAt)}</div>
-            {#if editOpen}
-                <!-- svelte-ignore a11y-autofocus -->
-                <input class="chat-message-edit-input" style="width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};" bind:value={messageText} on:focusout={cancelEdit} autofocus />
-            {:else}
-                <div class="chat-message" style={messageFormatting + `width: ${message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};`}>{messageFormattedText}</div>
-            {/if}
+            <div class="chat-message-extra-container" style="width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
+                {#if editOpen}
+                    <!-- svelte-ignore a11y-autofocus -->
+                    <input class="chat-message-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
+                {:else}
+                    <div class="chat-message" style={messageFormatting}>{messageFormattedText}</div>
+                {/if}
+                {#if message.link.length > 0}
+                    <div class="chat-message-link-container">
+                        <span class="chat-message-link-icon material-symbols-rounded">link</span>
+                        <a class="chat-message-link" href={message.link} target="_blank" rel="noopener noreferrer">{message.linkName}</a>
+                    </div>
+                {/if}
+            </div>
             {#if hovered}
                 {#if message.senderId == currMember.id}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->

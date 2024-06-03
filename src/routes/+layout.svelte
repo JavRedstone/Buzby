@@ -129,7 +129,7 @@
     :global(.material-symbols-rounded) {
         user-select: none;
         font-variation-settings:
-            'FILL' 0,
+            'FILL' 1,
             'wght' 250,
             'GRAD' 0,
             'opsz' 24;

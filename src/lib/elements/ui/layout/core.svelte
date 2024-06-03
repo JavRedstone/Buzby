@@ -631,7 +631,7 @@
             {#if pings.length > 0}
                 <Badge>{pings.length}</Badge>
             {/if}
-            <Menu bind:open={pingsOpen} right={PingConstants.CONTAINER.RIGHT} top={PingConstants.CONTAINER.TOP} width={PingConstants.CONTAINER.WIDTH} height={PingConstants.CONTAINER.HEIGHT}>
+            <Menu bind:open={pingsOpen} right="0" top="48px" width="200px" height="200px">
                 <div class="core-pings-title">Notifications</div>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->

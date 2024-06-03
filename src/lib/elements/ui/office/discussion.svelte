@@ -17,6 +17,7 @@
 	import ProgressLine from '../general/progress-line.svelte';
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
+	import Menu from '../general/menu.svelte';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -28,6 +29,18 @@
     let messageText: string = "";
     let messageProcessing: boolean = false;
     let messagePercentage: number = 100;
+
+    let extrasOpen: boolean = false;
+    let linkOpen: boolean = false;
+    let imageOpen: boolean = false;
+    let pollOpen: boolean = false;
+
+    let extraLink: string = "";
+    let extraLinkName: string = "";
+    let extraImage: string = "";
+    let finalizedLink: string = "";
+    let finalizedLinkName: string = "";
+    let finalizedImage: string = "";
 
     let replyOpen: boolean = false;
     let replyMessage: Message = null;
@@ -118,8 +131,96 @@
         messagePercentage = 0;
     }
 
-    function putExtra(): void {
-        // TODO: Implement polls and stuff
+    function toggleExtra(): void {
+        extrasOpen = !extrasOpen;
+        linkOpen = false;
+        imageOpen = false;
+        pollOpen = false;
+
+        extraLink = "";
+        extraImage = "";
+    }
+
+    function openLink(): void {
+        linkOpen = true;
+        extrasOpen = false;
+
+        extraLink = "";
+    }
+
+    function openImage(): void {
+        imageOpen = true;
+        extrasOpen = false;
+
+        extraImage = "";
+    }
+
+    function openPoll(): void {
+        pollOpen = true;
+        extrasOpen = false;
+    }
+
+    function addLink(): void {
+        if (extraLink.trim().length === 0) {
+            openSnackbar("Link is empty.", "error");
+            return;
+        }
+
+        if (extraLink.length > ChatConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Link is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+            return;
+        }
+
+        if (extraLinkName.trim().length === 0) {
+            extraLinkName = extraLink;
+        }
+
+        if (extraLinkName.length > ChatConstants.LINK_NAME_MAX_LENGTH) {
+            openSnackbar(`Link display text is too long. Max length is ${ChatConstants.LINK_NAME_MAX_LENGTH} characters.`, "error");
+            return;
+        }
+
+        finalizedLink = extraLink;
+        finalizedLinkName = extraLinkName;
+        extraLink = "";
+        extraLinkName = "";
+        extraImage = "";
+        finalizedImage = "";
+        linkOpen = false;
+    }
+
+    function addImage(): void {
+        if (extraImage.trim().length === 0) {
+            openSnackbar("Image url is empty.", "error");
+            return;
+        }
+
+        if (extraImage.length > ChatConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Image url is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+            return;
+        }
+
+        finalizedImage = extraImage;
+        extraLink = "";
+        extraLinkName = "";
+        extraImage = "";
+        finalizedLink = "";
+        finalizedLinkName = "";
+        imageOpen = false;
+    }
+
+    function invalidImage(event: Event): void {
+        openSnackbar("Invalid image url. Please add a valid image url.", "error");
+        finalizedImage = "";
+    }
+
+    function removeLink(): void {
+        finalizedLink = "";
+        finalizedLinkName = "";
+    }
+
+    function removeImage(): void {
+        finalizedImage = "";
     }
 
     async function sendMessage(): Promise<void> {
@@ -149,6 +250,10 @@
                 text: messageText,
                 senderId: currMember.id,
                 replyId: replyOpen && replyMessage ? replyMessage.id : '',
+                link: finalizedLink,
+                linkName: finalizedLinkName,
+                imageUrl: finalizedImage,
+                pollId: '',
                 createdAtTemp: serverTimestamp()
             });
 
@@ -163,6 +268,8 @@
             
             messageText = "";
             messagePercentage = 0;
+            removeLink();
+            removeImage();
 
             replyOpen = false;
             
@@ -395,7 +502,6 @@
     .discussion-reply-container {
         box-sizing: border-box;
         position: absolute;
-        top: -25px;
         left: 0;
         width: 100%;
         height: 24px;
@@ -485,6 +591,180 @@
         position: absolute;
         right: 8px;
     }
+
+    .discussion-extra-button {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 4px;
+        width: 100%;
+        background-color: var(--grey-200);
+        border: 1px solid var(--grey-400);
+        border-radius: 4px;
+        outline: none;
+        font-size: 14px;
+        color: var(--grey-800);
+        cursor: pointer;
+
+        transition: background-color var(--transition-duration), border-color var(--transition-duration), color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background-color: rgba(var(--accent-rgb), 0.1);
+        }
+    }
+
+    .discussion-extra-button-icon {
+        margin-right: 8px;
+        font-size: 24px;
+    }
+
+    .discussion-extra-input-field {
+        box-sizing: border-box;
+        width: 100%;
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        margin-bottom: 4px;
+        background-color: var(--grey-200);
+        outline: none;
+        border: 1px solid var(--grey-400);
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--grey-800);
+        user-select: none;
+
+        transition: border-color var(--transition-duration);
+
+        &:hover {
+            border-color: var(--accent-light);
+        }
+
+        &:focus {
+            border-color: var(--accent);
+        }
+    }
+
+    .discussion-extra-action {
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        background-color: var(--accent-light);
+        font-size: 12px;
+        color: var(--grey-800);
+        border: none;
+        outline: none;
+        border-radius: 4px;
+        cursor: pointer;
+
+        transition: background-color var(--transition-duration), color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--accent-dark);
+            color: var(--grey-100);
+        }
+    }
+
+    .discussion-extra-cancel {
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        background-color: var(--grey-300);
+        font-size: 12px;
+        color: var(--grey-800);
+        border: none;
+        outline: none;
+        border-radius: 4px;
+        cursor: pointer;
+
+        transition: background-color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--grey-400);
+        }
+    }
+
+    .discussion-link-container {
+        box-sizing: border-box;
+        position: absolute;
+        left: 0;
+        top: -25px;
+        width: 100%;
+        height: 24px;
+        padding-left: 8px;
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--grey-200);
+        color: var(--grey-800);
+        font-size: 12px;
+        z-index: 1;
+        user-select: none;
+    }
+
+    .discussion-link-preview {
+        position: absolute;
+        left: 90px;
+        width: calc(100% - 114px);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .discussion-link-cancel {
+        font-size: 16px;
+        color: var(--grey-800);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
+
+    .discussion-image-container {
+        box-sizing: border-box;
+        position: absolute;
+        left: 0;
+        top: -97px;
+        width: 100%;
+        height: 96px;
+        padding-left: 8px;
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--grey-200);
+        color: var(--grey-800);
+        font-size: 12px;
+        z-index: 1;
+        user-select: none;
+    }
+
+    .discussion-image-preview {
+        position: absolute;
+        left: 108px;
+        height: 72px;
+        max-width: calc(100% - 120px);
+        border-radius: 4px;
+    }
+
+    .discussion-image-cancel {
+        font-size: 16px;
+        color: var(--grey-800);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
 </style>
 <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
     <div class="discussion-title-container">
@@ -503,16 +783,60 @@
     </div>
     <div class="discussion-input-container">
         {#if replyOpen}
-            <div class="discussion-reply-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 ? -49 : finalizedImage.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
                 Replying to {replyMessage.sender.displayName}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>
             </div>
         {/if}
+        {#if finalizedLink.length > 0}
+            <div class="discussion-link-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                Link preview:
+                <a class="discussion-link-preview" href={finalizedLink} target="_blank" rel="noopener noreferrer">{finalizedLinkName}</a>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="discussion-link-cancel material-symbols-rounded" on:click={removeLink}>close</span>
+            </div>
+        {/if}
+        {#if finalizedImage.length > 0}
+            <div class="discussion-image-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                Image preview:
+                <!-- svelte-ignore a11y-img-redundant-alt -->
+                <img class="discussion-image-preview" src={finalizedImage} alt="Image preview" on:error={invalidImage} />
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="discussion-image-cancel material-symbols-rounded" on:click={removeImage}>close</span>
+            </div>
+        {/if}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="discussion-input-icon-button material-symbols-rounded" on:click={putExtra}>add_circle</span>
+        <span class="discussion-input-icon-button material-symbols-rounded" on:click={toggleExtra}>add_circle</span>
+        <Menu bind:open={extrasOpen} left="8px" bottom="48px" width="150px">
+            <button class="discussion-extra-button" on:click={openLink}>
+                <span class="discussion-extra-button-icon material-symbols-rounded">link</span>
+                <span>Link</span>
+            </button>
+            <button class="discussion-extra-button" on:click={openImage}>
+                <span class="discussion-extra-button-icon material-symbols-rounded">image</span>
+                <span>Image url</span>
+            </button>
+            <button class="discussion-extra-button" on:click={openPoll}>
+                <span class="discussion-extra-button-icon material-symbols-rounded">ballot</span>
+                <span>Poll</span>
+            </button>
+        </Menu>
+        <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." bind:value={extraLink} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." bind:value={extraLinkName} />
+            <button class="discussion-extra-action" on:click={addLink}>Add</button>
+            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+        </Menu>
+        <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <input class="discussion-extra-input-field" type="text" placeholder="Type an image url..." bind:value={extraImage} />
+            <button class="discussion-extra-action" on:click={addImage}>Add</button>
+            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+        </Menu>
         <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />
         <div class="discussion-input-field-progress-line-container">
             <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />

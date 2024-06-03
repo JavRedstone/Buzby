@@ -209,6 +209,8 @@
 </script>
 <style>
     .office-title-container {
+        position: absolute;
+        width: 100%;
         display: flex;
         align-items: center;
         padding: 8px;
@@ -280,7 +282,7 @@
         display: flex;
         align-items: center;
         position: absolute;
-        left: calc(20% - 8px);
+        left: calc(20% - 16px);
     }
 
     .office-title-icon {

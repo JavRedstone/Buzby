@@ -1,6 +1,7 @@
-import { DocumentReference, getDoc, serverTimestamp, Timestamp, type DocumentData } from "firebase/firestore";
+import { DocumentReference, getDoc, Timestamp, type DocumentData } from "firebase/firestore";
 import { Member } from "../project/Member";
 import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { Poll } from "./Poll";
 
 export class Message {
     public id: string;
@@ -14,6 +15,14 @@ export class Message {
     public reply: Message;
 
     public edited: boolean = false;
+
+    public link: string;
+    public linkName: string;
+
+    public imageUrl: string;
+
+    public pollId: string;
+    public poll: Poll;
 
     public createdAt: Date;
     public createdAtTemp: any;
@@ -36,6 +45,13 @@ export class Message {
         if (this.edited == null || this.edited == undefined) {
             this.edited = false;
         }
+
+        this.linkName = data.linkName;
+        this.link = data.link;
+        
+        this.imageUrl = data.imageUrl;
+
+        this.pollId = data.pollId;
 
         if (data.createdAt) {
             this.createdAt = data.createdAt.toDate();
@@ -61,6 +77,20 @@ export class Message {
         }
     }
 
+    public async getPoll(): Promise<void> {
+        if (this.pollId) {
+            let pollsDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', this.pollId);
+            await getDoc(pollsDoc).then((doc) => {
+                if (doc.exists()) {
+                    this.poll = new Poll(doc.data());
+                }
+            });
+        }
+        else {
+            this.poll = new Poll({});
+        }
+    }
+
     public compactify(): any {
         return {
             id: this.id,
@@ -68,6 +98,10 @@ export class Message {
             senderId: this.senderId,
             replyId: this.replyId,
             edited: this.edited,
+            link: this.link,
+            linkName: this.linkName,
+            imageUrl: this.imageUrl,
+            pollId: this.pollId,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }
