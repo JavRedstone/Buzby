@@ -80,6 +80,12 @@
             createProcessing = false;
             return;
         }
+
+        if (memberEmails.length > ProjectConstants.MAX_NUM_MEMBERS) {
+            openSnackbar(`You can only add up to ${ProjectConstants.MAX_NUM_MEMBERS} members to a project.`, "error");
+            createProcessing = false;
+            return;
+        }
         
         if (createOpen && currMember) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
@@ -91,6 +97,12 @@
                     memberIds.push(doc.id);
                     members.push(new Member(doc.data()));
                 });
+
+                if (memberIds.includes(currMember.id)) {
+                    openSnackbar("You cannot add yourself to the project.", "error");
+                    createProcessing = false;
+                    return;
+                }
 
                 if (memberIds.length > 0) {
                     memberIds.push(currMember.id);
@@ -130,7 +142,7 @@
                                     });
                                     member.pingIds.push(ping.id);
                                     let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                                    await setDoc(pingDoc, ping.compactify());
+                                    setDoc(pingDoc, ping.compactify());
                                     member.requestedProjectIds.push(project.id);
                                     let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", member.id);
                                     await setDoc(memberDoc, member.compactify());

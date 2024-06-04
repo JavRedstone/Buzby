@@ -57,6 +57,10 @@
         dispatch('jumpToReply');
     }
 
+    function clickedName(): void {
+        dispatch('clickedName');
+    }
+
     function openEdit(): void {
         editOpen = true;
         messageText = message.text;
@@ -151,10 +155,10 @@
                 }
             }
             if (mention.length > 0 || (message.reply != null && message.reply.senderId === currMember.id)) {
-                textFormatting += 'background-color: rgba(var(--accent-rgb), 0.25); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
+                textFormatting += 'background-color: rgba(var(--primary-rgb), 0.25); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
             }
             if (mentions.length > 0) {
-                textFormatting += 'color: var(--accent-darker);';
+                textFormatting += 'color: var(--primary-darker);';
             }
         }
         return textFormatting;
@@ -175,6 +179,15 @@
         formattedText = formattedText.replace(/## (.*?)/g, '$1');
         formattedText = formattedText.replace(/# (.*?)/g, '$1');
         return formattedText;
+    }
+
+    function getEmbed(url: string): string {
+        let videoId: string = url.split("v=")[1];
+        let ampersandPosition: number = videoId.indexOf("&");
+        if (ampersandPosition !== -1) {
+            videoId = videoId.substring(0, ampersandPosition);
+        }
+        return `https://www.youtube.com/embed/${videoId}`;
     }
 
     function setKeybinds(): void {
@@ -251,6 +264,11 @@
         padding-left: 50px;
         font-weight: 500;
         font-size: 14px;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
     }
 
     .chat-message-date {
@@ -355,7 +373,6 @@
         position: absolute;
         left: 64px;
         top: 3px;
-        width: calc(100% - 136px);
         font-size: 12px;
         color: var(--grey-600);
         white-space: nowrap;
@@ -375,7 +392,6 @@
         position: absolute;
         left: 64px;
         bottom: 52px;
-        width: calc(100% - 136px);
         font-size: 12px;
         color: var(--grey-500);
         font-style: italic;
@@ -409,9 +425,25 @@
     }
 
     .chat-message-link {
+        width: 100%;
         font-size: 12px;
-        width: calc(100% - 48px);
-        word-wrap: break-word;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .chat-message-image {
+        flex-shrink: 0;
+        width: auto;
+        height: auto;
+        max-height: 250px;
+        object-fit: contain;
+        margin-top: 4px;
+    }
+
+    .chat-message-video {
+        flex-shrink: 0;
+        margin-top: 4px;
     }
 </style>
 {#if message && existed}
@@ -425,18 +457,18 @@
                 <div class="chat-message-reply-arrow"></div>
                 {#if message.reply != null}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <div class="chat-message-reply-display" on:click={jumpToReply}>
+                    <div class="chat-message-reply-display" style="width: {message.senderId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}" on:click={jumpToReply}>
                         {message.reply.sender.displayName}: {message.reply.text}
                     </div>
                 {:else}
-                    <div class="chat-message-reply-deleted">Original message deleted.</div>
+                    <div class="chat-message-reply-deleted" style="width: {message.senderId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}">Original message deleted.</div>
                 {/if}
             {/if}
             
             <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;"></div>
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
-                    <div class="chat-message-name">{message.sender.displayName}</div>
+                    <div class="chat-message-name" on:click={clickedName}>{message.sender.displayName}</div>
                     <div class="chat-message-date">{StringHelper.getFormattedDate(message.createdAt)}</div>
                 </div>
                 <div class="chat-message-large-container">
@@ -452,6 +484,11 @@
                                 <span class="chat-message-link-icon material-symbols-rounded">link</span>
                                 <a class="chat-message-link" href={message.link} target="_blank" rel="noopener noreferrer">{message.linkName}</a>
                             </div>
+                        {:else if message.imageUrl.length > 0}
+                            <!-- svelte-ignore a11y-missing-attribute -->
+                            <img class="chat-message-image" src={message.imageUrl} />
+                        {:else if message.videoUrl.length > 0}
+                            <iframe class="discussion-video-preview" width="100%" height="250" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                         {/if}
                     </div>
                     {#if hovered}
@@ -483,6 +520,11 @@
                         <span class="chat-message-link-icon material-symbols-rounded">link</span>
                         <a class="chat-message-link" href={message.link} target="_blank" rel="noopener noreferrer">{message.linkName}</a>
                     </div>
+                {:else if message.imageUrl.length > 0}
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <img class="chat-message-image" src={message.imageUrl} />
+                {:else if message.videoUrl.length > 0}
+                    <iframe class="chat-message-video" width="100%" height="250" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 {/if}
             </div>
             {#if hovered}

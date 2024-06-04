@@ -14,6 +14,10 @@ export class Poll {
 
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
+        
         this.question = data.question;
         if (!this.question) {
             this.question = "";

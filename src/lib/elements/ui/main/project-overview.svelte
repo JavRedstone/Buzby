@@ -112,9 +112,21 @@
             return;
         }
 
+        if (inviteEmail.toLocaleLowerCase() == currMember.email) {
+            openSnackbar("You cannot invite yourself to a project.", "error");
+            inviteProcessing = false;
+            return;
+        }
+
+        if (project.memberIds.length >= ProjectConstants.MAX_NUM_MEMBERS) {
+            openSnackbar(`You can only add up to ${ProjectConstants.MAX_NUM_MEMBERS} members to a project.`, "error");
+            inviteProcessing = false;
+            return;
+        }
+
         if (currMember) {
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
-            let membersQuery = query(membersCollection, where("email", "==", inviteEmail));
+            let membersQuery = query(membersCollection, where("email", "==", inviteEmail.toLowerCase()));
             let memberIds: string[] = [];
             let members: Member[] = [];
             getDocs(membersQuery).then((querySnapshot) => {
@@ -164,7 +176,7 @@
                         });
                         member.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                         await setDoc(memberDoc, member.compactify());
                     }
@@ -240,7 +252,7 @@
             projectEdited.name = projectName;
             projectEdited.description = projectDescription;
             projectEdited.color = projectColor;
-            setDoc(projectDoc, projectEdited.compactify()).then(async () => {
+            setDoc(projectDoc, projectEdited.compactify()).then(() => {
                 for (let member of project.members) {
                     if (member.id != project.owner.id) {
                         let ping: Ping = new Ping({
@@ -252,9 +264,9 @@
                         });
                         member.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                        await setDoc(memberDoc, member.compactify());
+                        setDoc(memberDoc, member.compactify());
                     }
                 }
                 allProjects.update((value) => {
@@ -313,7 +325,7 @@
                             });
                             member.pingIds.push(ping.id);
                             let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                            await setDoc(pingDoc, ping.compactify());
+                            setDoc(pingDoc, ping.compactify());
                         }
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                         await setDoc(memberDoc, member.compactify());
@@ -369,7 +381,7 @@
                         });
                         project.owner.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
                         await setDoc(ownerDoc, project.owner.compactify());
                     }
@@ -435,7 +447,7 @@
                         });
                         project.owner.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
                         await setDoc(ownerDoc, project.owner.compactify());
                     }
@@ -491,7 +503,7 @@
                         });
                         project.owner.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let ownerDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', project.owner.id);
                         await setDoc(ownerDoc, project.owner.compactify());
                     }
@@ -801,9 +813,11 @@
             <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join project</button>
             <button class="project-overview-project-remove" on:click={rejectProjectConfirmed}>Reject request</button>
         {:else}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>
+            {#if project.memberIds.length < ProjectConstants.MAX_NUM_MEMBERS}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>
+            {/if}
             {#if isOwner}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->

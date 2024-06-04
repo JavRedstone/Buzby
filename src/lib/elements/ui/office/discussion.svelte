@@ -33,14 +33,18 @@
     let extrasOpen: boolean = false;
     let linkOpen: boolean = false;
     let imageOpen: boolean = false;
+    let videoOpen: boolean = false;
     let pollOpen: boolean = false;
 
     let extraLink: string = "";
     let extraLinkName: string = "";
-    let extraImage: string = "";
+    let extraImageUrl: string = "";
+    let extraVideoUrl: string = "";
+
     let finalizedLink: string = "";
     let finalizedLinkName: string = "";
-    let finalizedImage: string = "";
+    let finalizedImageUrl: string = "";
+    let finalizedVideoUrl: string = "";
 
     let replyOpen: boolean = false;
     let replyMessage: Message = null;
@@ -74,7 +78,7 @@
         for (let i = 0; i < messages.length; i++) {
             if (project.memberIds.includes(messages[i].senderId)) {
                 messages[i].sender = project.members.find((m) => m.id === messages[i].senderId);
-            } else if (messages[i].sender.id == null) {
+            } else if (messages[i].sender.id.length == 0) {
                 await messages[i].getSender();
                 hasGottenNewSender = true;
             }
@@ -135,10 +139,13 @@
         extrasOpen = !extrasOpen;
         linkOpen = false;
         imageOpen = false;
+        videoOpen = false;
         pollOpen = false;
 
         extraLink = "";
-        extraImage = "";
+        extraLinkName = "";
+        extraImageUrl = "";
+        extraVideoUrl = "";
     }
 
     function openLink(): void {
@@ -152,7 +159,14 @@
         imageOpen = true;
         extrasOpen = false;
 
-        extraImage = "";
+        extraImageUrl = "";
+    }
+
+    function openVideo(): void {
+        videoOpen = true;
+        extrasOpen = false;
+
+        extraVideoUrl = "";
     }
 
     function openPoll(): void {
@@ -172,46 +186,80 @@
         }
 
         if (extraLinkName.trim().length === 0) {
-            extraLinkName = extraLink;
+            extraLinkName = extraLink.substring(0, ChatConstants.URL_NAME_MAX_LENGTH);
         }
 
-        if (extraLinkName.length > ChatConstants.LINK_NAME_MAX_LENGTH) {
-            openSnackbar(`Link display text is too long. Max length is ${ChatConstants.LINK_NAME_MAX_LENGTH} characters.`, "error");
+        if (extraLinkName.length > ChatConstants.URL_NAME_MAX_LENGTH) {
+            openSnackbar(`Link display text is too long. Max length is ${ChatConstants.URL_NAME_MAX_LENGTH} characters.`, "error");
             return;
         }
 
         finalizedLink = extraLink;
         finalizedLinkName = extraLinkName;
-        extraLink = "";
-        extraLinkName = "";
-        extraImage = "";
-        finalizedImage = "";
+        clearExtra();
+        finalizedImageUrl = "";
+        finalizedVideoUrl = "";
         linkOpen = false;
     }
 
     function addImage(): void {
-        if (extraImage.trim().length === 0) {
-            openSnackbar("Image url is empty.", "error");
+        if (extraImageUrl.trim().length === 0) {
+            openSnackbar("Image URL is empty.", "error");
             return;
         }
 
-        if (extraImage.length > ChatConstants.URL_MAX_LENGTH) {
-            openSnackbar(`Image url is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+        if (extraImageUrl.length > ChatConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Image URL is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
             return;
         }
 
-        finalizedImage = extraImage;
-        extraLink = "";
-        extraLinkName = "";
-        extraImage = "";
+        finalizedImageUrl = extraImageUrl;
+        clearExtra();
         finalizedLink = "";
         finalizedLinkName = "";
+        finalizedVideoUrl = "";
         imageOpen = false;
     }
 
-    function invalidImage(event: Event): void {
-        openSnackbar("Invalid image url. Please add a valid image url.", "error");
-        finalizedImage = "";
+    function addVideo(): void {
+        if (extraVideoUrl.trim().length === 0) {
+            openSnackbar("Video url is empty.", "error");
+            return;
+        }
+
+        if (extraVideoUrl.length > ChatConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Video url is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+            return;
+        }
+
+        if (extraVideoUrl.search("youtube.com") === -1 && extraVideoUrl.search("youtu.be") === -1) {
+            invalidVideo();
+            return;
+        }
+
+        finalizedVideoUrl = extraVideoUrl;
+        clearExtra();
+        finalizedLink = "";
+        finalizedLinkName = "";
+        finalizedImageUrl = "";
+        videoOpen = false;
+    }
+
+    function clearExtra(): void {
+        extraLink = "";
+        extraLinkName = "";
+        extraImageUrl = "";
+        extraVideoUrl = "";
+    }
+
+    function invalidImage(): void {
+        openSnackbar("Invalid image URL. Please add a valid image URL.", "error");
+        finalizedImageUrl = "";
+    }
+
+    function invalidVideo(): void {
+        openSnackbar("Invalid Youtube video URL. Please add a valid video URL.", "error");
+        finalizedVideoUrl = "";
     }
 
     function removeLink(): void {
@@ -220,7 +268,20 @@
     }
 
     function removeImage(): void {
-        finalizedImage = "";
+        finalizedImageUrl = "";
+    }
+
+    function removeVideo(): void {
+        finalizedVideoUrl = "";
+    }
+
+    function getEmbed(url: string): string {
+        let videoId: string = url.split("v=")[1];
+        let ampersandPosition: number = videoId.indexOf("&");
+        if (ampersandPosition !== -1) {
+            videoId = videoId.substring(0, ampersandPosition);
+        }
+        return `https://www.youtube.com/embed/${videoId}`;
     }
 
     async function sendMessage(): Promise<void> {
@@ -252,7 +313,8 @@
                 replyId: replyOpen && replyMessage ? replyMessage.id : '',
                 link: finalizedLink,
                 linkName: finalizedLinkName,
-                imageUrl: finalizedImage,
+                imageUrl: finalizedImageUrl,
+                videoUrl: finalizedVideoUrl,
                 pollId: '',
                 createdAtTemp: serverTimestamp()
             });
@@ -270,6 +332,7 @@
             messagePercentage = 0;
             removeLink();
             removeImage();
+            removeVideo();
 
             replyOpen = false;
             
@@ -298,7 +361,7 @@
                                             createdAtTemp: serverTimestamp(),
                                         });
                                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                                        await setDoc(pingDoc, ping.compactify());
+                                        setDoc(pingDoc, ping.compactify());
                                         m.pingIds.push(ping.id);
                                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", m.id);
                                         await setDoc(memberDoc, m.compactify());
@@ -317,7 +380,7 @@
                                 createdAtTemp: serverTimestamp(),
                             });
                             let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                            await setDoc(pingDoc, ping.compactify());
+                            setDoc(pingDoc, ping.compactify());
                             newMessage.reply.sender.pingIds.push(ping.id);
                             let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", newMessage.reply.sender.id);
                             await setDoc(memberDoc, newMessage.reply.sender.compactify());
@@ -403,14 +466,21 @@
         messageInput.focus();
     }
 
-    function jumpToReply(message: Message): void {
+    function jumpToMessage(messageId: string): void {
         if (messagesContainer) {
-            let messageElement: HTMLElement = messagesContainer.querySelector(`#message-${message.replyId}`);
+            let messageElement: HTMLElement = messagesContainer.querySelector(`#message-${messageId}`);
             if (messageElement) {
                 messageElement.scrollIntoView({behavior: "smooth", block: "center"});
-                highlightedId = message.replyId;
+                highlightedId = messageId;
                 isHighlighted = true;
             }
+        }
+    }
+
+    function mentionSender(message: Message): void {
+        if (message.sender != null) {
+            messageText = `${messageText} @${message.sender.displayName} `;
+            messageInput.focus();
         }
     }
 
@@ -517,6 +587,17 @@
         font-size: 12px;
         z-index: 1;
         user-select: none;
+    }
+
+    .discussion-reply-jump {
+        font-size: 12px;
+        color: var(--grey-100);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--grey-300);
+        }
     }
 
     .discussion-reply-cancel {
@@ -717,17 +798,6 @@
         text-overflow: ellipsis;
     }
 
-    .discussion-link-cancel {
-        font-size: 16px;
-        color: var(--grey-800);
-        cursor: pointer;
-        transition: color var(--transition-duration);
-
-        &:hover {
-            color: var(--accent);
-        }
-    }
-
     .discussion-image-container {
         box-sizing: border-box;
         position: absolute;
@@ -750,12 +820,36 @@
     .discussion-image-preview {
         position: absolute;
         left: 108px;
-        height: 72px;
+        height: 80px;
         max-width: calc(100% - 120px);
-        border-radius: 4px;
     }
 
-    .discussion-image-cancel {
+    .discussion-video-container {
+        box-sizing: border-box;
+        position: absolute;
+        left: 0;
+        top: -118px;
+        width: 100%;
+        height: 116px;
+        padding-left: 8px;
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--grey-200);
+        color: var(--grey-800);
+        font-size: 12px;
+        z-index: 1;
+        user-select: none;
+    }
+
+    .discussion-video-preview {
+        position: absolute;
+        left: 108px;
+        max-width: calc(100% - 120px);
+    }
+
+    .discussion-extra-preview-cancel {
         font-size: 16px;
         color: var(--grey-800);
         cursor: pointer;
@@ -778,13 +872,15 @@
     </div>
     <div class="discussion-messages-container" bind:this={messagesContainer}>
         {#each messages as message, i}
-            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0 && message.reply != null} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToReply(message)} />
+            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0 && message.reply != null} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
         {/each}
     </div>
     <div class="discussion-input-container">
         {#if replyOpen}
-            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 ? -49 : finalizedImage.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
-                Replying to {replyMessage.sender.displayName}
+            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.sender.displayName}</div>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>
@@ -796,30 +892,44 @@
                 <a class="discussion-link-preview" href={finalizedLink} target="_blank" rel="noopener noreferrer">{finalizedLinkName}</a>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-link-cancel material-symbols-rounded" on:click={removeLink}>close</span>
+                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeLink}>close</span>
             </div>
         {/if}
-        {#if finalizedImage.length > 0}
+        {#if finalizedImageUrl.length > 0}
             <div class="discussion-image-container" transition:fade={{duration: TransitionConstants.DURATION}}>
                 Image preview:
                 <!-- svelte-ignore a11y-img-redundant-alt -->
-                <img class="discussion-image-preview" src={finalizedImage} alt="Image preview" on:error={invalidImage} />
+                <img class="discussion-image-preview" src={finalizedImageUrl} alt="Image preview" on:error={invalidImage} />
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-image-cancel material-symbols-rounded" on:click={removeImage}>close</span>
+                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeImage}>close</span>
+            </div>
+        {/if}
+        {#if finalizedVideoUrl.length > 0}
+            <div class="discussion-video-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                Video preview:
+                <!-- svelte-ignore a11y-media-has-caption -->
+                <iframe class="discussion-video-preview" width="160" height="100" src={getEmbed(finalizedVideoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeVideo}>close</span>
             </div>
         {/if}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="discussion-input-icon-button material-symbols-rounded" on:click={toggleExtra}>add_circle</span>
-        <Menu bind:open={extrasOpen} left="8px" bottom="48px" width="150px">
+        <Menu bind:open={extrasOpen} left="8px" bottom="48px" width="200px">
             <button class="discussion-extra-button" on:click={openLink}>
                 <span class="discussion-extra-button-icon material-symbols-rounded">link</span>
                 <span>Link</span>
             </button>
             <button class="discussion-extra-button" on:click={openImage}>
                 <span class="discussion-extra-button-icon material-symbols-rounded">image</span>
-                <span>Image url</span>
+                <span>Image URL</span>
+            </button>
+            <button class="discussion-extra-button" on:click={openVideo}>
+                <span class="discussion-extra-button-icon material-symbols-rounded">youtube_activity</span>
+                <span>Youtube video URL</span>
             </button>
             <button class="discussion-extra-button" on:click={openPoll}>
                 <span class="discussion-extra-button-icon material-symbols-rounded">ballot</span>
@@ -827,14 +937,19 @@
             </button>
         </Menu>
         <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." bind:value={extraLink} />
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." bind:value={extraLinkName} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraLink} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={ChatConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
             <button class="discussion-extra-action" on:click={addLink}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <input class="discussion-extra-input-field" type="text" placeholder="Type an image url..." bind:value={extraImage} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
             <button class="discussion-extra-action" on:click={addImage}>Add</button>
+            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+        </Menu>
+        <Menu bind:open={videoOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
+            <button class="discussion-extra-action" on:click={addVideo}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />

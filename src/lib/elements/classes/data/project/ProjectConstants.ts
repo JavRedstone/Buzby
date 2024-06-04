@@ -7,7 +7,8 @@ export class ProjectConstants {
     public static readonly PROJECT_NAME_MAX_LENGTH: number = 50;
     public static readonly PROJECT_DESCRIPTION_MAX_LENGTH: number = 250;
 
-    public static readonly MAX_NUM_PROJECTS: number = 10;
+    public static readonly MAX_NUM_PROJECTS: number = 15;
+    public static readonly MAX_NUM_MEMBERS: number = 12;
 
     public static readonly COLORS: DisplayColor[] = [
         new DisplayColor("Pink Camellia", "#e91e63"),

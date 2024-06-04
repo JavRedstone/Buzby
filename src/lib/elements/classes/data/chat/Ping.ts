@@ -12,8 +12,14 @@ export class Ping {
 
     public constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
 
         this.type = data.type;
+        if (this.type == null || this.type == undefined) {
+            this.type = 0;
+        }
 
         this.title = data.title;
         if (!this.title) {

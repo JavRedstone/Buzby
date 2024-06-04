@@ -21,6 +21,8 @@ export class Message {
 
     public imageUrl: string;
 
+    public videoUrl: string;
+
     public pollId: string;
     public poll: Poll;
 
@@ -29,6 +31,10 @@ export class Message {
 
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
+
         this.text = data.text;
         if (!this.text) {
             this.text = "";
@@ -40,6 +46,9 @@ export class Message {
         }
 
         this.replyId = data.replyId;
+        if (!this.replyId) {
+            this.replyId = "";
+        }
 
         this.edited = data.edited;
         if (this.edited == null || this.edited == undefined) {
@@ -47,11 +56,28 @@ export class Message {
         }
 
         this.linkName = data.linkName;
+        if (!this.linkName) {
+            this.linkName = "";
+        }
         this.link = data.link;
+        if (!this.link) {
+            this.link = "";
+        }
         
         this.imageUrl = data.imageUrl;
+        if (!this.imageUrl) {
+            this.imageUrl = "";
+        }
+
+        this.videoUrl = data.videoUrl;
+        if (!this.videoUrl) {
+            this.videoUrl = "";
+        }
 
         this.pollId = data.pollId;
+        if (!this.pollId) {
+            this.pollId = "";
+        }
 
         if (data.createdAt) {
             this.createdAt = data.createdAt.toDate();
@@ -101,6 +127,7 @@ export class Message {
             link: this.link,
             linkName: this.linkName,
             imageUrl: this.imageUrl,
+            videoUrl: this.videoUrl,
             pollId: this.pollId,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };

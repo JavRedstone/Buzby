@@ -25,6 +25,10 @@ export class Member {
 
     public constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
+        
         this.displayName = data.displayName;
         if (!this.displayName) {
             this.displayName = "Anonymous";

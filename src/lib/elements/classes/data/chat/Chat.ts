@@ -11,6 +11,9 @@ export class Chat {
     
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
 
         this.messageIds = data.messageIds;
         if (!this.messageIds) {

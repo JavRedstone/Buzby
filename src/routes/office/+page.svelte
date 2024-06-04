@@ -76,6 +76,7 @@
                 await project.setObjects();
                 projectSelected.update((value) => {
                     value.project = project;
+                    value.projectName = project.name;
                     return value;
                 });
                 allProjects.update((value) => {
@@ -158,7 +159,7 @@
                         });
                         member.pingIds.push(ping.id);
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        await setDoc(pingDoc, ping.compactify());
+                        setDoc(pingDoc, ping.compactify());
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                         await setDoc(memberDoc, member.compactify());
                     }

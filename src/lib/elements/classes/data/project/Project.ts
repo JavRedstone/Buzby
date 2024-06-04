@@ -37,6 +37,10 @@ export class Project {
     
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
+        
         this.name = data.name;
         if (!this.name) {
             this.name = "Unnamed Project";

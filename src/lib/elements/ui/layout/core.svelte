@@ -449,10 +449,11 @@
     .core-header-logo {
         position: absolute;
         top: 3px;
-        left: 44px;
         height: 42px;
         cursor: pointer;
         user-select: none;
+
+        transition: left var(--transition-duration);
     }
 
     .core-header-icon {
@@ -478,7 +479,8 @@
     .core-project-dropdown {
         position: absolute;
         top: 6px;
-        left: 200px;
+        
+        transition: left var(--transition-duration);
     }
 
     .core-drawer-left-container {
@@ -598,18 +600,18 @@
 <div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer}>
-        {#if drawerOpen}
-            close
-        {:else if selectedProjectName != defaultProjectName}
-            menu_open
-        {:else}
-            hexagon
-        {/if}
-    </span>
+    {#if drawerOpen || selectedProjectName != defaultProjectName}
+        <span class="core-header-icon material-symbols-rounded" style="left: 8px;" on:click={toggleDrawer} transition:fade={{ duration: TransitionConstants.DURATION }}>
+            {#if drawerOpen}
+                close
+            {:else if selectedProjectName != defaultProjectName}
+                menu_open
+            {/if}
+        </span>
+    {/if}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <img class="core-header-logo" src={logo} alt="logo" on:click={gotoHome} />
+    <img class="core-header-logo" style="left: {drawerOpen || selectedProjectName != defaultProjectName ? 44 : 8}px;" src={logo} alt="logo" on:click={gotoHome} />
     {#if currUser == null || !currUser.emailVerified || currMember == null}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -618,7 +620,7 @@
             <span class="core-header-icon material-symbols-rounded" style="right: 8px;">login</span>
         </a>
     {:else}
-        <div class="core-project-dropdown">
+        <div class="core-project-dropdown" style="left: {drawerOpen || selectedProjectName != defaultProjectName ? 200 : 164}px;">
             <Dropdown label="Select project" items={projectNames} bind:defaultItem={defaultProjectName} bind:selectedItem={selectedProjectName} bind:selectedItemIdx={selectedProjectIdx} bind:open={projectSelectOpen} on:toggle={toggleProjectSelect} on:select={selectProject} />
         </div>
         <div class="core-header-icon-container" style="right: 108px;">
