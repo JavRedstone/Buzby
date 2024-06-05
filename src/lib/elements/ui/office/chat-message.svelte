@@ -190,7 +190,7 @@
         return `https://www.youtube.com/embed/${videoId}`;
     }
 
-    function setKeybinds(): void {
+    function setListeners(): void {
         window.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && editOpen) {
                 editMessage();
@@ -216,7 +216,7 @@
     onMount(() => {
         existed = true;
         getMember();
-        setKeybinds();
+        setListeners();
     });
 </script>
 <style>
@@ -524,7 +524,7 @@
                     <!-- svelte-ignore a11y-missing-attribute -->
                     <img class="chat-message-image" src={message.imageUrl} />
                 {:else if message.videoUrl.length > 0}
-                    <iframe class="chat-message-video" width="100%" height="250" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    <iframe class="chat-message-video" width="100%" height="300px" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 {/if}
             </div>
             {#if hovered}
