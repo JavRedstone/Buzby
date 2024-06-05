@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ChatMessage from './chat-message.svelte';
-	import { fly, fade } from 'svelte/transition';
+	import { fly, fade, slide } from 'svelte/transition';
 	import { ChatConstants } from "$lib/elements/classes/data/chat/ChatConstants";
 	import { Message } from "$lib/elements/classes/data/chat/Message";
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
@@ -18,6 +18,7 @@
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 	import Menu from '../general/menu.svelte';
+	import { Poll } from '$lib/elements/classes/data/chat/Poll';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -40,11 +41,15 @@
     let extraLinkName: string = "";
     let extraImageUrl: string = "";
     let extraVideoUrl: string = "";
+    let extraPollQuestion: string = "";
+    let extraPollOptions: string[] = ["", ""];
 
     let finalizedLink: string = "";
     let finalizedLinkName: string = "";
     let finalizedImageUrl: string = "";
     let finalizedVideoUrl: string = "";
+    let finalizedPollQuestion: string = "";
+    let finalizedPollOptions: string[] = [];
 
     let replyOpen: boolean = false;
     let replyMessage: Message = null;
@@ -146,6 +151,8 @@
         extraLinkName = "";
         extraImageUrl = "";
         extraVideoUrl = "";
+        extraPollQuestion = "";
+        extraPollOptions = ["", ""];
     }
 
     function openLink(): void {
@@ -172,6 +179,9 @@
     function openPoll(): void {
         pollOpen = true;
         extrasOpen = false;
+
+        extraPollQuestion = "";
+        extraPollOptions = ["", ""];
     }
 
     function addLink(): void {
@@ -245,11 +255,63 @@
         videoOpen = false;
     }
 
+    function addPoll(): void {
+        if (extraPollQuestion.trim().length === 0) {
+            openSnackbar("Poll question is empty.", "error");
+            return;
+        }
+
+        if (extraPollQuestion.length > ChatConstants.POLL_QUESTION_MAX_LENGTH) {
+            openSnackbar(`Poll question is too long. Max length is ${ChatConstants.POLL_QUESTION_MAX_LENGTH} characters.`, "error");
+            return;
+        }
+
+        let options: string[] = extraPollOptions.filter((option) => option.trim().length > 0);
+        if (options.length < 2) {
+            openSnackbar("Poll must have at least 2 options.", "error");
+            return;
+        }
+
+        if (options.length > ChatConstants.POLL_MAX_OPTIONS) {
+            openSnackbar(`Poll has too many options. Max number of options is ${ChatConstants.POLL_MAX_OPTIONS}.`, "error");
+            return;
+        }
+
+        finalizedPollQuestion = extraPollQuestion;
+        finalizedPollOptions = options;
+        clearExtra();
+        finalizedLink = "";
+        finalizedLinkName = "";
+        finalizedImageUrl = "";
+        finalizedVideoUrl = "";
+        pollOpen = false;
+    }
+
+    function addPollOption(): void {
+        if (extraPollOptions.length < ChatConstants.POLL_MAX_OPTIONS) {
+            extraPollOptions = [...extraPollOptions, ""];
+        }
+        else {
+            openSnackbar(`You can only add up to ${ChatConstants.POLL_MAX_OPTIONS} options in a poll.`, "error");
+        }
+    }
+
+    function removePollOption(idx: number): void {
+        if (extraPollOptions.length > 2) {
+            extraPollOptions = extraPollOptions.filter((_, index) => index !== idx);
+        }
+        else {
+            openSnackbar("Poll must have at least 2 options.", "error");
+        }
+    }
+
     function clearExtra(): void {
         extraLink = "";
         extraLinkName = "";
         extraImageUrl = "";
         extraVideoUrl = "";
+        extraPollQuestion = "";
+        extraPollOptions = ["", ""];
     }
 
     function invalidImage(): void {
@@ -319,6 +381,21 @@
                 createdAtTemp: serverTimestamp()
             });
 
+            let poll: Poll = null;
+            if (finalizedPollQuestion.length > 0 && finalizedPollOptions.length > 0) {
+                poll = new Poll({
+                    id: StringHelper.generateID(),
+                    question: finalizedPollQuestion,
+                    options: finalizedPollOptions,
+                    votes: Array.from({length: finalizedPollOptions.length}, () => 0),
+                    createdAtTemp: serverTimestamp()
+                });
+
+                message.pollId = poll.id;
+                finalizedPollQuestion = "";
+                finalizedPollOptions = [];
+            }
+
             project.chat.messageIds = [...project.chat.messageIds, message.id];
 
             let lastMessage: Message = messages[0];
@@ -384,6 +461,11 @@
                             newMessage.reply.sender.pingIds.push(ping.id);
                             let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", newMessage.reply.sender.id);
                             await setDoc(memberDoc, newMessage.reply.sender.compactify());
+                        }
+
+                        if (newMessage.pollId.length > 0) {
+                            let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("polls", newMessage.pollId);
+                            await setDoc(pollDoc, poll.compactify());
                         }
 
                         projectSelected.update((value) => {
@@ -769,6 +851,30 @@
         }
     }
 
+    .discussion-extra-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--grey-800);
+        margin-bottom: 8px;
+    }
+
+    .discussion-extra-subtitle {
+        font-size: 14px;
+        color: var(--grey-800);
+        margin-bottom: 8px;
+    }
+
+    .discussion-extra-preview-cancel {
+        font-size: 16px;
+        color: var(--grey-800);
+        cursor: pointer;
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
+
     .discussion-link-container {
         box-sizing: border-box;
         position: absolute;
@@ -849,14 +955,67 @@
         max-width: calc(100% - 120px);
     }
 
-    .discussion-extra-preview-cancel {
-        font-size: 16px;
+    .discussion-poll-options-container {
+        box-sizing: border-box;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        padding: 8px;
+        border: 1px solid var(--grey-400);
+        border-radius: 4px;
+    }
+
+    .discussion-poll-option-container {
+        margin-bottom: 4px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .discussion-poll-option-field {
+        box-sizing: border-box;
+        width: 100%;
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        margin-left: 4px;
+        margin-right: 4px;
+        background-color: var(--grey-200);
+        outline: none;
+        border: 1px solid var(--grey-400);
+        border-radius: 4px;
+        font-size: 12px;
         color: var(--grey-800);
-        cursor: pointer;
-        transition: color var(--transition-duration);
+        user-select: none;
+
+        transition: border-color var(--transition-duration);
 
         &:hover {
-            color: var(--accent);
+            border-color: var(--accent-light);
+        }
+
+        &:focus {
+            border-color: var(--accent);
+        }
+    }
+
+    .discussion-extra-poll-add-option {
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        font-size: 12px;
+        color: var(--grey-800);
+        border: 1px solid var(--grey-400);
+        outline: none;
+        border-radius: 4px;
+        cursor: pointer;
+
+        transition: border-color var(--transition-duration);
+
+        &:hover {
+            border-color: var(--accent-light);
         }
     }
 </style>
@@ -937,19 +1096,46 @@
             </button>
         </Menu>
         <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <div class="discussion-extra-title">Add link</div>
             <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraLink} />
             <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={ChatConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
             <button class="discussion-extra-action" on:click={addLink}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <div class="discussion-extra-title">Add image URL</div>
             <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
             <button class="discussion-extra-action" on:click={addImage}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={videoOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <div class="discussion-extra-title">Add Youtube video URL</div>
             <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
             <button class="discussion-extra-action" on:click={addVideo}>Add</button>
+            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+        </Menu>
+        <Menu bind:open={pollOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+            <div class="discussion-extra-title">Add poll</div>
+            <div class="discussion-extra-subtitle">Poll question</div>
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a poll question..." maxlength={ChatConstants.POLL_QUESTION_MAX_LENGTH} bind:value={extraPollQuestion} />
+            <div class="discussion-poll-options-container">
+                <div class="discussion-extra-subtitle">Poll options</div>
+                {#each extraPollOptions as option, i}
+                    <div class="discussion-poll-option-container" transition:slide={{duration: TransitionConstants.DURATION}}>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <input class="discussion-poll-option-field" type="text" placeholder={`Option ${i + 1}`} maxlength={ChatConstants.POLL_OPTION_MAX_LENGTH} bind:value={extraPollOptions[i]} />
+                        {#if extraPollOptions.length > 2}
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={() => removePollOption(i)}>close</span>
+                        {/if}
+                    </div>
+                {/each}
+                {#if extraPollOptions.length < ChatConstants.POLL_MAX_OPTIONS}
+                    <button class="discussion-extra-poll-add-option" on:click={addPollOption}>Add option</button>
+                {/if}
+                </div>
+            <button class="discussion-extra-action" on:click={addPoll}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />

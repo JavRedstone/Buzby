@@ -194,8 +194,22 @@
         createOpen = false;
     }
 
+    function addEmail(): void {
+        if (memberEmails.length < ProjectConstants.MAX_NUM_MEMBERS) {
+            memberEmails = [...memberEmails, ""];
+        }
+        else {
+            openSnackbar(`You can only add up to ${ProjectConstants.MAX_NUM_MEMBERS} members to a project.`, "error");
+        }
+    }
+
     function removeEmail(idx: number): void {
-        memberEmails = memberEmails.filter((_, index) => index !== idx);
+        if (memberEmails.length > 1) {
+            memberEmails = memberEmails.filter((_, index) => index !== idx);
+        }
+        else {
+            memberEmails = [""];
+        }
     }
 
     function getUser(): void {
@@ -466,7 +480,9 @@
                             {/if}
                         </div>
                     {/each}
-                    <button class="overview-create-project-add-member" type="button" on:click={() => memberEmails = [...memberEmails, ""]}>Add Member</button>
+                    {#if memberEmails.length < ProjectConstants.MAX_NUM_MEMBERS}
+                        <button class="overview-create-project-add-member" type="button" on:click={addEmail}>Add Member</button>
+                    {/if}
                 </div>
                 <button class="overview-create-project-create" on:click={createProject}>Create</button>
             {:else}

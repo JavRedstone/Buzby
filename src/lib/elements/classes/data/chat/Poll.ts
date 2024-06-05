@@ -6,8 +6,9 @@ export class Poll {
     public question: string;
 
     public options: string[];
-
     public votes: number[];
+
+    public multi: boolean;
 
     public createdAt: Date;
     public createdAtTemp: any;
@@ -33,6 +34,11 @@ export class Poll {
             this.votes = [];
         }
 
+        this.multi = data.multi;
+        if (this.multi == null || this.multi == undefined) {
+            this.multi = false;
+        }
+
         if (data.createdAt) {
             this.createdAt = data.createdAt.toDate();
             if (!this.createdAt) {
@@ -49,6 +55,7 @@ export class Poll {
             question: this.question,
             options: this.options,
             votes: this.votes,
+            multi: this.multi,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }
