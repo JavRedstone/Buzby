@@ -20,6 +20,8 @@
     .menu-container {
         width: 100%;
         height: 100%;
+        max-width: calc(100vw - 128px);
+        max-height: calc(100vh - 128px);
         padding: 8px;
         background-color: var(--off-white);
         box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.1);

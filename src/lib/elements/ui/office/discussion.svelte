@@ -19,6 +19,7 @@
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 	import Menu from '../general/menu.svelte';
 	import { Poll } from '$lib/elements/classes/data/chat/Poll';
+	import Dropdown from '../general/dropdown.svelte';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -41,8 +42,13 @@
     let extraLinkName: string = "";
     let extraImageUrl: string = "";
     let extraVideoUrl: string = "";
+
     let extraPollQuestion: string = "";
     let extraPollOptions: string[] = ["", ""];
+    let extraPollDuration: string = ChatConstants.POLL_DEFAULT_DURATION;
+    let extraPollDurationIdx: number = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+    let extraPollDurationOpen: boolean = false;
+    let extraPollMultiple: boolean = false;
 
     let finalizedLink: string = "";
     let finalizedLinkName: string = "";
@@ -50,6 +56,8 @@
     let finalizedVideoUrl: string = "";
     let finalizedPollQuestion: string = "";
     let finalizedPollOptions: string[] = [];
+    let finalizedPollDurationIdx: number = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+    let finalizedPollMultiple: boolean = false;
 
     let replyOpen: boolean = false;
     let replyMessage: Message = null;
@@ -140,6 +148,82 @@
         messagePercentage = 0;
     }
 
+    function removeExtraLink(): void {
+        extraLink = "";
+        extraLinkName = "";
+    }
+
+    function removeExtraImage(): void {
+        extraImageUrl = "";
+    }
+
+    function removeExtraVideo(): void {
+        extraVideoUrl = "";
+    }
+
+    function removeExtraPoll(): void {
+        extraPollQuestion = "";
+        extraPollOptions = ["", ""];
+        extraPollDuration = ChatConstants.POLL_DEFAULT_DURATION;
+        extraPollDurationIdx = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+        extraPollDurationOpen = false;
+        extraPollMultiple = false;
+    }
+
+    function removeFinalizedLink(): void {
+        finalizedLink = "";
+        finalizedLinkName = "";
+    }
+
+    function removeFinalizedImage(): void {
+        finalizedImageUrl = "";
+    }
+
+    function removeFinalizedVideo(): void {
+        finalizedVideoUrl = "";
+    }
+
+    function removeFinalizedPoll(): void {
+        finalizedPollQuestion = "";
+        finalizedPollOptions = [];
+        finalizedPollDurationIdx = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+        finalizedPollMultiple = false;
+    }
+
+    function removeLink(): void {
+        removeExtraLink();
+        removeFinalizedLink();
+    }
+
+    function removeImage(): void {
+        removeExtraImage();
+        removeFinalizedImage();
+    }
+
+    function removeVideo(): void {
+        removeExtraVideo();
+        removeFinalizedVideo();
+    }
+
+    function removePoll(): void {
+        removeExtraPoll();
+        removeFinalizedPoll();
+    }
+
+    function clearExtra(): void {
+        removeExtraLink();
+        removeExtraImage();
+        removeExtraVideo();
+        removeExtraPoll();
+    }
+
+    function clearFinalized(): void {
+        removeFinalizedLink();
+        removeFinalizedImage();
+        removeFinalizedVideo();
+        removeFinalizedPoll();
+    }
+
     function toggleExtra(): void {
         extrasOpen = !extrasOpen;
         linkOpen = false;
@@ -147,41 +231,35 @@
         videoOpen = false;
         pollOpen = false;
 
-        extraLink = "";
-        extraLinkName = "";
-        extraImageUrl = "";
-        extraVideoUrl = "";
-        extraPollQuestion = "";
-        extraPollOptions = ["", ""];
+        clearExtra();
     }
 
     function openLink(): void {
         linkOpen = true;
         extrasOpen = false;
 
-        extraLink = "";
+        removeExtraLink();
     }
 
     function openImage(): void {
         imageOpen = true;
         extrasOpen = false;
 
-        extraImageUrl = "";
+        removeExtraImage();
     }
 
     function openVideo(): void {
         videoOpen = true;
         extrasOpen = false;
 
-        extraVideoUrl = "";
+        removeExtraVideo();
     }
 
     function openPoll(): void {
         pollOpen = true;
         extrasOpen = false;
 
-        extraPollQuestion = "";
-        extraPollOptions = ["", ""];
+        removeExtraPoll();
     }
 
     function addLink(): void {
@@ -207,8 +285,9 @@
         finalizedLink = extraLink;
         finalizedLinkName = extraLinkName;
         clearExtra();
-        finalizedImageUrl = "";
-        finalizedVideoUrl = "";
+        removeFinalizedImage();
+        removeFinalizedVideo();
+        removeFinalizedPoll();
         linkOpen = false;
     }
 
@@ -225,9 +304,9 @@
 
         finalizedImageUrl = extraImageUrl;
         clearExtra();
-        finalizedLink = "";
-        finalizedLinkName = "";
-        finalizedVideoUrl = "";
+        removeFinalizedLink();
+        removeFinalizedVideo();
+        removeFinalizedPoll();
         imageOpen = false;
     }
 
@@ -249,9 +328,9 @@
 
         finalizedVideoUrl = extraVideoUrl;
         clearExtra();
-        finalizedLink = "";
-        finalizedLinkName = "";
-        finalizedImageUrl = "";
+        removeFinalizedLink();
+        removeFinalizedImage();
+        removeFinalizedPoll();
         videoOpen = false;
     }
 
@@ -279,11 +358,12 @@
 
         finalizedPollQuestion = extraPollQuestion;
         finalizedPollOptions = options;
+        finalizedPollDurationIdx = extraPollDurationIdx;
+        finalizedPollMultiple = extraPollMultiple;
         clearExtra();
-        finalizedLink = "";
-        finalizedLinkName = "";
-        finalizedImageUrl = "";
-        finalizedVideoUrl = "";
+        removeFinalizedLink();
+        removeFinalizedImage();
+        removeFinalizedVideo();
         pollOpen = false;
     }
 
@@ -305,36 +385,14 @@
         }
     }
 
-    function clearExtra(): void {
-        extraLink = "";
-        extraLinkName = "";
-        extraImageUrl = "";
-        extraVideoUrl = "";
-        extraPollQuestion = "";
-        extraPollOptions = ["", ""];
-    }
-
     function invalidImage(): void {
         openSnackbar("Invalid image URL. Please add a valid image URL.", "error");
-        finalizedImageUrl = "";
+        removeImage();
     }
 
     function invalidVideo(): void {
         openSnackbar("Invalid Youtube video URL. Please add a valid video URL.", "error");
-        finalizedVideoUrl = "";
-    }
-
-    function removeLink(): void {
-        finalizedLink = "";
-        finalizedLinkName = "";
-    }
-
-    function removeImage(): void {
-        finalizedImageUrl = "";
-    }
-
-    function removeVideo(): void {
-        finalizedVideoUrl = "";
+        removeVideo();
     }
 
     function getEmbed(url: string): string {
@@ -382,12 +440,15 @@
             });
 
             let poll: Poll = null;
-            if (finalizedPollQuestion.length > 0 && finalizedPollOptions.length > 0) {
+            if (finalizedPollQuestion.length > 0) {
                 poll = new Poll({
                     id: StringHelper.generateID(),
                     question: finalizedPollQuestion,
                     options: finalizedPollOptions,
                     votes: Array.from({length: finalizedPollOptions.length}, () => 0),
+                    votedMemberIds: [],
+                    multiple: finalizedPollMultiple,
+                    duration: ChatConstants.POLL_DURATIONS_MS[finalizedPollDurationIdx],
                     createdAtTemp: serverTimestamp()
                 });
 
@@ -410,6 +471,7 @@
             removeLink();
             removeImage();
             removeVideo();
+            removePoll();
 
             replyOpen = false;
             
@@ -421,6 +483,7 @@
                         let newMessage: Message = new Message(doc.data());
                         newMessage.sender = currMember;
                         newMessage.reply = replyMessage;
+                        newMessage.poll = poll;
                         project.chat.messages = [newMessage, ...project.chat.messages];
                         messages = project.chat.messages;
 
@@ -955,6 +1018,30 @@
         max-width: calc(100% - 120px);
     }
 
+    .discussion-poll-container {
+        box-sizing: border-box;
+        position: absolute;
+        left: 0;
+        top: -25px;
+        width: 100%;
+        height: 24px;
+        padding-left: 8px;
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--grey-200);
+        color: var(--grey-800);
+        font-size: 12px;
+        z-index: 1;
+        user-select: none;
+    }
+
+    .discussion-poll-preview-message {
+        font-size: 12px;
+        color: var(--grey-800);
+    }
+
     .discussion-poll-options-container {
         box-sizing: border-box;
         margin-top: 8px;
@@ -1018,6 +1105,31 @@
             border-color: var(--accent-light);
         }
     }
+
+    .discussion-extra-poll-multiple-container {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+
+    .discussion-extra-poll-multiple-checkbox {
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+        accent-color: var(--primary);
+        cursor: pointer;
+    }
+
+    .discussion-extra-poll-multiple-label {
+        font-size: 12px;
+        color: var(--grey-800);
+    }
+
+    .discussion-extra-poll-duration-label {
+        font-size: 12px;
+        color: var(--grey-800);
+    }
 </style>
 <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
     <div class="discussion-title-container">
@@ -1036,7 +1148,7 @@
     </div>
     <div class="discussion-input-container">
         {#if replyOpen}
-            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
+            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 || finalizedPollQuestion.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.sender.displayName}</div>
@@ -1072,6 +1184,14 @@
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeVideo}>close</span>
+            </div>
+        {/if}
+        {#if finalizedPollQuestion.length > 0}
+            <div class="discussion-poll-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                <div class="discussion-poll-preview-message">A poll has been added to the message.</div>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removePoll}>close</span>
             </div>
         {/if}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1134,7 +1254,14 @@
                 {#if extraPollOptions.length < ChatConstants.POLL_MAX_OPTIONS}
                     <button class="discussion-extra-poll-add-option" on:click={addPollOption}>Add option</button>
                 {/if}
-                </div>
+            </div>
+            <div class="discussion-extra-subtitle">Poll settings</div>
+            <div class="discussion-extra-poll-duration-label">Poll duration</div>
+            <Dropdown label="Poll duration" items={ChatConstants.POLL_DURATIONS} defaultItem="" bind:selectedItem={extraPollDuration} bind:selectedItemIdx={extraPollDurationIdx} bind:open={extraPollDurationOpen} small={true} maxHeight="100px" />
+            <div class="discussion-extra-poll-multiple-container">
+                <input class="discussion-extra-poll-multiple-checkbox" type="checkbox" bind:checked={extraPollMultiple} />
+                <div class="discussion-extra-poll-multiple-label">Allow multiple votes</div>
+            </div>
             <button class="discussion-extra-action" on:click={addPoll}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>

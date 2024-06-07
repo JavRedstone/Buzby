@@ -7,8 +7,10 @@ export class Poll {
 
     public options: string[];
     public votes: number[];
+    public votedMemberIds: string[];
 
-    public multi: boolean;
+    public multiple: boolean;
+    public duration: number;
 
     public createdAt: Date;
     public createdAtTemp: any;
@@ -34,9 +36,19 @@ export class Poll {
             this.votes = [];
         }
 
-        this.multi = data.multi;
-        if (this.multi == null || this.multi == undefined) {
-            this.multi = false;
+        this.votedMemberIds = data.votedMemberIds;
+        if (!this.votedMemberIds) {
+            this.votedMemberIds = [];
+        }
+
+        this.multiple = data.multiple;
+        if (this.multiple == null || this.multiple == undefined) {
+            this.multiple = false;
+        }
+
+        this.duration = data.duration;
+        if (this.duration == null || this.duration == undefined) {
+            this.duration = 0;
         }
 
         if (data.createdAt) {
@@ -55,7 +67,9 @@ export class Poll {
             question: this.question,
             options: this.options,
             votes: this.votes,
-            multi: this.multi,
+            votedMemberIds: this.votedMemberIds,
+            multiple: this.multiple,
+            duration: this.duration,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }

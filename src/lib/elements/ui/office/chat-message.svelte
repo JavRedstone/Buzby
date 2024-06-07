@@ -11,6 +11,7 @@
 	import type { Project } from '$lib/elements/classes/data/project/Project';
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 	import { ChatConstants } from '$lib/elements/classes/data/chat/ChatConstants';
+	import ChatPoll from './chat-poll.svelte';
 
     let dispatch = createEventDispatcher();
     
@@ -39,7 +40,7 @@
 
     $: message.text ? messageFormattedText = getMessageFormattedText(message.text) : messageFormattedText = "";
     $: message.text ? messageFormatting = getMessageFormatting(message.text) : messageFormatting = "";
-    $: isHighlighted && highlightedId == message.id ? highlightTimeout = setTimeout(() => isHighlighted = false, ChatConstants.HIGHLIGHT_DURATION) : clearTimeout(highlightTimeout);
+    $: isHighlighted && highlightedId == message.id ? highlightTimeout = setTimeout(() => isHighlighted = false, ChatConstants.MESSAGE_HIGHLIGHT_DURATION) : clearTimeout(highlightTimeout);
 
     function getMember(): void {
         memberStatus.subscribe((value) => {
@@ -105,6 +106,10 @@
         deleteDoc(messageDoc).then(() => {
             let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.chat.id);
             updateDoc(chatDoc, project.chat.compactify());
+            if (message.pollId.length > 0) {
+                let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
+                deleteDoc(pollDoc);
+            }
         });
     };
 
@@ -118,7 +123,7 @@
         }
         else if (text.search(/\*(.*?)\*/g) != -1) {
             textFormatting += 'font-style: italic;';
-        }
+        }   
         if (text.search(/__(.*?)__/g) != -1) {
             textFormatting += 'text-decoration: underline;';
         }
@@ -468,6 +473,7 @@
             <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;"></div>
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <div class="chat-message-name" on:click={clickedName}>{message.sender.displayName}</div>
                     <div class="chat-message-date">{StringHelper.getFormattedDate(message.createdAt)}</div>
                 </div>
@@ -489,6 +495,8 @@
                             <img class="chat-message-image" src={message.imageUrl} />
                         {:else if message.videoUrl.length > 0}
                             <iframe class="discussion-video-preview" width="100%" height="250" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        {:else if message.pollId.length > 0}
+                            <ChatPoll poll={message.poll} />
                         {/if}
                     </div>
                     {#if hovered}
@@ -525,6 +533,8 @@
                     <img class="chat-message-image" src={message.imageUrl} />
                 {:else if message.videoUrl.length > 0}
                     <iframe class="chat-message-video" width="100%" height="300px" src={getEmbed(message.videoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                {:else if message.pollId.length > 0}
+                    <ChatPoll poll={message.poll} />
                 {/if}
             </div>
             {#if hovered}

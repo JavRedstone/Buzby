@@ -89,6 +89,20 @@ export class Message {
         this.createdAtTemp = data.createdAtTemp;
     }
 
+    public async setObjects(): Promise<void> {
+        if (this.pollId) {
+            let pollsDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', this.pollId);
+            await getDoc(pollsDoc).then((doc) => {
+                if (doc.exists()) {
+                    this.poll = new Poll(doc.data());
+                }
+            });
+        }
+        else {
+            this.poll = new Poll({});
+        }
+    }
+
     public async getSender(): Promise<void> {
         if (this.senderId) {
             let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.senderId);
@@ -100,20 +114,6 @@ export class Message {
         }
         else {
             this.sender = new Member({});
-        }
-    }
-
-    public async getPoll(): Promise<void> {
-        if (this.pollId) {
-            let pollsDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', this.pollId);
-            await getDoc(pollsDoc).then((doc) => {
-                if (doc.exists()) {
-                    this.poll = new Poll(doc.data());
-                }
-            });
-        }
-        else {
-            this.poll = new Poll({});
         }
     }
 

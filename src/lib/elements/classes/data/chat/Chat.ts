@@ -29,11 +29,12 @@ export class Chat {
             while (clonedMessageIds.length > 0) {
                 let batchMessageIds = clonedMessageIds.splice(0, DataConstants.MAX_BATCH_SIZE);
                 let messagesQuery = query(messagesCollection, where('id', 'in', batchMessageIds));
-                await getDocs(messagesQuery).then((querySnapshot) => {
-                    querySnapshot.forEach((doc) => {
+                await getDocs(messagesQuery).then(async (querySnapshot) => {
+                    for (let doc of querySnapshot.docs) {
                         let message: Message = new Message(doc.data());
+                        await message.setObjects();
                         this.messages.push(message);
-                    });
+                    }
 
                     this.messages.sort((a, b) => {
                         return a.createdAt.getTime() - b.createdAt.getTime();
