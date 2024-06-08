@@ -145,7 +145,28 @@
             messages = project.chat.messages;
             await setMessages();
         }
+
+        updateProject();
+
         messagePercentage = 0;
+    }
+
+    function updateProject(): void {
+        projectSelected.update((value) => {
+            value.project = project;
+            value.projectName = project.name;
+            return value;
+        });
+
+        allProjects.update((value) => {
+            value.projects = value.projects.map((p) => {
+                if (p.id === project.id) {
+                    return project;
+                }
+                return p;
+            });
+            return value;
+        });
     }
 
     function removeExtraLink(): void {
@@ -453,8 +474,7 @@
                 });
 
                 message.pollId = poll.id;
-                finalizedPollQuestion = "";
-                finalizedPollOptions = [];
+                removeFinalizedPoll();
             }
 
             project.chat.messageIds = [...project.chat.messageIds, message.id];
@@ -468,10 +488,7 @@
             
             messageText = "";
             messagePercentage = 0;
-            removeLink();
-            removeImage();
-            removeVideo();
-            removePoll();
+            clearExtra();
 
             replyOpen = false;
             
@@ -483,7 +500,6 @@
                         let newMessage: Message = new Message(doc.data());
                         newMessage.sender = currMember;
                         newMessage.reply = replyMessage;
-                        newMessage.poll = poll;
                         project.chat.messages = [newMessage, ...project.chat.messages];
                         messages = project.chat.messages;
 
@@ -529,23 +545,12 @@
                         if (newMessage.pollId.length > 0) {
                             let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("polls", newMessage.pollId);
                             await setDoc(pollDoc, poll.compactify());
+                            let pollRes = await getDoc(pollDoc);
+                            let newPoll: Poll = new Poll(pollRes.data());
+                            newMessage.poll = newPoll;
                         }
 
-                        projectSelected.update((value) => {
-                            value.project = project;
-                            value.projectName = project.name;
-                            return value;
-                        });
-
-                        allProjects.update((value) => {
-                            value.projects = value.projects.map((p) => {
-                                if (p.id === project.id) {
-                                    return project;
-                                }
-                                return p;
-                            });
-                            return value;
-                        });
+                        updateProject();
 
                         messageProcessing = false;
                         messagePercentage = 0;
@@ -569,21 +574,7 @@
                         project.chat.messages = project.chat.messages.slice(1);
                         messages = project.chat.messages;
 
-                        projectSelected.update((value) => {
-                            value.project = project;
-                            value.projectName = project.name;
-                            return value;
-                        });
-
-                        allProjects.update((value) => {
-                            value.projects = value.projects.map((p) => {
-                                if (p.id === project.id) {
-                                    return project;
-                                }
-                                return p;
-                            });
-                            return value;
-                        });
+                        updateProject();
 
                         messageProcessing = false;
                         messagePercentage = 0;
@@ -924,7 +915,7 @@
     .discussion-extra-subtitle {
         font-size: 14px;
         color: var(--grey-800);
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
 
     .discussion-extra-preview-cancel {

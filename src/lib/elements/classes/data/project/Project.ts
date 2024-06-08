@@ -5,7 +5,6 @@ import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/
 import { ProjectConstants } from "./ProjectConstants";
 import { Task } from "../time/Task";
 import { Event } from "../time/Event";
-import { DataConstants } from "../general/DataConstants";
 
 export class Project {
     public id: string;

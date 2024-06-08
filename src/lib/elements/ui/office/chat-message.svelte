@@ -105,11 +105,12 @@
         });
         deleteDoc(messageDoc).then(() => {
             let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.chat.id);
-            updateDoc(chatDoc, project.chat.compactify());
-            if (message.pollId.length > 0) {
-                let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
-                deleteDoc(pollDoc);
-            }
+            updateDoc(chatDoc, project.chat.compactify()).then(() => {
+                if (message.pollId.length > 0) {
+                    let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
+                    deleteDoc(pollDoc);
+                }
+            });
         });
     };
 

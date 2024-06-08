@@ -5,14 +5,17 @@ export class Event {
     public name: string;
     public description: string;
 
+    public assignedIds: string[];
+    public assigned: Member[];
+    
     public startTime: Date;
     public endTime: Date;
 
-    public assignedIds: string[];
-    public assigned: Member[];
-
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
 
         this.name = data.name;
         if (!this.name) {
@@ -24,26 +27,26 @@ export class Event {
             this.description = "";
         }
 
-        this.startTime = new Date(data.startTime);
+        this.assignedIds = data.assignedIds;
+
+        this.startTime = data.startTime;
         if (!this.startTime) {
             this.startTime = new Date();
         }
-        
-        this.endTime = new Date(data.endTime);
+
+        this.endTime = data.endTime;
         if (!this.endTime) {
             this.endTime = new Date();
         }
-
-        this.assignedIds = data.assignedIds;
     }
 
     public compactify(): any {
         return {
             name: this.name,
             description: this.description,
-            startTime: this.startTime.getTime(),
-            endTime: this.endTime.getTime(),
-            assignedIds: this.assignedIds
+            assignedIds: this.assignedIds,
+            startTime: this.startTime,
+            endTime: this.endTime
         };
     }
 }

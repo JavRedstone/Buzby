@@ -24,11 +24,17 @@ export class ChatConstants {
         '1 week',
     ];
     public static readonly POLL_DURATIONS_MS: number[] = [
-        6 * 60 * 60 * 1000,
-        12 * 60 * 60 * 1000,
-        24 * 60 * 60 * 1000,
-        7 * 24 * 60 * 60 * 1000,
+        60000,
+        300000,
+        900000,
+        1800000,
+        3600000,
+        21600000,
+        43200000,
+        86400000,
+        259200000,
+        604800000
     ];
     public static readonly POLL_DEFAULT_DURATION = '1 day';
-    
+    public static readonly POLL_TIME_LEFT_INTERVAL = 1000;
 }

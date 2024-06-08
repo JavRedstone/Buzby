@@ -1,19 +1,26 @@
 import type { Member } from "../project/Member";
 
 export class Task {
-    public id: string = "";
-    public name: string = "";
-    public description: string = "";
-    public percentage: number = 0;
-    
-    public startDate: Date;
-    public endDate: Date;
+    public id: string;
+
+    public name: string;
+    public description: string;
+    public percentage: number;
     
     public assignedIds: string[] = [];
     public assigned: Member[] = [];
 
+    public hivePosX: number;
+    public hivePosY: number;
+
+    public startDate: Date;
+    public endDate: Date;
+
     constructor(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = "";
+        }
 
         this.name = data.name;
         if (!this.name) {
@@ -26,22 +33,33 @@ export class Task {
         }
 
         this.percentage = data.percentage;
-        if (!this.percentage) {
+        if (this.percentage == null || this.percentage == undefined) {
             this.percentage = 0;
-        }
-        
-        this.startDate = new Date(data.start);
-        if (!this.startDate) {
-            this.startDate = new Date();
-        }
-        this.endDate = new Date(data.end);
-        if (!this.endDate) {
-            this.endDate = new Date();
         }
 
         this.assignedIds = data.assigned;
         if (!this.assignedIds) {
             this.assignedIds = [];
+        }
+
+        this.hivePosX = data.hivePosX;
+        if (this.hivePosX == null || this.hivePosX == undefined) {
+            this.hivePosX = 0;
+        }
+
+        this.hivePosY = data.hivePosY;
+        if (this.hivePosY == null || this.hivePosY == undefined) {
+            this.hivePosY = 0;
+        }
+        
+        this.startDate = data.startDate;
+        if (!this.startDate) {
+            this.startDate = new Date();
+        }
+
+        this.endDate = data.endDate;
+        if (!this.endDate) {
+            this.endDate = new Date();
         }
     }
 
@@ -51,9 +69,11 @@ export class Task {
             name: this.name,
             description: this.description,
             percentage: this.percentage,
-            start: this.startDate.getTime(),
-            end: this.endDate.getTime(),
-            assignedIds: this.assignedIds
+            assignedIds: this.assignedIds,
+            hivePosX: this.hivePosX,
+            hivePosY: this.hivePosY,
+            startDate: this.startDate,
+            endDate: this.endDate
         };
     }
 }

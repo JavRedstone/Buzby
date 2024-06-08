@@ -17,4 +17,8 @@ export class ObjectHelper {
         }
         return arr[arr.length - 1];
     }
+
+    public static addMsToDate(date: Date, ms: number): Date {
+        return new Date(date.getTime() + ms);
+    }
 }

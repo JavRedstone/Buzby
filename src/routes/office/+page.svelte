@@ -7,8 +7,6 @@
 	import { CollectionReference, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 	import { getFirestoreCollection, getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData } from 'firebase/firestore';
-	import ProgressCircle from '$lib/elements/ui/general/progress-circle.svelte';
-	import { MemberConstants } from '$lib/elements/classes/data/project/MemberConstants';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { fade } from 'svelte/transition';
 	import { projectSelected } from '$lib/elements/stores/project-store';
@@ -64,33 +62,6 @@
                 memberOffsets.push(offset);
                 memberPositions.push(offset.clone().add(new Vector2(window.innerWidth / 4, window.innerHeight / 2)));
             }
-        }
-    }
-
-    function refreshProject(): void {
-        if (officeRefreshPercentage >= 100) {
-            officeRefreshPercentage = 0;
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            getDoc(projectDoc).then(async (doc) => {
-                let project: Project = new Project(doc.data());
-                await project.setObjects();
-                projectSelected.update((value) => {
-                    value.project = project;
-                    value.projectName = project.name;
-                    return value;
-                });
-                allProjects.update((value) => {
-                    value.projects = value.projects.map((p) => {
-                        if (p.id === project.id) {
-                            return project;
-                        }
-                        return p;
-                    });
-                    return value;
-                })
-                officeRefreshPercentage = 0;
-                setMemberStatusPositions();
-            });
         }
     }
 
@@ -224,25 +195,6 @@
         color: var(--grey-800);
     }
 
-    .office-title-icon-progress-circle-container {
-        position: absolute;
-        left: 60px;
-        margin-top: -1px;
-    }
-
-    .office-title-icon-button {
-        position: absolute;
-        left: 62px;
-        font-size: 24px;
-        color: var(--grey-800);
-        cursor: pointer;
-        transition: color var(--transition-duration);
-
-        &:hover {
-            color: var(--accent);
-        }
-    }
-
     .office-table-connector {
         box-sizing: border-box;
         position: absolute;
@@ -341,12 +293,6 @@
 <div transition:fade={{duration: TransitionConstants.DURATION}}>
     <div class="office-title-container">
         <div class="office-title">Office</div>
-        <div class="office-title-icon-progress-circle-container">
-            <ProgressCircle radius={12} bind:percentage={officeRefreshPercentage} storageName="projectRefreshPercentage" autoFill={true} autofillTime={MemberConstants.REFRESH_TIMEOUT} />
-        </div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="office-title-icon-button material-symbols-rounded" on:click={() => refreshProject()}>refresh</span>
         <div class="office-title-field">
             <span class="office-title-icon material-symbols-rounded">email</span>
             <input class="office-title-input" type="text" placeholder="Enter email" bind:value={inviteEmail} />
