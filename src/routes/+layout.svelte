@@ -126,6 +126,10 @@
         background-color: #00000080;
     }
 
+    :global(::-webkit-scrollbar-corner) {
+        background: transparent;
+    }
+
     :global(.material-symbols-rounded) {
         user-select: none;
         font-variation-settings:

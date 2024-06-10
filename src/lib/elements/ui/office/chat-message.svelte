@@ -12,6 +12,7 @@
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 	import { ChatConstants } from '$lib/elements/classes/data/chat/ChatConstants';
 	import ChatPoll from './chat-poll.svelte';
+	import Avatar from '../general/avatar.svelte';
 
     let dispatch = createEventDispatcher();
     
@@ -246,11 +247,7 @@
 
     .chat-message-avatar-container {
         position: absolute;
-        width: 42px;
-        height: 42px;
-        flex-shrink: 0;
-        border-radius: 50%;
-        background-color: var(--grey-300);
+        flex-shrink: 0;;
         margin-right: 8px;
     }
 
@@ -471,7 +468,9 @@
                 {/if}
             {/if}
             
-            <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;"></div>
+            <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;">
+                <Avatar member={message.sender} size="42px" />
+            </div>
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->

@@ -1,3 +1,4 @@
+import { Timestamp } from "firebase/firestore";
 import type { Member } from "../project/Member";
 
 export class Event {
@@ -29,13 +30,33 @@ export class Event {
 
         this.assignedIds = data.assignedIds;
 
-        this.startTime = data.startTime;
-        if (!this.startTime) {
+        if (data.startTime) {
+            if (data.startTime instanceof Timestamp) {
+                this.startTime = data.startTime.toDate();
+                if (!this.startTime) {
+                    this.startTime = new Date();
+                }
+            }
+            else if (data.startTime instanceof Date) {
+                this.startTime = data.startTime;
+            }
+        }
+        else {
             this.startTime = new Date();
         }
 
-        this.endTime = data.endTime;
-        if (!this.endTime) {
+        if (data.endTime) {
+            if (data.endTime instanceof Timestamp) {
+                this.endTime = data.endTime.toDate();
+                if (!this.endTime) {
+                    this.endTime = new Date();
+                }
+            }
+            else if (data.endTime instanceof Date) {
+                this.endTime = data.endTime;
+            }
+        }
+        else {
             this.endTime = new Date();
         }
     }

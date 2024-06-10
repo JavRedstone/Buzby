@@ -35,7 +35,7 @@
         bottom: 16px;
         left: 50%;
         transform: translateX(-50%);
-        width: 40vw;
+        width: 30vw;
         background-color: var(--grey-800);
         color: white;
         text-align: center;

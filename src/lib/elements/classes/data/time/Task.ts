@@ -1,4 +1,6 @@
-import type { Member } from "../project/Member";
+import { getDoc, Timestamp, type DocumentData, type DocumentReference } from "firebase/firestore";
+import { Member } from "../project/Member";
+import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 
 export class Task {
     public id: string;
@@ -37,7 +39,7 @@ export class Task {
             this.percentage = 0;
         }
 
-        this.assignedIds = data.assigned;
+        this.assignedIds = data.assignedIds;
         if (!this.assignedIds) {
             this.assignedIds = [];
         }
@@ -52,14 +54,48 @@ export class Task {
             this.hivePosY = 0;
         }
         
-        this.startDate = data.startDate;
-        if (!this.startDate) {
+        if (data.startDate) {
+            if (data.startDate instanceof Timestamp) {
+                this.startDate = data.startDate.toDate();
+                if (!this.startDate) {
+                    this.startDate = new Date();
+                }
+            }
+            else if (data.startDate instanceof Date) {
+                this.startDate = data.startDate;
+            }
+        }
+        else {
             this.startDate = new Date();
         }
 
-        this.endDate = data.endDate;
-        if (!this.endDate) {
+        if (data.endDate) {
+            if (data.endDate instanceof Timestamp) {
+                this.endDate = data.endDate.toDate();
+                if (!this.endDate) {
+                    this.endDate = new Date();
+                }
+            }
+            else if (data.endDate instanceof Date) {
+                this.endDate = data.endDate;
+            }
+        }
+        else {
             this.endDate = new Date();
+        }
+    }
+
+    public async getAssigned(assignedId: string): Promise<Member> {
+        if (assignedId) {
+            let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', assignedId);
+            await getDoc(membersDoc).then((doc) => {
+                if (doc.exists()) {
+                    return new Member(doc.data());
+                }
+            });
+        }
+        else {
+            return new Member({});
         }
     }
 

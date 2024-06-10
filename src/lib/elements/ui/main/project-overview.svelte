@@ -797,7 +797,7 @@
     }
 </style>
 
-{#if existed}
+{#if existed && project}
     <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
         <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
         <div class="project-overview-name">{project.name}</div>

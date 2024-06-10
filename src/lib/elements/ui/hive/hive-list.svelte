@@ -1,102 +1,134 @@
 <script lang="ts">
-	import { HiveConstants } from "$lib/elements/classes/ui/hive/HiveConstants";
-	import { MathHelper } from "$lib/elements/helpers/MathHelper";
-	import { Vector2 } from "three";
-	import Honeycomb from "./honeycomb.svelte";
-	import { onMount } from "svelte";
-	import { projectSelected } from "$lib/elements/stores/project-store";
-	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
-
-    let honeycombAngles: number[] = MathHelper.getAnglesForPolygon(6);
-    let honeycombOffset: Vector2[] = [];
-    for (let i = 0; i < honeycombAngles.length; i++) {
-        honeycombOffset.push(MathHelper.getOffsetForAngle(honeycombAngles[i], Math.PI / 2, HiveConstants.HONEYCOMB_RADIUS * 2));
-    }
+	import type { Task } from "$lib/elements/classes/data/time/Task";
+	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
+	import { projectSelected } from "$lib/elements/stores/project-store";
+	import { onMount } from "svelte";
+	import { fly } from "svelte/transition";
+	import HiveTask from "./hive-task.svelte";
 
     let project: Project = null;
-
-    let centerTask: Task = new Task({
-        id: HiveConstants.TASK_CENTER_ID,
-        hivePosX: 100,
-        hivePosY: 100,
-    });
     let tasks: Task[] = [];
-    let placeholderTasks: Task[] = [];
     let projectPercentage: number = 0;
 
-    function getTasks(): void {
+    function getProject(): void {
         projectSelected.subscribe((value) => {
             if (value.project) {
                 project = value.project;
-                tasks = value.project.tasks;
-                placeholderTasks = [];
 
-                let total = 0;
-                for (let task of tasks) {
-                    total += task.percentage;
+                if (project.tasks.length == tasks.length) {
+                    getTasks();
                 }
-                projectPercentage = total / tasks.length;
-
-                centerTask.percentage = projectPercentage;
-                setPlaceHolders(centerTask);
-
-                for (let task of tasks) {
-                    setPlaceHolders(task);
+                else {
+                    tasks = [];
+                    setTimeout(() => {
+                        getTasks();
+                    });
                 }
             }
         });
     }
 
-    function setPlaceHolders(task): void {
-        for (let placeholder of placeholderTasks) {
-            if (MathHelper.areNumberAlmostEqual(placeholder.hivePosX, task.hivePosX) && MathHelper.areNumberAlmostEqual(placeholder.hivePosY, task.hivePosY)) {
-                placeholderTasks.splice(placeholderTasks.indexOf(placeholder), 1);
-                break;
-            }
+    function getTasks(): void {
+        tasks = project.tasks;
+
+        let total = 0;
+        for (let task of tasks) {
+            total += task.percentage;
         }
+        projectPercentage = total / tasks.length;
 
-        for (let i = 0; i < honeycombOffset.length; i++) {
-            let pos: Vector2 = new Vector2(task.hivePosX + honeycombOffset[i].x, task.hivePosY + honeycombOffset[i].y);
-
-            let badPos: boolean = false;
-
-            if (MathHelper.areNumberAlmostEqual(centerTask.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(centerTask.hivePosY, pos.y)) {
-                badPos = true;
-            }
-            for (let task2 of tasks) {
-                if (MathHelper.areNumberAlmostEqual(task2.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(task2.hivePosY, pos.y)) {
-                    badPos = true;
-                    break;
-                }
-            }
-            for (let placeholder of placeholderTasks) {
-                if (MathHelper.areNumberAlmostEqual(placeholder.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(placeholder.hivePosY, pos.y)) {
-                    badPos = true;
-                    break;
-                }
-            }
-
-            if (!badPos) {
-                placeholderTasks.push(new Task({
-                    hivePosX: pos.x,
-                    hivePosY: pos.y,
-                }));
-            }
-        }
+        tasks.sort((a, b) => { return a.endDate.getTime() - b.endDate.getTime(); });
     }
 
     onMount(() => {
-        getTasks();
+        getProject();
     });
 </script>
 <style>
+    .hive-list-container {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 40%;
+        min-width: 150px;
+        height: 100%;
+        background-color: var(--off-white-light);
+        border-left: 1px solid var(--grey-300);
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .hive-list-title-container {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-bottom: 1px solid var(--grey-300);
+    }
+
+    .hive-list-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
+
+    .hive-list-progress-container {
+        width: 100%;
+        margin-left: 24px;
+        display: flex;
+        align-items: center;
+    }
+
+    .hive-list-progress-title {
+        width: 78px;
+        text-align: left;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
+
+    .hive-list-progress-bar-container {
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--grey-300);
+    }
+
+    .hive-list-progress-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(to right, var(--accent-light), var(--accent), var(--accent-dark));
+
+        transition: width var(--transition-duration);
+    }
+
+    .hive-list-progress {
+        width: 52px;
+        text-align: right;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
     
+    .hive-list-tasks-container {
+        padding: 8px;
+        overflow-y: auto;
+        height: calc(100% - 48px);
+    }
 </style>
-<Honeycomb task={centerTask} />
-{#each tasks as task, i}
-    <Honeycomb task={task} project={project} />
-{/each}
-{#each placeholderTasks as task, i}
-    <Honeycomb task={task} project={project} />
-{/each}
+<div class="hive-list-container" transition:fly={{x: "40%", duration: TransitionConstants.DURATION}}>
+    <div class="hive-list-title-container">
+        <div class="hive-list-title">Tasks</div>
+        <div class="hive-list-progress-container">
+            <div class="hive-list-progress-title">Overall</div>
+            <div class="hive-list-progress-bar-container">
+                <div class="hive-list-progress-bar" style="width: {projectPercentage}%"></div>
+            </div>
+            <div class="hive-list-progress">{Math.round(projectPercentage)}%</div>
+        </div>
+    </div>
+    <div class="hive-list-tasks-container">
+        {#each tasks as task}
+            <HiveTask task={task} project={project} />
+        {/each}
+    </div>
+</div>

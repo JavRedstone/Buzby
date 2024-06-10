@@ -36,6 +36,9 @@ export class Ping {
                 this.createdAt = new Date();
             }
         }
+        else {
+            this.createdAt = new Date();
+        }
 
         this.createdAtTemp = data.createdAtTemp;
     }

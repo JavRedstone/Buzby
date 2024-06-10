@@ -141,7 +141,7 @@
                             return value;
                         });
                         if (selectedProject) {
-                            if (selectedProjectRoute) {
+                            if (selectedProjectRoute && selectedProjectRoute != '/') {
                                 goto(selectedProjectRoute);
                             } else {
                                 goto(RouteConstants.DEFAULT_PROJECT_ROUTE);

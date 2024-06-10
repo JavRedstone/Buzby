@@ -1,16 +1,25 @@
 <script lang="ts">
+	import { scale } from 'svelte/transition';
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import { HiveConstants } from "$lib/elements/classes/ui/hive/HiveConstants";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
 	import { setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import Menu from "../general/menu.svelte";
-	import Snackbar from "../general/snackbar.svelte";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { allProjects, projectSelected } from "$lib/elements/stores/project-store";
+	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 
     export let task: Task = null;
     export let project: Project = null;
+    export let offsetX: number = 0;
+    export let offsetY: number = 0;
+
+    let existed: boolean = false;
+
+    let dispatch = createEventDispatcher();
 
     let taskMenuOpen: boolean = false;
     let taskName: string = "";
@@ -18,10 +27,6 @@
     let taskMembersChecked: boolean[] = [];
     let taskStartDateInput: HTMLInputElement = null;
     let taskEndDateInput: HTMLInputElement = null;
-
-    let snackbarOpen: boolean = false;
-    let snackbarText: string = "";
-    let snackbarType: string = "neutral";
 
     function addFill(): void {
         if (task.percentage < 100) {
@@ -63,6 +68,13 @@
 
     function toggleTaskMenu(): void {
         taskMenuOpen = !taskMenuOpen;
+        if (taskMenuOpen) {
+            if (project.taskIds.length >= ProjectConstants.MAX_NUM_TASKS) {
+                openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_TASKS} tasks.`, "error");
+                taskMenuOpen = false;
+                return;
+            }
+        }
         clearTaskMenu();
     }
 
@@ -94,42 +106,60 @@
     }
 
     function addTask(): void {
+        if (project.taskIds.length >= ProjectConstants.MAX_NUM_TASKS) {
+            openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_TASKS} tasks.`, "error");
+            return;
+        }
+
         if (taskStartDateInput && taskEndDateInput) {
             if (taskName.trim().length == 0) {
-                openSnackbar("Please enter a task name", "error");
+                openSnackbar("Please enter a task name.", "error");
                 return;
             }
 
             if (taskName.trim().length > HiveConstants.TASK_NAME_MAX_LENGTH) {
-                openSnackbar(`Task name is too long. Max length is ${HiveConstants.TASK_NAME_MAX_LENGTH} characters`, "error");
+                openSnackbar(`Task name is too long. Max length is ${HiveConstants.TASK_NAME_MAX_LENGTH} characters.`, "error");
                 return;
             }
 
             if (taskDescription.trim().length == 0) {
-                openSnackbar("Please enter a task description", "error");
+                openSnackbar("Please enter a task description.", "error");
                 return;
             }
 
             if (taskDescription.trim().length > HiveConstants.TASK_DESCRIPTION_MAX_LENGTH) {
-                openSnackbar(`Task description is too long. Max length is ${HiveConstants.TASK_DESCRIPTION_MAX_LENGTH} characters`, "error");
+                openSnackbar(`Task description is too long. Max length is ${HiveConstants.TASK_DESCRIPTION_MAX_LENGTH} characters.`, "error");
                 return;
             }
 
             let startDate: Date = new Date(taskStartDateInput.valueAsNumber);
             let endDate: Date = new Date(taskEndDateInput.valueAsNumber);
 
-            if (startDate == null) {
-                openSnackbar("Please enter a start date", "error");
+            let startNumber: number = startDate.getTime() + startDate.getTimezoneOffset() * 60000;
+            let endNumber: number = endDate.getTime() + endDate.getTimezoneOffset() * 60000;
+            
+            if (isNaN(startNumber)) {
+                openSnackbar("Please enter a start date.", "error");
                 return;
             }
 
-            if (endDate == null) {
-                openSnackbar("Please enter an end date", "error");
+            if (isNaN(endNumber)) {
+                openSnackbar("Please enter an end date.", "error");
                 return;
             }
 
-            if (startDate.getTime() >= endDate.getTime()) {
-                openSnackbar("End date must be after start date", "error");
+            if (startNumber < Date.now()) {
+                openSnackbar("Start date must be in the future.", "error");
+                return;
+            }
+
+            if (endNumber < Date.now()) {
+                openSnackbar("End date must be in the future.", "error");
+                return;
+            }
+
+            if (endNumber < startNumber) {
+                openSnackbar("End date must be after start date.", "error");
                 return;
             }
 
@@ -138,6 +168,11 @@
                 if (taskMembersChecked[i]) {
                     assignedIds.push(project.members[i].id);
                 }
+            }
+
+            if (assignedIds.length == 0) {
+                openSnackbar("Please assign at least one member to the task.", "error");
+                return;
             }
 
             let newTask: Task = new Task({
@@ -152,8 +187,8 @@
                 endDate: endDate,
             });
 
-            project.taskIds.push(newTask.id);
-            project.tasks.push(newTask);
+            project.taskIds = [...project.taskIds, newTask.id];
+            project.tasks = [...project.tasks, newTask];
 
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
             setDoc(projectDoc, project.compactify()).then(() => {
@@ -173,10 +208,12 @@
     }
 
     function openSnackbar(text: string, type: string): void {
-        snackbarText = text;
-        snackbarType = type;
-        snackbarOpen = true;
+        dispatch("snackbar", {text: text, type: type});
     }
+
+    onMount(() => {
+        existed = true;
+    });
 </script>
 <style>
     .honeycomb-hexagon-container-empty {
@@ -451,61 +488,66 @@
 </style>
 {#if task != null}
     {#if task.id.length == 0}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="honeycomb-hexagon-container-empty hexagon" style="left: {task.hivePosX}px; top: {task.hivePosY}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px; {taskMenuOpen ? 'background-color: var(--primary); color: var(--primary);' : ''}" on:click={toggleTaskMenu}>
-            <div class="honeycomb-hexagon-empty hexagon">
-                <span class="honeycomb-hexagon-add material-symbols-rounded">add_circle</span>
+        {#if existed}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div class="honeycomb-hexagon-container-empty hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px; {taskMenuOpen ? 'background-color: var(--primary); color: var(--primary);' : ''}" on:click={toggleTaskMenu} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+                <div class="honeycomb-hexagon-empty hexagon">
+                    <span class="honeycomb-hexagon-add material-symbols-rounded">add_circle</span>
+                </div>
             </div>
-        </div>
-        <Menu bind:open={taskMenuOpen} left="{task.hivePosX + HiveConstants.HONEYCOMB_WIDTH}px" top="{task.hivePosY}px" width="200px" height="200px">
-            <div class="honeycomb-title">Add task</div>
-            <div class="honeycomb-subtitle">Task details</div>
-            <input class="honeycomb-input-field" type="text" placeholder="Task name" maxlength={HiveConstants.TASK_NAME_MAX_LENGTH} bind:value={taskName} />
-            <input class="honeycomb-input-field" type="text" placeholder="Task description" maxlength={HiveConstants.TASK_DESCRIPTION_MAX_LENGTH} bind:value={taskDescription} />
-            <div class="honeycomb-members-container">
-                <div class="honeycomb-subtitle">Assign members</div>
-                {#each project.members as member, i}
-                    <div class="honeycomb-member-container">
-                        <input class="honeycomb-input-checkbox" type="checkbox" bind:checked={taskMembersChecked[i]} />
-                        <span class="honeycomb-member">{member.displayName}</span>
-                    </div>
-                {/each}
-            </div>
-            <div class="honeycomb-date-container">
-                <div class="honeycomb-subtitle">Start date</div>
-                <input class="honeycomb-input-field" type="datetime-local" bind:this={taskStartDateInput} />
-                <div class="honeycomb-subtitle">End date</div>
-                <input class="honeycomb-input-field" type="datetime-local" bind:this={taskEndDateInput} />
-            </div>
-            <button class="honeycomb-action" on:click={addTask}>Add task</button>
-            <button class="honeycomb-cancel" on:click={toggleTaskMenu}>Cancel</button>
-        </Menu>
+            <Menu bind:open={taskMenuOpen} left="{task.hivePosX + offsetX}px" top="{task.hivePosY + offsetY}px" width="200px">
+                <div class="honeycomb-title">Add task</div>
+                <div class="honeycomb-subtitle">Task details</div>
+                <input class="honeycomb-input-field" type="text" placeholder="Task name" maxlength={HiveConstants.TASK_NAME_MAX_LENGTH} bind:value={taskName} />
+                <input class="honeycomb-input-field" type="text" placeholder="Task description" maxlength={HiveConstants.TASK_DESCRIPTION_MAX_LENGTH} bind:value={taskDescription} />
+                <div class="honeycomb-members-container">
+                    <div class="honeycomb-subtitle">Assign members</div>
+                    {#each project.members as member, i}
+                        <div class="honeycomb-member-container">
+                            <input class="honeycomb-input-checkbox" type="checkbox" bind:checked={taskMembersChecked[i]} />
+                            <span class="honeycomb-member">{member.displayName}</span>
+                        </div>
+                    {/each}
+                </div>
+                <div class="honeycomb-date-container">
+                    <div class="honeycomb-subtitle">Start date</div>
+                    <input class="honeycomb-input-field" type="datetime-local" bind:this={taskStartDateInput} />
+                    <div class="honeycomb-subtitle">End date</div>
+                    <input class="honeycomb-input-field" type="datetime-local" bind:this={taskEndDateInput} />
+                </div>
+                <button class="honeycomb-action" on:click={addTask}>Add task</button>
+                <button class="honeycomb-cancel" on:click={toggleTaskMenu}>Cancel</button>
+            </Menu>
+        {/if}
     {:else if task.id == HiveConstants.TASK_CENTER_ID}
-        <div class="honeycomb-hexagon-container-center hexagon" style="left: {task.hivePosX}px; top: {task.hivePosY}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;">
-            <div class="honeycomb-hexagon-center hexagon">
-                <div class="honeycomb-hexagon-fill-center" style="height: {task.percentage}%"></div>
-                <div class="honeycomb-hexagon-center-label">Overall</div>
-                {#if isNaN(task.percentage)}
-                    <div class="honeycomb-hexagon-fill-no-task">No tasks</div>
-                {:else}
-                    <div class="honeycomb-hexagon-fill-percentage">{Math.round(task.percentage)}%</div>
-                {/if}
+        {#if existed}
+            <div class="honeycomb-hexagon-container-center hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+                <div class="honeycomb-hexagon-center hexagon">
+                    <div class="honeycomb-hexagon-fill-center" style="height: {task.percentage}%"></div>
+                    <div class="honeycomb-hexagon-center-label">Overall</div>
+                    {#if isNaN(task.percentage)}
+                        <div class="honeycomb-hexagon-fill-no-task">No tasks</div>
+                    {:else}
+                        <div class="honeycomb-hexagon-fill-percentage">{Math.round(task.percentage)}%</div>
+                    {/if}
+                </div>
             </div>
-        </div>
+        {/if}
     {:else}
-        <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX}px; top: {task.hivePosY}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;">
-            <div class="honeycomb-hexagon hexagon">
-                <div class="honeycomb-hexagon-fill" style="height: {Math.round(task.percentage)}%"></div>
-                <div class="honeycomb-hexagon-fill-percentage">{task.percentage}%</div>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="honeycomb-hexagon-add-fill material-symbols-rounded" on:click={addFill}>add</div>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="honeycomb-hexagon-remove-fill material-symbols-rounded" on:click={removeFill}>remove</div>
+        {#if existed}
+            <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+                <div class="honeycomb-hexagon hexagon">
+                    <div class="honeycomb-hexagon-fill" style="height: {Math.round(task.percentage)}%"></div>
+                    <div class="honeycomb-hexagon-fill-percentage">{task.percentage}%</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div class="honeycomb-hexagon-add-fill material-symbols-rounded" on:click={addFill}>add</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div class="honeycomb-hexagon-remove-fill material-symbols-rounded" on:click={removeFill}>remove</div>
+                </div>
             </div>
-        </div>
+        {/if}
     {/if}
 {/if}
-<Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>
