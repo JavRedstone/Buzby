@@ -672,6 +672,7 @@
         align-items: center;
         padding: 8px;
         border-bottom: 1px solid var(--grey-300);
+        user-select: none;
     }
 
     .discussion-title {

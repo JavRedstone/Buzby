@@ -18,6 +18,13 @@ export class ObjectHelper {
         return arr[arr.length - 1];
     }
 
+    public static getDateFromStartofMinute(date: Date): Date {
+        let newDate: Date = new Date(date);
+        newDate.setSeconds(0);
+        newDate.setMilliseconds(0);
+        return newDate;
+    }
+
     public static addMsToDate(date: Date, ms: number): Date {
         return new Date(date.getTime() + ms);
     }

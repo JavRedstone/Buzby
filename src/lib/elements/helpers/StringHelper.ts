@@ -70,6 +70,7 @@ export class StringHelper {
         let dayStr: string = day < 10 ? '0' + day : day.toString();
         let hoursStr: string = hours < 10 ? '0' + hours : hours.toString();
         let minutesStr: string = minutes < 10 ? '0' + minutes : minutes.toString();
+        console.log(`${year}-${monthStr}-${dayStr}T${hoursStr}:${minutesStr}`)
         return `${year}-${monthStr}-${dayStr}T${hoursStr}:${minutesStr}`;
     }
 }

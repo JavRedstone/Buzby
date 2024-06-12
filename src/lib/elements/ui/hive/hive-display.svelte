@@ -8,6 +8,7 @@
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import Snackbar from "../general/snackbar.svelte";
+	import { TaskConstants } from "$lib/elements/classes/data/time/TaskConstants";
 
     let honeycombAngles: number[] = MathHelper.getAnglesForPolygon(6);
     let honeycombOffset: Vector2[] = [];
@@ -24,7 +25,7 @@
     let project: Project = null;
 
     let centerTask: Task = new Task({
-        id: HiveConstants.TASK_CENTER_ID,
+        id: TaskConstants.TASK_CENTER_ID,
         hivePosX: 0,
         hivePosY: 0,
     });
@@ -108,7 +109,7 @@
         });
         hiveDisplayContainer.addEventListener("wheel", (event) => {
             event.preventDefault();
-            let newScale = slidingScale - event.deltaY * HiveConstants.HONEYCOMB_ZOOM_SPEED;
+            let newScale = slidingScale - event.deltaY * HiveConstants.HONEYCOMB_ZOOM_SPEED + event.deltaX * HiveConstants.HONEYCOMB_ZOOM_SPEED;
             if (newScale < HiveConstants.HONEYCOMB_MIN_ZOOM) {
                 newScale = HiveConstants.HONEYCOMB_MIN_ZOOM;
             }

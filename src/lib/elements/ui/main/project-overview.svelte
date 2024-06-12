@@ -65,30 +65,50 @@
         }
     }
 
-    function inviteMember(): void {
-        inviteOpen = true;
+    function hideExtras(): void {
+        inviteOpen = false;
         editOpen = false;
         deleteOpen = false;
         leaveOpen = false;
 
         inviteEmail = "";
-    }
-
-    function editProject(): void {
-        inviteOpen = false;
-        editOpen = true;
-        deleteOpen = false;
-        leaveOpen = false;
-
         projectName = project.name;
         projectDescription = project.description;
         projectColor = project.color;
     }
 
+    function inviteMember(): void {
+        inviteOpen = !inviteOpen;
+        editOpen = false;
+        deleteOpen = false;
+        leaveOpen = false;
+
+        if (inviteOpen) {
+            inviteEmail = "";
+        } else {
+            hideExtras();
+        }
+    }
+
+    function editProject(): void {
+        inviteOpen = false;
+        editOpen = !editOpen;
+        deleteOpen = false;
+        leaveOpen = false;
+
+        if (editOpen) {
+            projectName = project.name;
+            projectDescription = project.description;
+            projectColor = project.color;
+        } else {
+            hideExtras();
+        }
+    }
+
     function deleteProject(): void {
         inviteOpen = false;
         editOpen = false;
-        deleteOpen = true;
+        deleteOpen = !deleteOpen;
         leaveOpen = false;
     }
 
@@ -96,7 +116,7 @@
         inviteOpen = false;
         editOpen = false;
         deleteOpen = false;
-        leaveOpen = true;
+        leaveOpen = !leaveOpen;
     }
 
     function inviteMemberConfirmed(): void {
@@ -528,18 +548,6 @@
         }
     }
 
-    function hideExtras(): void {
-        inviteOpen = false;
-        editOpen = false;
-        deleteOpen = false;
-        leaveOpen = false;
-
-        inviteEmail = "";
-        projectName = project.name;
-        projectDescription = project.description;
-        projectColor = project.color;
-    }
-
     function openSnackbar(text: string, type: string): void {
         snackbarText = text;
         snackbarType = type;
@@ -688,6 +696,7 @@
 
     .project-overview-is-sure {
         font-size: 12px;
+        color: var(--grey-800);
     }
 
     .project-overview-project-action {

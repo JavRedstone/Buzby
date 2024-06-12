@@ -36,7 +36,12 @@
         for (let task of tasks) {
             total += task.percentage;
         }
-        projectPercentage = total / tasks.length;
+
+        if (tasks.length > 0) {
+            projectPercentage = total / tasks.length;
+        } else {
+            projectPercentage = 0;
+        }
 
         tasks.sort((a, b) => { return a.endDate.getTime() - b.endDate.getTime(); });
     }
@@ -63,6 +68,7 @@
         align-items: center;
         padding: 8px;
         border-bottom: 1px solid var(--grey-300);
+        user-select: none;
     }
 
     .hive-list-title {
