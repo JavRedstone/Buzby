@@ -244,6 +244,10 @@
         }
     }
 
+    function gotoTask(): void {
+        dispatch("gotoTask");
+    }
+
     function openSnackbar(text: string, type: string): void {
         dispatch("snackbar", {text: text, type: type});
     }
@@ -600,7 +604,7 @@
         {/if}
     {:else}
         {#if existed}
-            <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+            <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" on:click={gotoTask} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="honeycomb-hexagon hexagon" style={isUrgent ? 'width: 85%; height: 85%;' : 'width: 95%; height: 95%;'}>
                     <div class="honeycomb-hexagon-fill" style="height: {Math.round(task.percentage)}%"></div>
                     <div class="honeycomb-hexagon-fill-percentage">{task.percentage}%</div>

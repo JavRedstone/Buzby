@@ -7,9 +7,28 @@
 	import { fly } from "svelte/transition";
 	import HiveTask from "./hive-task.svelte";
 
+    export let taskGotoed: Task = null;
+
     let project: Project = null;
     let tasks: Task[] = [];
     let projectPercentage: number = 0;
+
+    let tasksContainer: HTMLElement = null;
+    let highlightedId: string = "";
+    let isHighlighted: boolean = false;
+
+    $: taskGotoed ? gotoTask() : null;
+
+    function gotoTask(): void {
+        if (tasksContainer && taskGotoed) {
+            let taskElement: HTMLElement = tasksContainer.querySelector(`#task-${taskGotoed.id}`);
+            if (taskElement) {
+                taskElement.scrollIntoView({behavior: "smooth", block: "center"});
+                highlightedId = taskGotoed.id;
+                isHighlighted = true;
+            }
+        }
+    }
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
@@ -121,7 +140,7 @@
         height: calc(100% - 48px);
     }
 </style>
-<div class="hive-list-container" transition:fly={{x: "40%", duration: TransitionConstants.DURATION}}>
+<div class="hive-list-container" bind:this={tasksContainer} transition:fly={{x: "40%", duration: TransitionConstants.DURATION}}>
     <div class="hive-list-title-container">
         <div class="hive-list-title">Tasks</div>
         <div class="hive-list-progress-container">
@@ -134,7 +153,7 @@
     </div>
     <div class="hive-list-tasks-container">
         {#each tasks as task}
-            <HiveTask task={task} project={project} />
+            <HiveTask task={task} project={project} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} />
         {/each}
     </div>
 </div>

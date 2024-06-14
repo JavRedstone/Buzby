@@ -6,4 +6,6 @@ export class HiveConstants {
     public static readonly HONEYCOMB_MAX_ZOOM = 5;
     public static readonly HONEYCOMB_MIN_ZOOM = 0.05;
     public static readonly HONEYCOMB_ZOOM_SPEED = 1/1000;
+
+    public static readonly HONEYCOMB_HIGHLIGHT_DURATION = 500;
 }

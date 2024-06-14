@@ -3,12 +3,14 @@
 	import { MathHelper } from "$lib/elements/helpers/MathHelper";
 	import { Vector2 } from "three";
 	import Honeycomb from "./honeycomb.svelte";
-	import { onMount } from "svelte";
+	import { createEventDispatcher, onMount } from "svelte";
 	import { projectSelected } from "$lib/elements/stores/project-store";
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import Snackbar from "../general/snackbar.svelte";
 	import { TaskConstants } from "$lib/elements/classes/data/time/TaskConstants";
+
+    let dispatch = createEventDispatcher();
 
     let honeycombAngles: number[] = MathHelper.getAnglesForPolygon(6);
     let honeycombOffset: Vector2[] = [];
@@ -120,6 +122,10 @@
         });
     }
 
+    function gotoTask(task: Task): void {
+        dispatch("gotoTask", { task: task })
+    }
+
     function openSnackbarHoneycomb(event: CustomEvent): void {
         openSnackbar(event.detail.text, event.detail.type);
     }
@@ -158,7 +164,7 @@
     <div class="hive-display-sliding-container" style="background-size: {HiveConstants.HONEYCOMB_RADIUS}px {HiveConstants.HONEYCOMB_RADIUS}px; width: {slidingWidth}px; height: {slidingHeight}px; transform: scale({slidingScale});">
         <Honeycomb task={centerTask} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />
         {#each tasks as task, i}
-            <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />
+            <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} on:gotoTask={() => gotoTask(task)} />
         {/each}
         {#each placeholderTasks as task, i}
             <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />

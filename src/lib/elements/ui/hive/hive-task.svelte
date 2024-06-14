@@ -7,14 +7,21 @@
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import { onMount } from "svelte";
-	import { scale, slide } from "svelte/transition";
+	import { fade, scale, slide } from "svelte/transition";
 	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants.js';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData, setDoc, deleteDoc } from 'firebase/firestore';
+	import { HiveConstants } from '$lib/elements/classes/ui/hive/HiveConstants';
 
     export let task: Task = null;
     export let project: Project = null;
+    export let highlightedId: string = "";
+    export let isHighlighted: boolean = false;
+
+    let highlightTimeout: any = null;
+
+    $: isHighlighted && highlightedId == task.id ? highlightTimeout = setTimeout(() => isHighlighted = false, HiveConstants.HONEYCOMB_HIGHLIGHT_DURATION) : clearTimeout(highlightTimeout);
     
     let existed: boolean = false;
     let isUrgent: boolean = false;
@@ -282,20 +289,32 @@
     }
 
     .hive-task-container-urgent {
+        position: relative;
         box-sizing: border-box;
         width: 100%;
         padding: 16px;
         margin-bottom: 8px;
         border-radius: 8px;
-        box-shadow: 2px 2px 8px var(--primary);
+        box-shadow: 2px 2px 8px var(--primary-dark);
         overflow-wrap: anywhere;
         user-select: none;
 
         transition: box-shadow var(--transition-duration);
 
         &:hover {
-            box-shadow: 2px 2px 16px var(--primary);
+            box-shadow: 2px 2px 16px var(--primary-dark);
         }
+    }
+
+    .hive-task-highlight-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(var(--primary-rgb), 0.1);
     }
 
     .hive-task-progress-container {
@@ -534,7 +553,10 @@
     }
 </style>
 {#if existed && task}
-    <div class={isUrgent ? 'hive-task-container-urgent' : 'hive-task-container'} transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
+    <div id="task-{task.id}" class={isUrgent ? 'hive-task-container-urgent' : 'hive-task-container'} transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
+        {#if isHighlighted && highlightedId == task.id}
+            <div class="hive-task-highlight-overlay" transition:fade={{duration: TransitionConstants.DURATION}}></div>
+        {/if}
         <div class="hive-task-name">{task.name}</div>
         <div class="hive-task-description">{task.description}</div>
         <div class="hive-task-date-container">
@@ -567,49 +589,49 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="hive-task-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteTask}>delete</span>
         {#if editOpen}
-        <div transition:slide={{duration: TransitionConstants.DURATION}}>
-            <div class="hive-task-field">
-                <span class="hive-task-icon material-symbols-rounded">badge</span>
-                <input class="hive-task-input" type="text" placeholder="Project name" maxlength={TaskConstants.TASK_NAME_MAX_LENGTH} bind:value={taskName} />
-            </div>
-            <div class="hive-task-field">
-                <span class="hive-task-icon material-symbols-rounded">description</span>
-                <input class="hive-task-input" type="text" placeholder="Project description" maxlength={TaskConstants.TASK_DESCRIPTION_MAX_LENGTH} bind:value={taskDescription} />
-            </div>
-            <div class="hive-task-members-container">
-                <div class="hive-task-subtitle">Assign members</div>
-                {#each project.members as member, i}
-                    <div class="hive-task-member-container">
-                        <input class="hive-task-input-checkbox" type="checkbox" bind:checked={taskAssignedChecked[i]} />
-                        <span class="hive-task-member">{member.displayName}</span>
+            <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                <div class="hive-task-field">
+                    <span class="hive-task-icon material-symbols-rounded">badge</span>
+                    <input class="hive-task-input" type="text" placeholder="Project name" maxlength={TaskConstants.TASK_NAME_MAX_LENGTH} bind:value={taskName} />
+                </div>
+                <div class="hive-task-field">
+                    <span class="hive-task-icon material-symbols-rounded">description</span>
+                    <input class="hive-task-input" type="text" placeholder="Project description" maxlength={TaskConstants.TASK_DESCRIPTION_MAX_LENGTH} bind:value={taskDescription} />
+                </div>
+                <div class="hive-task-members-container">
+                    <div class="hive-task-subtitle">Assign members</div>
+                    {#each project.members as member, i}
+                        <div class="hive-task-member-container">
+                            <input class="hive-task-input-checkbox" type="checkbox" bind:checked={taskAssignedChecked[i]} />
+                            <span class="hive-task-member">{member.displayName}</span>
+                        </div>
+                    {/each}
+                </div>
+                <div class="hive-task-dates-container">
+                    <div class="hive-task-subtitle">Start date</div>
+                    <div class="hive-task-field">
+                        <span class="hive-task-icon material-symbols-rounded">today</span>
+                        <input class="hive-task-input" type="datetime-local" bind:this={taskStartDateInput} />
                     </div>
-                {/each}
-            </div>
-            <div class="hive-task-dates-container">
-                <div class="hive-task-subtitle">Start date</div>
-                <div class="hive-task-field">
-                    <span class="hive-task-icon material-symbols-rounded">today</span>
-                    <input class="hive-task-input" type="datetime-local" bind:this={taskStartDateInput} />
+                    <div class="hive-task-subtitle">End date</div>
+                    <div class="hive-task-field">
+                        <span class="hive-task-icon material-symbols-rounded">event</span>
+                        <input class="hive-task-input" type="datetime-local" bind:this={taskEndDateInput} />
+                    </div>
                 </div>
-                <div class="hive-task-subtitle">End date</div>
+                <button class="hive-task-confirm-action" on:click={editTaskConfirmed}>Save</button>
+                <button class="hive-task-confirm-cancel" on:click={hideExtras}>Cancel</button>
+            </div>
+        {/if}
+        {#if deleteOpen}
+            <div transition:slide={{duration: TransitionConstants.DURATION}}>
                 <div class="hive-task-field">
-                    <span class="hive-task-icon material-symbols-rounded">event</span>
-                    <input class="hive-task-input" type="datetime-local" bind:this={taskEndDateInput} />
+                    <div class="hive-task-is-sure">Are you sure you want to delete this task?</div>
                 </div>
+                <button class="hive-task-confirm-remove" on:click={deleteTaskConfirmed}>Delete</button>
+                <button class="hive-task-confirm-cancel" on:click={hideExtras}>Cancel</button>
             </div>
-            <button class="hive-task-confirm-action" on:click={editTaskConfirmed}>Save</button>
-            <button class="hive-task-confirm-cancel" on:click={hideExtras}>Cancel</button>
-        </div>
-    {/if}
-    {#if deleteOpen}
-        <div transition:slide={{duration: TransitionConstants.DURATION}}>
-            <div class="hive-task-field">
-                <div class="hive-task-is-sure">Are you sure you want to delete this task?</div>
-            </div>
-            <button class="hive-task-confirm-remove" on:click={deleteTaskConfirmed}>Delete</button>
-            <button class="hive-task-confirm-cancel" on:click={hideExtras}>Cancel</button>
-        </div>
-    {/if}
+        {/if}
     </div>
 {/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

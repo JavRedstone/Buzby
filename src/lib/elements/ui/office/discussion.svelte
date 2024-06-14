@@ -63,7 +63,7 @@
     let replyMessage: Message = null;
 
     let highlightedId: string = "";
-    let isHighlighted: boolean = true;
+    let isHighlighted: boolean = false;
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
