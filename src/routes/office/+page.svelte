@@ -2,6 +2,7 @@
     <title>Buzby | Office</title>
 </svelte:head>
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { memberStatus } from '$lib/elements/stores/project-store';
 	import { allProjects } from '$lib/elements/stores/project-store';
 	import { CollectionReference, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
@@ -161,8 +162,14 @@
         }
     }
 
-    function setupWindow(): void {
+    function setListeners(): void {
         window.addEventListener('resize', () => {
+            setMemberStatusPositions();
+        })
+    }
+
+    function removeListeners(): void {
+        window.removeEventListener('resize', () => {
             setMemberStatusPositions();
         })
     }
@@ -176,8 +183,12 @@
     onMount(() => {
         getCurrMember();
         getProject();
-        setupWindow();
-    })
+        setListeners();
+    });
+
+    onDestroy(() => {
+        removeListeners();
+    });
 </script>
 <style>
     .office-title-container {

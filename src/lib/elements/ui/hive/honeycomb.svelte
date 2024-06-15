@@ -9,7 +9,7 @@
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { allProjects, projectSelected } from "$lib/elements/stores/project-store";
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
@@ -256,6 +256,10 @@
         existed = true;
         getProject();
         getUrgent();
+    });
+
+    onDestroy(() => {
+        existed = false;
     });
 </script>
 <style>
@@ -604,9 +608,11 @@
         {/if}
     {:else}
         {#if existed}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" on:click={gotoTask} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="honeycomb-hexagon hexagon" style={isUrgent ? 'width: 85%; height: 85%;' : 'width: 95%; height: 95%;'}>
-                    <div class="honeycomb-hexagon-fill" style="height: {Math.round(task.percentage)}%"></div>
+                    <div class="honeycomb-hexagon-fill" style="height: {task.percentage}%"></div>
                     <div class="honeycomb-hexagon-fill-percentage">{task.percentage}%</div>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->

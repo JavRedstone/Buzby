@@ -13,6 +13,8 @@
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import { goto } from '$app/navigation';
 	import { RouteConstants } from '$lib/elements/classes/ui/core/RouteConstants';
+	import { slide } from 'svelte/transition';
+	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 
     let email: string = '';
     let password: string = '';
@@ -230,7 +232,7 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="signup-resend" on:click={() => sendVerificationEmail(true)}>Resend verification email</a>
+            <a class="signup-resend" on:click={() => sendVerificationEmail(true)} transition:slide={{duration: TransitionConstants.DURATION}}>Resend verification email</a>
         {/if}
     </form>
 </div>

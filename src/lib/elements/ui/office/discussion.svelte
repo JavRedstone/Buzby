@@ -4,7 +4,7 @@
 	import { ChatConstants } from "$lib/elements/classes/data/chat/ChatConstants";
 	import { Message } from "$lib/elements/classes/data/chat/Message";
 	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { deleteDoc, getDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
@@ -642,6 +642,23 @@
         });
     }
 
+    function removeKeybinds(): void {
+        document.removeEventListener("keydown", (event) => {
+            if (event.key === "Enter" && messageFocused) {
+                sendMessage();
+            }
+            else if (event.key === 'Escape' && replyOpen) {
+                cancelReply();
+            }
+            else if (event.ctrlKey && event.key === 'b' && messageText.trim().length > 0 && messageFocused) {
+                messageText = `**${messageText}**`;
+            }
+            else if (event.ctrlKey && event.key === 'i' && messageText.trim().length > 0 && messageFocused) {
+                messageText = `*${messageText}*`;
+            }
+        });
+    }
+
     function openSnackbar(text: string, type: string): void {
         snackbarText = text;
         snackbarType = type;
@@ -652,6 +669,10 @@
         getMember();
         getProject();
         setKeybinds();
+    });
+
+    onDestroy(() => {
+        removeKeybinds();
     });
 </script>
 <style>

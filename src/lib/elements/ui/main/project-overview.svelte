@@ -7,7 +7,7 @@
 	import { slide } from 'svelte/transition';
 	import { Project } from "$lib/elements/classes/data/project/Project";
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import Tooltip from "../general/tooltip.svelte";
 	import { Member } from '$lib/elements/classes/data/project/Member';
 	import Snackbar from '../general/snackbar.svelte';
@@ -558,6 +558,10 @@
         existed = true;
         getUser();
         getProject();
+    });
+
+    onDestroy(() => {
+        existed = false;
     });
 </script>
 <style>

@@ -12,6 +12,7 @@
 	import { memberStatus } from '$lib/elements/stores/project-store';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Overview from '$lib/elements/ui/main/overview.svelte';
+	import Home from '$lib/elements/ui/layout/home.svelte';
     
     let currentUser: User = null;
     let currentMember: Member = null;
@@ -61,9 +62,9 @@
 {#if currentUser && currentMember}
     {#if isOverview}
         <Overview />
-    {:else}
-        
     {/if}
+{:else}
+    <Home />
 {/if}
 
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

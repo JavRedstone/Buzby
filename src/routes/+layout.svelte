@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Home from './../lib/elements/ui/layout/home.svelte';
 	import Reminder from './../lib/elements/ui/layout/reminder.svelte';
 	import { type User } from 'firebase/auth';
 	import { userStatus } from '$lib/elements/stores/auth-store';
@@ -62,6 +61,7 @@
         --warning-dark: #e65100;
 
         --off-white: #ebedef;
+        --off-white-rgb: 235, 237, 239;
         --off-white-lightish: #eeefef;
         --off-white-light: #f2f3f5;
         --off-white-dark: #e0e4e7;
@@ -160,10 +160,8 @@
     }
 </style>
 <div class="layout-slot-container" style="{sideOpen ? 'left: 48px; width: calc(100vw - 48px);' : 'left: 0; width: 100vw;'}">
-    {#if currentUser || (w && (location.pathname == '/login' || location.pathname == '/signup'))}
+    {#if currentUser || (w && (location.pathname == '/' || location.pathname == '/login' || location.pathname == '/signup'))}
         <slot />
-    {:else if w && location.pathname == '/'}
-        <Home />
     {:else}
         <Reminder />
     {/if}

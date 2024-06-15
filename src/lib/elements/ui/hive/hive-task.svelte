@@ -6,7 +6,7 @@
 	import Avatar from './../general/avatar.svelte';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { Task } from "$lib/elements/classes/data/time/Task";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { fade, scale, slide } from "svelte/transition";
 	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants.js';
@@ -268,6 +268,11 @@
         getCurrMember();
         getAssigned();
         getProject();
+    });
+
+    onDestroy(() => {
+        existed = false;
+        clearTimeout(highlightTimeout);
     });
 </script>
 <style>

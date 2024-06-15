@@ -22,4 +22,14 @@ export class RouteConstants {
         new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
         new RouteItem(RouteConstants.CHAT, "forum", "Chat"),
     ];
+
+    public static readonly HOME_GROUPWORK_FOR: string[] = [
+        "Everyone",
+        "Students",
+        "Developers",
+        "Designers",
+        "Teams"
+    ];
+    public static readonly HOME_MAX_NUM_HEXAGONS: number = 50;
+    public static readonly HOME_HEXAGON_INTERVAL: number = 250;
 }

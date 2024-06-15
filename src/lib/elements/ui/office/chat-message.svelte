@@ -3,7 +3,7 @@
 	import type { Message } from "$lib/elements/classes/data/chat/Message";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { deleteDoc, updateDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '../general/snackbar.svelte';
@@ -197,8 +197,25 @@
         return `https://www.youtube.com/embed/${videoId}`;
     }
 
-    function setListeners(): void {
+    function setKeybinds(): void {
         window.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && editOpen) {
+                editMessage();
+            }
+            else if (event.key === 'Escape' && editOpen) {
+                cancelEdit();
+            }
+            else if (event.ctrlKey && event.key === 'b' && messageText.trim().length > 0 && editOpen) {
+                messageText = `**${messageText}**`;
+            }
+            else if (event.ctrlKey && event.key === 'i' && messageText.trim().length > 0 && editOpen) {
+                messageText = `*${messageText}*`;
+            }
+        });
+    }
+
+    function removeKeybinds(): void {
+        window.removeEventListener('keydown', (event) => {
             if (event.key === 'Enter' && editOpen) {
                 editMessage();
             }
@@ -223,7 +240,12 @@
     onMount(() => {
         existed = true;
         getMember();
-        setListeners();
+        setKeybinds();
+    });
+
+    onDestroy(() => {
+        existed = false;
+        removeKeybinds();
     });
 </script>
 <style>
