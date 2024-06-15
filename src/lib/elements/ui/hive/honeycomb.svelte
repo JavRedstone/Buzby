@@ -299,7 +299,7 @@
 
     .honeycomb-hexagon-container {
         position: absolute;
-        background-color: var(--primary-light);
+        background-color: var(--primary);
         user-select: none;
         cursor: pointer;
 
@@ -312,7 +312,7 @@
 
     .honeycomb-hexagon-container-center {
         position: absolute;
-        background-color: var(--accent-light);
+        background-color: var(--accent);
         user-select: none;
 
         transition: background-color var(--transition-duration);    

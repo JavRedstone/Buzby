@@ -155,7 +155,7 @@
 
     .home-hexagon-container {
         position: absolute;
-        background-color: var(--primary-light);
+        background-color: var(--primary);
         user-select: none;
     }
 
