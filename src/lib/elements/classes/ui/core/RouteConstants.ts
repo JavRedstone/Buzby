@@ -30,6 +30,6 @@ export class RouteConstants {
         "Designers",
         "Teams"
     ];
-    public static readonly HOME_MAX_NUM_HEXAGONS: number = 50;
-    public static readonly HOME_HEXAGON_INTERVAL: number = 250;
+    public static readonly HOME_MAX_NUM_HEXAGONS: number = 30;
+    public static readonly HOME_HEXAGON_INTERVAL: number = 200;
 }

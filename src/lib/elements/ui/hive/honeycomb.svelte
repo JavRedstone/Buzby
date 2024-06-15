@@ -31,6 +31,8 @@
     let taskStartDateInput: HTMLInputElement = null;
     let taskEndDateInput: HTMLInputElement = null;
 
+    $: task ? getUrgent() : null;
+
     function getProject(): void {
         projectSelected.subscribe((value) => {
             if (value.project) {
@@ -47,7 +49,7 @@
     }
 
     function getUrgent(): void {
-        if (task && task.percentage < 100) {
+        if (task && task.id.length > 0 && task.id != TaskConstants.TASK_CENTER_ID && task.percentage < 100) {
             let msRemaining: number = task.endDate.getTime() - new Date().getTime();
             if (task.percentage <= TaskConstants.TASK_URGENT_SMALL_THRESHOLD) {
                 isUrgent = msRemaining < TaskConstants.TASK_URGENT_SMALL_PROGRESS_TIME;

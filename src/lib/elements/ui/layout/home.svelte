@@ -15,7 +15,7 @@
     let hexagonAngles: number[] = MathHelper.getAnglesForPolygon(6);
     let hexagonOffset: Vector2[] = [];
     for (let i = 0; i < hexagonAngles.length; i++) {
-        hexagonOffset.push(MathHelper.getOffsetForAngle(hexagonAngles[i], Math.PI / 2, HiveConstants.HONEYCOMB_RADIUS * 2));
+        hexagonOffset.push(MathHelper.getOffsetForAngle(hexagonAngles[i], Math.PI / 2, HiveConstants.HONEYCOMB_RADIUS * 4));
     }
 
     let innerWidth: number = 0;
@@ -50,10 +50,11 @@
 
     function addPercentageToAll(): void {
         for (let i = 0; i < hexagonPercentages.length; i++) {
-            hexagonPercentages[i] += Math.random() * HiveConstants.HONEYCOMB_FILL_INCREMENT;
+            hexagonPercentages[i] += HiveConstants.HONEYCOMB_FILL_INCREMENT;
 
             if (hexagonPercentages[i] > 100) {
                 hexagonPercentages[i] = 100;
+                hexagonUrgents[i] = false;
             }
         }
     }
@@ -127,7 +128,7 @@
         justify-content: center;
         width: 100%;
         height: 100%;
-        padding-left: 16px;
+        padding-left: 32px;
         background-color: rgba(0, 0, 0, 0.25);
         z-index: 1;
     }
@@ -225,7 +226,7 @@
             </button>
         </div>
         {#each hexagonPositions as position, i}
-            <div class="home-hexagon-container hexagon" style="left: {innerWidth * 3 / 4 + position.x - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {innerHeight / 2 + position.y - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+            <div class="home-hexagon-container hexagon" style="left: {innerWidth * 3 / 4 + position.x - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {innerHeight / 2 + position.y - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {2 * HiveConstants.HONEYCOMB_WIDTH}px; height: {2 * HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="home-hexagon hexagon" style={hexagonUrgents[i] ? 'width: 85%; height: 85%;' : 'width: 95%; height: 95%;'}>
                     <div class="home-hexagon-fill" style="height: {hexagonPercentages[i]}%"></div>
                 </div>
