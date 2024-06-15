@@ -156,12 +156,6 @@
         position: absolute;
         background-color: var(--primary-light);
         user-select: none;
-
-        transition: background-color var(--transition-duration);
-
-        &:hover {
-            background-color: var(--primary-dark);
-        }
     }
 
     .home-hexagon {
