@@ -272,6 +272,7 @@
 </script>
 <style>
     .hive-task-container {
+        position: relative;
         box-sizing: border-box;
         width: 100%;
         padding: 16px;
