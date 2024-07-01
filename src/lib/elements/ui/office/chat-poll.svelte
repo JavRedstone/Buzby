@@ -2,11 +2,12 @@
 	import { ChatConstants } from "$lib/elements/classes/data/chat/ChatConstants";
 	import { Poll } from "$lib/elements/classes/data/chat/Poll";
 	import type { Member } from "$lib/elements/classes/data/project/Member";
+	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
-	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
+	import { memberStatus, projectSelected } from "$lib/elements/stores/project-store";
 	import { getDoc, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import { onDestroy, onMount } from "svelte";
 	import { slide } from "svelte/transition";
@@ -14,6 +15,7 @@
     export let poll: Poll = null;
 
     let currMember: Member = null;
+    let project: Project = null;
 
     let selectedOptionIdxs = [];
     let totalVotes = 0;
@@ -75,6 +77,8 @@
             });
             votedAlready = true;
             countTotalVotes();
+
+            updateProject();
             
             let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', poll.id);
             setDoc(pollDoc, poll.compactify());
@@ -82,7 +86,26 @@
             updatePoll();
         }
     }
-    
+
+    function updateProject(): void {
+        for (let message of project.chat.messages) {
+            if (message.poll && message.poll.id === poll.id) {
+                message.poll = poll;
+            }
+        }
+        projectSelected.update((value) => {
+            value.project = project;
+            return value;
+        });
+    }
+
+    function getProject(): void {
+        projectSelected.subscribe((value) => {
+            project = value.project;
+            updatePoll();
+        });
+    }
+
     function updatePoll(): void {
         if (poll) {
             countTotalVotes();
@@ -99,12 +122,6 @@
     function getCurrMember(): void {
         memberStatus.subscribe((value) => {
             currMember = value.currentMember;
-            updatePoll();
-        });
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
             updatePoll();
         });
     }
@@ -251,6 +268,11 @@
             color: var(--grey-100);
         }
     }
+
+    .chat-poll-already-text {
+        font-size: 10px;
+        color: var(--grey-400);
+    }
 </style>
 {#if poll}
     <div class="chat-poll-container">
@@ -300,8 +322,12 @@
                 {/if}
             </div>
         </div>
-        {#if currMember && !votedAlready && timeLeft > 0}
-            <button class="chat-poll-vote-button" on:click={vote} transition:slide={{axis:'y', duration:TransitionConstants.DURATION}}>Vote</button>
+        {#if currMember && timeLeft > 0}
+            {#if !votedAlready}
+                <button class="chat-poll-vote-button" on:click={vote} transition:slide={{axis:'y', duration:TransitionConstants.DURATION}}>Vote</button>
+            {:else}
+                <div class="chat-poll-already-text">You have voted already. You cannot change your vote.</div>
+            {/if}
         {/if}
     </div>
 {/if}

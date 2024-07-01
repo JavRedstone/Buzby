@@ -7,8 +7,7 @@ export class RouteConstants {
     public static readonly HIVE: string = "/hive";
     public static readonly GANTT: string = "/gantt";
     public static readonly CALENDAR: string = "/calendar";
-    public static readonly CHAT: string = "/chat";
-
+    
     public static readonly LOGIN: string = "/login";
     public static readonly LOGOUT: string = "/logout";
     public static readonly PROFILE: string = "/profile";
@@ -20,7 +19,6 @@ export class RouteConstants {
         new RouteItem(RouteConstants.HIVE, "hive", "Hive"),
         new RouteItem(RouteConstants.GANTT, "view_timeline", "Gantt"),
         new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
-        new RouteItem(RouteConstants.CHAT, "forum", "Chat"),
     ];
 
     public static readonly HOME_GROUPWORK_FOR: string[] = [

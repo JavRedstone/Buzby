@@ -7,6 +7,7 @@
 	import { fly } from "svelte/transition";
 	import HiveTask from "./hive-task.svelte";
 
+    export let width: string = "40%";
     export let taskGotoed: Task = null;
 
     let project: Project = null;
@@ -74,7 +75,6 @@
         position: absolute;
         right: 0;
         top: 0;
-        width: 40%;
         min-width: 150px;
         height: 100%;
         background-color: var(--off-white-light);
@@ -104,7 +104,8 @@
     }
 
     .hive-list-progress-title {
-        width: 78px;
+        width: 70px;
+        margin-right: 8px;
         text-align: left;
         font-size: 14px;
         font-weight: 500;
@@ -127,7 +128,8 @@
     }
 
     .hive-list-progress {
-        width: 52px;
+        width: 44px;
+        margin-left: 8px;
         text-align: right;
         font-size: 14px;
         font-weight: 500;
@@ -140,7 +142,7 @@
         height: calc(100% - 48px);
     }
 </style>
-<div class="hive-list-container" bind:this={tasksContainer} transition:fly={{x: "40%", duration: TransitionConstants.DURATION}}>
+<div class="hive-list-container" style="width: {width};" bind:this={tasksContainer} transition:fly={{x: width, duration: TransitionConstants.DURATION}}>
     <div class="hive-list-title-container">
         <div class="hive-list-title">Tasks</div>
         <div class="hive-list-progress-container">

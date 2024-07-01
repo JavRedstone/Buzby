@@ -3,7 +3,7 @@
 	import { MathHelper } from "$lib/elements/helpers/MathHelper";
 	import { Vector2 } from "three";
 	import Honeycomb from "./honeycomb.svelte";
-	import { createEventDispatcher, onMount } from "svelte";
+	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 	import { projectSelected } from "$lib/elements/stores/project-store";
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
@@ -100,7 +100,7 @@
         }
     }
 
-    function setKeybinds(): void {
+    function setListeners(): void {
         hiveDisplayContainer.scrollLeft = slidingWidth / 2 - hiveDisplayContainer.clientWidth / 2;
         hiveDisplayContainer.scrollTop = slidingHeight / 2 - hiveDisplayContainer.clientHeight / 2;
         hiveDisplayContainer.addEventListener("mousemove", (event) => {
@@ -122,6 +122,11 @@
         });
     }
 
+    function removeListeners(): void {
+        hiveDisplayContainer.removeEventListener("mousemove", () => { });
+        hiveDisplayContainer.removeEventListener("wheel", () => { });
+    }
+
     function gotoTask(task: Task): void {
         dispatch("gotoTask", { task: task })
     }
@@ -138,7 +143,11 @@
 
     onMount(() => {
         getTasks();
-        setKeybinds();
+        setListeners();
+    });
+
+    onDestroy(() => {
+        removeListeners();
     });
 </script>
 <style>

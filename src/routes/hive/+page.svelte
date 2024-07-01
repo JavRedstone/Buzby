@@ -15,9 +15,18 @@
 	}
 </script>
 <style>
-
+	.hive-title {
+		position: absolute;
+		padding: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--grey-800);
+		user-select: none;
+		z-index: 100;
+    }
 </style>
 <div transition:fade={{duration: TransitionConstants.DURATION}}>
+	<div class="hive-title">Hive</div>
     <HiveDisplay on:gotoTask={gotoTask} />
 </div>
-<HiveList bind:taskGotoed={taskGotoed} />
+<HiveList width="40%" bind:taskGotoed={taskGotoed} />
