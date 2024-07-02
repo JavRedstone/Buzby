@@ -47,7 +47,7 @@
         });
     }
 
-    async function getAssigned(): Promise<void> {
+    async function setAssigned(): Promise<void> {
         if (task) {
             assigned = [];
             for (let assignedId of task.assignedIds) {
@@ -78,13 +78,13 @@
                         task = t;
                     }
                 }
-                getAssigned();
-                getUrgent();
+                setAssigned();
+                setUrgent();
             }
         });
     }
 
-    function getUrgent(): void {
+    function setUrgent(): void {
         if (task && task.percentage < 100) {
             let msRemaining: number = task.endDate.getTime() - new Date().getTime();
             if (task.percentage <= TaskConstants.TASK_URGENT_SMALL_THRESHOLD) {
@@ -226,7 +226,7 @@
             setDoc(taskDoc, newTask.compactify()).then(() => {
                 task = newTask;
                 hideExtras();
-                getAssigned();
+                setAssigned();
                 project.tasks = project.tasks.map((t) => {
                     if (t.id === task.id) {
                         return task;
@@ -266,7 +266,7 @@
     onMount(() => {
         existed = true;
         getCurrMember();
-        getAssigned();
+        setAssigned();
         getProject();
     });
 

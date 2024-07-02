@@ -31,7 +31,7 @@
     let taskStartDateInput: HTMLInputElement = null;
     let taskEndDateInput: HTMLInputElement = null;
 
-    $: task ? getUrgent() : null;
+    $: task ? setUrgent() : null;
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
@@ -43,12 +43,12 @@
                         task = t;
                     }
                 }
-                getUrgent();
+                setUrgent();
             }
         });
     }
 
-    function getUrgent(): void {
+    function setUrgent(): void {
         if (task && task.id.length > 0 && task.id != TaskConstants.TASK_CENTER_ID && task.percentage < 100) {
             let msRemaining: number = task.endDate.getTime() - new Date().getTime();
             if (task.percentage <= TaskConstants.TASK_URGENT_SMALL_THRESHOLD) {
@@ -78,7 +78,7 @@
                 openSnackbar("Task completed!", "success");
             }
 
-            getUrgent();
+            setUrgent();
 
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
             setDoc(taskDoc, task.compactify()).then(() => {
@@ -97,7 +97,7 @@
                 task.percentage = 0;
             }
 
-            getUrgent();
+            setUrgent();
 
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
             setDoc(taskDoc, task.compactify()).then(() => {
@@ -257,7 +257,7 @@
     onMount(() => {
         existed = true;
         getProject();
-        getUrgent();
+        setUrgent();
     });
 
     onDestroy(() => {

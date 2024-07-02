@@ -72,4 +72,24 @@ export class StringHelper {
         let minutesStr: string = minutes < 10 ? '0' + minutes : minutes.toString();
         return `${year}-${monthStr}-${dayStr}T${hoursStr}:${minutesStr}`;
     }
+
+    public static getShortMonth(date: Date): string {
+        let month: number = date.getMonth() + 1;
+        let year: number = date.getFullYear();
+        return `${month}/${year}`;
+    }
+    
+    public static getShortWeek(date: Date): string {
+        let month: number = date.getMonth() + 1;
+        let day: number = date.getDate();
+        let year: number = date.getFullYear();
+        return `${month}/${day}/${year}`;
+    }
+
+    public static getShortDay(date: Date): string {
+        let month: number = date.getMonth() + 1;
+        let day: number = date.getDate();
+        let year: number = date.getFullYear();
+        return `${month}/${day}`;
+    }
 }
