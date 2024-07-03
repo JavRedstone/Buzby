@@ -3,7 +3,7 @@
 	import { MathHelper } from "$lib/elements/helpers/MathHelper";
 	import { Vector2 } from "three";
 	import Honeycomb from "./honeycomb.svelte";
-	import { createEventDispatcher, onDestroy, onMount } from "svelte";
+	import { createEventDispatcher, onMount } from "svelte";
 	import { projectSelected } from "$lib/elements/stores/project-store";
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
@@ -100,31 +100,28 @@
         }
     }
 
-    function setListeners(): void {
-        hiveDisplayContainer.scrollLeft = slidingWidth / 2 - hiveDisplayContainer.clientWidth / 2;
-        hiveDisplayContainer.scrollTop = slidingHeight / 2 - hiveDisplayContainer.clientHeight / 2;
-        hiveDisplayContainer.addEventListener("mousemove", (event) => {
-            if (event.buttons === 1) {
-                hiveDisplayContainer.scrollLeft -= event.movementX;
-                hiveDisplayContainer.scrollTop -= event.movementY;
-            }
-        });
-        hiveDisplayContainer.addEventListener("wheel", (event) => {
-            event.preventDefault();
-            let newScale = slidingScale - event.deltaY * HiveConstants.HONEYCOMB_ZOOM_SPEED + event.deltaX * HiveConstants.HONEYCOMB_ZOOM_SPEED;
-            if (newScale < HiveConstants.HONEYCOMB_MIN_ZOOM) {
-                newScale = HiveConstants.HONEYCOMB_MIN_ZOOM;
-            }
-            if (newScale > HiveConstants.HONEYCOMB_MAX_ZOOM) {
-                newScale = HiveConstants.HONEYCOMB_MAX_ZOOM;
-            }
-            slidingScale = newScale;
-        });
+    function move(event: MouseEvent): void {
+        if (event.buttons === 1) {
+            hiveDisplayContainer.scrollLeft -= event.movementX;
+            hiveDisplayContainer.scrollTop -= event.movementY;
+        }
     }
 
-    function removeListeners(): void {
-        hiveDisplayContainer.removeEventListener("mousemove", () => { });
-        hiveDisplayContainer.removeEventListener("wheel", () => { });
+    function zoom(event: WheelEvent): void {
+        event.preventDefault();
+        let newScale = slidingScale - event.deltaY * HiveConstants.HONEYCOMB_ZOOM_SPEED + event.deltaX * HiveConstants.HONEYCOMB_ZOOM_SPEED;
+        if (newScale < HiveConstants.HONEYCOMB_MIN_ZOOM) {
+            newScale = HiveConstants.HONEYCOMB_MIN_ZOOM;
+        }
+        if (newScale > HiveConstants.HONEYCOMB_MAX_ZOOM) {
+            newScale = HiveConstants.HONEYCOMB_MAX_ZOOM;
+        }
+        slidingScale = newScale;
+    }
+
+    function setScroll(): void {
+        hiveDisplayContainer.scrollLeft = slidingWidth / 2 - hiveDisplayContainer.clientWidth / 2;
+        hiveDisplayContainer.scrollTop = slidingHeight / 2 - hiveDisplayContainer.clientHeight / 2;
     }
 
     function gotoTask(task: Task): void {
@@ -143,11 +140,7 @@
 
     onMount(() => {
         getTasks();
-        setListeners();
-    });
-
-    onDestroy(() => {
-        removeListeners();
+        setScroll();
     });
 </script>
 <style>
@@ -169,7 +162,8 @@
         cursor: grab;
     }
 </style>
-<div class="hive-display-container" bind:this={hiveDisplayContainer}>
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="hive-display-container" on:wheel={zoom} on:mousemove={move} bind:this={hiveDisplayContainer}>
     <div class="hive-display-sliding-container" style="background-size: {HiveConstants.HONEYCOMB_RADIUS}px {HiveConstants.HONEYCOMB_RADIUS}px; width: {slidingWidth}px; height: {slidingHeight}px; transform: scale({slidingScale});">
         <Honeycomb task={centerTask} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />
         {#each tasks as task, i}
