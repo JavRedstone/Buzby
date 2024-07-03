@@ -76,22 +76,24 @@
         let middleType: string = TimeTick.MONTH;
         let topType: string = TimeTick.MONTH;
 
-        if (scale <= convertSpeed(GanttConstants.MIN_MONTH_SCALE) / scale) {
+        console.log(scale, convertSpeed(GanttConstants.MIN_DAY_SCALE) * scale)
+
+        if (scale <= convertSpeed(GanttConstants.MIN_MONTH_SCALE) * scale) {
             baseType = TimeTick.MONTH;
             middleType = TimeTick.MONTH;
             topType = TimeTick.MONTH;
         }
-        else if (scale <= convertSpeed(GanttConstants.MIN_WEEK_SCALE) / scale) {
+        else if (scale <= convertSpeed(GanttConstants.MIN_WEEK_SCALE) * scale) {
             baseType = TimeTick.WEEK;
             middleType = TimeTick.MONTH;
             topType = TimeTick.MONTH;
         }
-        else if (scale <= convertSpeed(GanttConstants.MIN_DAY_SCALE) / scale) {
+        else if (scale <= convertSpeed(GanttConstants.MIN_DAY_SCALE) * scale) {
             baseType = TimeTick.DAY;
             middleType = TimeTick.WEEK;
             topType = TimeTick.WEEK;
         }
-        else if (scale <= convertSpeed(GanttConstants.MIN_HOUR_SCALE) / scale) {
+        else if (scale <= convertSpeed(GanttConstants.MIN_HOUR_SCALE) * scale) {
             baseType = TimeTick.HOUR;
             middleType = TimeTick.DAY;
             topType = TimeTick.DAY;
