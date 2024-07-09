@@ -76,8 +76,6 @@
         let middleType: string = TimeTick.MONTH;
         let topType: string = TimeTick.MONTH;
 
-        console.log(scale, convertSpeed(GanttConstants.MIN_DAY_SCALE) * scale)
-
         if (scale <= convertSpeed(GanttConstants.MIN_MONTH_SCALE) * scale) {
             baseType = TimeTick.MONTH;
             middleType = TimeTick.MONTH;

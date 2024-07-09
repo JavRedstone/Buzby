@@ -444,12 +444,6 @@
         width: 100vw;
         height: 48px;
         background-color: rgba(var(--off-white-rgb), 0.25);
-
-        transition: background-color var(--transition-duration);
-
-        &:hover {
-            background-color: rgba(var(--off-white-rgb), 0.75);
-        }
     }
 
     .core-header-logo {
