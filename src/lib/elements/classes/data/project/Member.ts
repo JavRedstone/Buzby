@@ -9,10 +9,11 @@ export class Member {
     public displayName: string;
     public email: string;
 
-    public online: boolean = false;
     public avatarHead: number = 0;
     public avatarEyes: number = 0;
     public avatarNeck: number = 0;
+
+    public state: string = "offline";
 
     public projectIds: string[];
     public requestedProjectIds: string[];
@@ -38,10 +39,6 @@ export class Member {
             this.email = "";
         }
 
-        this.online = data.online;
-        if (this.online == null || this.online == undefined) {
-            this.online = false;
-        }
         this.avatarHead = data.avatarHead;
         if (this.avatarHead == null || this.avatarHead == undefined) {
             this.avatarHead = MemberConstants.AVATAR_HEADS.DEFAULT;
@@ -53,6 +50,10 @@ export class Member {
         this.avatarNeck = data.avatarNeck;
         if (this.avatarNeck == null || this.avatarNeck == undefined) {
             this.avatarNeck = MemberConstants.AVATAR_NECKS.DEFAULT;
+        }
+
+        if (data.state != null && data.state != undefined) {
+            this.state = data.state;
         }
 
         this.projectIds = data.projectIds;
@@ -103,10 +104,10 @@ export class Member {
             id: this.id,
             displayName: this.displayName,
             email: this.email,
-            online: this.online,
             avatarHead: this.avatarHead,
             avatarEyes: this.avatarEyes,
             avatarNeck: this.avatarNeck,
+            state: this.state,
             projectIds: this.projectIds,
             requestedProjectIds: this.requestedProjectIds,
             pingIds: this.pingIds,

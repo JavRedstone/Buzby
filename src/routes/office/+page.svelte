@@ -30,8 +30,6 @@
     let memberOffsets: Vector2[] = [];
     let memberPositions: Vector2[] = [];
 
-    let officeRefreshPercentage: number = 100;
-
     let inviteEmail: string = '';
     let inviteProcessing: boolean = false;
 

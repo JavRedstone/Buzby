@@ -3,6 +3,7 @@
 	import { MemberConstants } from '$lib/elements/classes/data/project/MemberConstants';
     import beeOnline from '$lib/elements/assets/member-status/bases/bee_online.svg';
     import beeDND from '$lib/elements/assets/member-status/bases/bee_dnd.svg';
+    import beeOffline from '$lib/elements/assets/member-status/bases/bee_offline.svg';
 
     import eyeGlasses from '$lib/elements/assets/member-status/accessories/eyes/eye_glasses.png';
     import eyeMLG from '$lib/elements/assets/member-status/accessories/eyes/eye_mlg.png';
@@ -13,6 +14,9 @@
 
     import neckBowtie from '$lib/elements/assets/member-status/accessories/neck/neck_bowtie.png';
     import neckTie from '$lib/elements/assets/member-status/accessories/neck/neck_tie.png';
+
+    import zzz from '$lib/elements/assets/member-status/accessories/zzz.svg';
+
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 	import { onMount } from 'svelte';
 	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
@@ -32,7 +36,7 @@
     export let y: number = 0;
     export let nameAbove: boolean = false;
 
-    let base: number = member.online ? 0 : 1;
+    let base: number = member.state == "online" ? 0 : member.state == "dnd" ? 1 : 2;
     let head: number = member.avatarHead;
     let eyes: number = member.avatarEyes;
     let neck: number = member.avatarNeck;
@@ -47,7 +51,7 @@
     let snackbarType: string = "neutral";
 
     function setMemberStatus(): void {
-        base = member.online ? 0 : 1;
+        base = member.state == "online" ? 0 : member.state == "dnd" ? 1 : 2;
         head = member.avatarHead;
         eyes = member.avatarEyes;
         neck = member.avatarNeck;
@@ -368,7 +372,7 @@
 {:else}
     <div class="member-status-seat-other" style="left: {x}px; top: {y}px;"></div>
 {/if}
-<img class="member-status-base" style="left: {x}px; top: {y}px;" src={base === 0 ? beeOnline : beeDND} alt="base" />
+<img class="member-status-base" style="left: {x}px; top: {y}px;" src={base == 0 ? beeOnline : base == 1 ? beeDND : beeOffline} alt="base" />
 
 {#if head > -1}
     <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={head === 0 ? headBowtie : head === 1 ? headCrown : headFedora} alt="head" />
@@ -378,6 +382,10 @@
 {/if}
 {#if neck > -1}
     <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={neck === 0 ? neckBowtie : neckTie} alt="neck" />
+{/if}
+
+{#if base == 2}
+    <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={zzz} alt="zzz" />
 {/if}
 
 <div class="member-status-name" style="left: {x}px; top: {nameAbove ? y + 48 : y - 48}px;">{member.displayName}</div>
