@@ -24,7 +24,6 @@
 
     let currMember: Member = null;
 
-    let existed: boolean = false;
     let hovered: boolean = false;
 
     let editOpen: boolean = false;
@@ -238,13 +237,11 @@
     }
 
     onMount(() => {
-        existed = true;
         getMember();
         setKeybinds();
     });
 
     onDestroy(() => {
-        existed = false;
         removeKeybinds();
     });
 </script>
@@ -471,7 +468,7 @@
         margin-top: 4px;
     }
 </style>
-{#if message && existed}
+{#if message != null && currMember != null}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div id="message-{message.id}" class="chat-message-container" style={(message.edited ? 'border-left: 2px solid var(--primary);' : '') + (message.replyId.length > 0 ? 'padding-top: 28px;' : '')} on:mouseenter={() => hovered = true} on:mouseleave={() => hovered = false}>
         {#if isHighlighted && highlightedId == message.id}

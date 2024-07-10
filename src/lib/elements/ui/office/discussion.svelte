@@ -71,7 +71,11 @@
 
     function getMember(): void {
         memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
+            if (value.currentMember != null) {
+                currMember = value.currentMember;
+            } else {
+                currMember = null;
+            }
         });
     }
 
@@ -82,6 +86,9 @@
                 messages = value.project.chat.messages;
 
                 await setMessages();
+            } else {
+                project = null;
+                messages = [];
             }
         })
     }

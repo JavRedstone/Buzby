@@ -41,7 +41,7 @@
 
     function getTasks(): void {
         projectSelected.subscribe((value) => {
-            if (value.project) {
+            if (value.project != null) {
                 project = value.project;
                 tasks = value.project.tasks;
                 placeholderTasks = [];
@@ -58,6 +58,11 @@
                 for (let task of tasks) {
                     setPlaceHolders(task);
                 }
+            } else {
+                project = null;
+                tasks = [];
+                placeholderTasks = [];
+                projectPercentage = 0;
             }
         });
     }

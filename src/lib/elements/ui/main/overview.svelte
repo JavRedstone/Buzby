@@ -216,6 +216,8 @@
         memberStatus.subscribe((value) => {
             if (value.currentMember != null) {
                 currMember = value.currentMember;
+            } else {
+                currMember = null;
             }
         });
     }

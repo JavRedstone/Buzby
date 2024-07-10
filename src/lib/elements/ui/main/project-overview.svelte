@@ -55,7 +55,11 @@
 
     function getUser(): void {
         memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
+            if (value.currentMember != null) {
+                currMember = value.currentMember;
+            } else {
+                currMember = null;
+            }
         });
     }
 

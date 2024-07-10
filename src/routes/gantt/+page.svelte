@@ -40,13 +40,16 @@
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            if (value.project) {
+            if (value.project != null) {
                 project = value.project;
 
                 tasks = [];
                 setTimeout(() => {
                     getTasks();
                 });
+            } else {
+                project = null;
+                tasks = [];
             }
         });
     }

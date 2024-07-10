@@ -35,7 +35,7 @@
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            if (value.project) {
+            if (value.project != null) {
                 project = value.project;
                 if (task && task.id.length > 0) {
                     let t: Task = project.tasks.find((t) => t.id === task.id);
@@ -44,6 +44,8 @@
                     }
                 }
                 setUrgent();
+            } else {
+                project = null;
             }
         });
     }

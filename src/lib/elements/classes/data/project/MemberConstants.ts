@@ -1,11 +1,6 @@
 export class MemberConstants {
     public static readonly REFRESH_TIMEOUT = 20000;
 
-    public static readonly STATUSES: string[] = [
-        "Online",
-        "Do Not Disturb",
-    ];
-
     public static readonly HEADS: string[] = [
         "None",
         "Bowtie",
@@ -24,6 +19,12 @@ export class MemberConstants {
         "Bowtie",
         "Tie",
     ];
+
+    public static readonly AVATAR_BASES: any = {
+        OFFLINE: -1,
+        ONLINE: 0,
+        DND: 1,
+    };
 
     public static readonly AVATAR_HEADS: any = {
         DEFAULT: -1,

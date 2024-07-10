@@ -101,8 +101,12 @@
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            project = value.project;
-            updatePoll();
+            if (value.project != null) {
+                project = value.project;
+                updatePoll();
+            } else {
+                project = null;
+            }
         });
     }
 
@@ -121,8 +125,12 @@
 
     function getCurrMember(): void {
         memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
-            updatePoll();
+            if (value.currentMember != null) {
+                currMember = value.currentMember;
+                updatePoll();
+            } else {
+                currMember = null;
+            }
         });
     }
 

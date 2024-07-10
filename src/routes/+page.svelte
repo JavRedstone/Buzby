@@ -14,8 +14,8 @@
 	import Overview from '$lib/elements/ui/main/overview.svelte';
 	import Home from '$lib/elements/ui/layout/home.svelte';
     
-    let currentUser: User = null;
-    let currentMember: Member = null;
+    let currUser: User = null;
+    let currMember: Member = null;
     let isOverview: boolean = true;
     let currentProject: Project = null;
 
@@ -26,13 +26,17 @@
     function getUser(): void {
         userStatus.subscribe((value) => {
             if (value.currentUser != null && value.currentUser.emailVerified) {
-                currentUser = value.currentUser;                
+                currUser = value.currentUser;                
+            } else {
+                currUser = null;
             }
         });
 
         memberStatus.subscribe((value) => {
             if (value.currentMember != null) {
-                currentMember = value.currentMember;
+                currMember = value.currentMember;
+            } else {
+                currMember = null;
             }
         });
     }
@@ -59,7 +63,7 @@
     
 </style>
 
-{#if currentUser && currentMember}
+{#if currUser && currMember}
     {#if isOverview}
         <Overview />
     {/if}

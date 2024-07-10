@@ -60,6 +60,16 @@
         --warning-light: #ffe0b2;
         --warning-dark: #e65100;
 
+        --online: #4caf50;
+        --online-dark: #2e7d32;
+        --online-rgb: 76, 175, 80;
+        --dnd: #f44336;
+        --dnd-dark: #b71c1c;
+        --dnd-rgb: 244, 67, 54;
+        --offline: #9e9e9e;
+        --offline-dark: #616161;
+        --offline-rgb: 158, 158, 158;
+
         --off-white: #ebedef;
         --off-white-rgb: 235, 237, 239;
         --off-white-lightish: #eeefef;

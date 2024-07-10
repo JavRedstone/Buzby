@@ -42,8 +42,12 @@
     let snackbarType: string = "neutral";
 
     function getCurrMember(): void {
-        memberStatus.subscribe((status) => {
-            currMember = status.currentMember;
+        memberStatus.subscribe((value) => {
+            if (value.currentMember != null) {
+                currMember = value.currentMember;
+            } else {
+                currMember = null;
+            }
         });
     }
 
@@ -71,7 +75,7 @@
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            if (value.project) {
+            if (value.project != null) {
                 project = value.project;
                 for (let t of project.tasks) {
                     if (task.id === t.id) {
@@ -80,6 +84,8 @@
                 }
                 setAssigned();
                 setUrgent();
+            } else {
+                project = null;
             }
         });
     }

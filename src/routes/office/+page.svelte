@@ -39,15 +39,22 @@
 
     function getCurrMember(): void {
         memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
-        })
+            if (value.currentMember != null) {
+                currMember = value.currentMember;
+            } else {
+                currMember = null;
+            }
+        });
     }
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            project = value.project;
-
-            setMemberStatusPositions();
+            if (value.project != null) {
+                project = value.project;
+                setMemberStatusPositions();
+            } else {
+                project = null;
+            }
         })
     }
 

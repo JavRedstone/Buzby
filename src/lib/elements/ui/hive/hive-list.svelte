@@ -33,7 +33,7 @@
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
-            if (value.project) {
+            if (value.project != null) {
                 project = value.project;
 
                 if (project.tasks.length == tasks.length) {
@@ -45,6 +45,9 @@
                         getTasks();
                     });
                 }
+            } else {
+                project = null;
+                tasks = [];
             }
         });
     }
