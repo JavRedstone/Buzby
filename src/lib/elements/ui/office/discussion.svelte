@@ -495,7 +495,7 @@
             
             messageText = "";
             messagePercentage = 0;
-            clearExtra();
+            clearFinalized();
 
             replyOpen = false;
             
