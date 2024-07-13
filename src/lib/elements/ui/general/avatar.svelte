@@ -23,27 +23,19 @@
     })
 </script>
 <style>
-    .avatar-container {
+    .avatar-image-container {
+        position: relative;
+        box-sizing: border-box;
         flex-shrink: 0;
         border-radius: 50%;
-        background-color: var(--grey-300)
-    }
-
-    .avatar-state {
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        border: 1px solid;
-
-        transition: background-color var(--transition-duration), border-color var(--transition-duration);
+        border: 2px solid;
+        background-color: var(--grey-300);
+        
+        transition: border-color var(--transition-duration);
     }
 </style>
 {#if member != null}
-    <div class="avatar-container" style="width: {size}; height: {size};">
+    <div class="avatar-image-container" style="width: {size}; height: {size}; border-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd' : 'offline'})">
 
     </div>
-    <div class="avatar-state" style="background-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd' : 'offline'}); border-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online-dark' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd-dark' : 'offline-dark'})"></div>
 {/if}

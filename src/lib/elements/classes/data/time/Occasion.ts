@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 import type { Member } from "../project/Member";
 
-export class Event {
+export class Occasion {
     public id: string;
     public name: string;
     public description: string;

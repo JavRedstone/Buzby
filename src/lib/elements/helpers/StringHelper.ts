@@ -92,4 +92,9 @@ export class StringHelper {
         let year: number = date.getFullYear();
         return `${month}/${day}`;
     }
+
+    public static getDayOfWeek(date: Date): string {
+        let days: string[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[date.getDay()];
+    }
 }

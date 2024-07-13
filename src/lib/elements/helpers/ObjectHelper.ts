@@ -52,6 +52,48 @@ export class ObjectHelper {
         }
     }
 
+    public static getFloorDate(date: Date, type: string): Date {
+        if (type == TimeTick.MONTH) {
+            return new Date(date.getFullYear(), date.getMonth());
+        }
+        if (type == TimeTick.WEEK) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+        }
+        if (type == TimeTick.DAY) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        }
+        if (type == TimeTick.HOUR) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours());
+        }
+        if (type == TimeTick.MINUTE) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
+        }
+        if (type == TimeTick.SECOND) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds());
+        }
+    }
+
+    public static getCeilDate(date: Date, type: string): Date {
+        if (type == TimeTick.MONTH) {
+            return new Date(date.getFullYear(), date.getMonth() + 1);
+        }
+        if (type == TimeTick.WEEK) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + 7);
+        }
+        if (type == TimeTick.DAY) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+        }
+        if (type == TimeTick.HOUR) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1);
+        }
+        if (type == TimeTick.MINUTE) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() + 1);
+        }
+        if (type == TimeTick.SECOND) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + 1);
+        }
+    }
+
     public static isDateType(date: Date, type: string): boolean {
         if (type == TimeTick.MONTH) {
             return date.getDate() === 1 && date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0;

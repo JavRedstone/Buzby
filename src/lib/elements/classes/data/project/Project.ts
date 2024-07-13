@@ -4,7 +4,7 @@ import { Member } from "./Member";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { ProjectConstants } from "./ProjectConstants";
 import { Task } from "../time/Task";
-import { Event } from "../time/Event";
+import { Occasion } from "../time/Occasion";
 
 export class Project {
     public id: string;
@@ -28,8 +28,8 @@ export class Project {
     public taskIds: string[] = [];
     public tasks: Task[] = [];
 
-    public eventIds: string[] = [];
-    public events: Event[] = [];
+    public occasionIds: string[] = [];
+    public occasions: Occasion[] = [];
 
     public createdAt: Date;
     public createdAtTemp: any;
@@ -77,9 +77,9 @@ export class Project {
             this.taskIds = [];
         }
 
-        this.eventIds = data.eventIds;
-        if (!this.eventIds) {
-            this.eventIds = [];
+        this.occasionIds = data.occasionIds;
+        if (!this.occasionIds) {
+            this.occasionIds = [];
         }
 
         if (data.createdAt) {
@@ -145,18 +145,18 @@ export class Project {
             this.tasks = [];
         }
 
-        this.events = [];
-        if (this.eventIds && this.eventIds.length > 0) {
-            let eventsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('events');
-            let eventsQuery = query(eventsCollection, where('id', 'in', this.eventIds));
-            await getDocs(eventsQuery).then((querySnapshot) => {
+        this.occasions = [];
+        if (this.occasionIds && this.occasionIds.length > 0) {
+            let occasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('occasions');
+            let occasionsQuery = query(occasionsCollection, where('id', 'in', this.occasionIds));
+            await getDocs(occasionsQuery).then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
-                    this.events.push(new Event(doc.data()));
+                    this.occasions.push(new Occasion(doc.data()));
                 });
             });
         }
         else {
-            this.events = [];
+            this.occasions = [];
         }
     }
 
@@ -172,7 +172,7 @@ export class Project {
             joinedMemberIds: this.joinedMemberIds,
             chatId: this.chatId,
             taskIds: this.taskIds,
-            eventIds: this.eventIds,
+            occasio566nIds: this.occasionIds,
             
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };

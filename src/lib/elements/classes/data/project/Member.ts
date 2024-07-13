@@ -9,7 +9,7 @@ export class Member {
     public displayName: string;
     public email: string;
 
-    public avatarBase: number = MemberConstants.AVATAR_BASES.OFFLINE;
+    public avatarBase: number = MemberConstants.AVATAR_BASES.ONLINE;
     public avatarHead: number = MemberConstants.AVATAR_HEADS.DEFAULT;
     public avatarEyes: number = MemberConstants.AVATAR_EYES.DEFAULT;
     public avatarNeck: number = MemberConstants.AVATAR_NECKS.DEFAULT;
@@ -40,7 +40,7 @@ export class Member {
 
         this.avatarBase = data.avatarBase;
         if (this.avatarBase == null || this.avatarBase == undefined) {
-            this.avatarBase = MemberConstants.AVATAR_BASES.OFFLINE;
+            this.avatarBase = MemberConstants.AVATAR_BASES.ONLINE;
         }
         this.avatarHead = data.avatarHead;
         if (this.avatarHead == null || this.avatarHead == undefined) {

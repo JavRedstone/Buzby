@@ -587,7 +587,7 @@
         </div>
         <div class="hive-task-assigned-member-subtitle">Assigned Members</div>
         {#each assigned as member}
-            {#if member}
+            {#if member != null}
                 <div class="hive-task-assigned-member-container">
                     <Avatar member={member} size="28px" />
                     <div class="hive-task-assigned-name" style={currMember && member.id == currMember.id ? "font-weight: 600" : ""}>{member.displayName}</div>
