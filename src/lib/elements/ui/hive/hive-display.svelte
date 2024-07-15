@@ -9,6 +9,7 @@
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import Snackbar from "../general/snackbar.svelte";
 	import { TaskConstants } from "$lib/elements/classes/data/time/TaskConstants";
+	import { StringHelper } from "$lib/elements/helpers/StringHelper";
 
     let dispatch = createEventDispatcher();
 
@@ -34,6 +35,8 @@
     let tasks: Task[] = [];
     let placeholderTasks: Task[] = [];
     let projectPercentage: number = 0;
+    
+    let openedMenuTask: Task = null;
 
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
@@ -98,6 +101,7 @@
 
             if (!badPos) {
                 placeholderTasks.push(new Task({
+                    id: `${StringHelper.generateID()}${HiveConstants.HONEYCOMB_PLACEHOLDER_ID}`,
                     hivePosX: pos.x,
                     hivePosY: pos.y,
                 }));
@@ -129,8 +133,18 @@
         hiveDisplayContainer.scrollTop = slidingHeight / 2 - hiveDisplayContainer.clientHeight / 2;
     }
 
-    function gotoTask(task: Task): void {
-        dispatch("gotoTask", { task: task })
+    function gotoTask(event: CustomEvent): void {
+        dispatch("gotoTask", { task: event.detail.task });
+    }
+
+    function setOpenedMenu(event: CustomEvent): void {
+        openedMenuTask = event.detail.task;
+    }
+
+    function setClosedMenu(event: CustomEvent): void {
+        if (openedMenuTask && openedMenuTask.id === event.detail.task.id) {
+            openedMenuTask = null;
+        }
     }
 
     function openSnackbarHoneycomb(event: CustomEvent): void {
@@ -172,10 +186,10 @@
     <div class="hive-display-sliding-container" style="background-size: {HiveConstants.HONEYCOMB_RADIUS}px {HiveConstants.HONEYCOMB_RADIUS}px; width: {slidingWidth}px; height: {slidingHeight}px; transform: scale({slidingScale});">
         <Honeycomb task={centerTask} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />
         {#each tasks as task, i}
-            <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} on:gotoTask={() => gotoTask(task)} />
+            <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} on:gotoTask={gotoTask} />
         {/each}
         {#each placeholderTasks as task, i}
-            <Honeycomb task={task} project={project} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} />
+            <Honeycomb task={task} project={project} openedMenuTask={openedMenuTask} offsetX={slidingWidth / 2} offsetY={slidingHeight / 2} on:snackbar={openSnackbarHoneycomb} on:openTaskMenu={setOpenedMenu} on:closeTaskMenu={setClosedMenu} />
         {/each}
     </div>
 </div>

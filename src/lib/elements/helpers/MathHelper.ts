@@ -1,6 +1,10 @@
 import { Vector2 } from "three";
 
 export class MathHelper {
+    public static clamp(value: number, min: number, max: number): number {
+        return Math.min(Math.max(value, min), max);
+    }
+
     public static getAnglesForPolygon(sides: number): number[] {
         const angles = [];
         for (let i = 0; i < sides; i++) {

@@ -1,11 +1,17 @@
 <script lang="ts">
 	import type { Occasion } from "$lib/elements/classes/data/time/Occasion";
-	import { onMount } from "svelte";
+	import { createEventDispatcher, onMount } from "svelte";
 	import CalendarOccasion from "./calendar-occasion.svelte";
+	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
+	import { TimeTick } from "$lib/elements/classes/ui/gantt/TimeTick";
+	import { CalendarConstants } from "$lib/elements/classes/ui/calendar/CalendarConstants";
 
+    let dispatch = createEventDispatcher();
+    
     export let date: Date = new Date();
     export let currentTime: Date = new Date();
     export let occasions: Occasion[] = [];
+    export let temporaryOccasion: Occasion = null;
 
     let dayOccasions: Occasion[] = [];
 
@@ -13,8 +19,12 @@
 
     function setDayOccasions(): void {
         dayOccasions = occasions.filter((occasion) => {
-            return occasion.startTime.getDate() == date.getDate();
+            return ObjectHelper.isSameDate(occasion.startTime, date, TimeTick.DAY);
         });
+    }
+
+    function openDetails(event: CustomEvent): void {
+        dispatch("openDetails", { occasion: event.detail.occasion });
     }
 
     onMount(() => {
@@ -29,9 +39,41 @@
         border-left: 1px solid var(--grey-300);
         user-select: none;
     }
+
+    .calendar-day-current-now {
+        box-sizing: border-box;
+        position: absolute;
+        width: 100%;
+        background-color: rgba(var(--accent-rgb), 0.25);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        color: var(--grey-100);
+        font-size: 8px;
+        text-align: center;
+
+        transition: top var(--transition-duration);
+    }
+
+    .calendar-day-current-time {
+        box-sizing: border-box;
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background-color: var(--accent);
+        box-shadow: 0 0 5px var(--accent);
+
+        transition: top var(--transition-duration);
+    }
 </style>
 <div class="calendar-day-container">
     {#each dayOccasions as occasion}
-        <CalendarOccasion occasion={occasion} />
+        <CalendarOccasion occasion={occasion} on:openDetails={openDetails} />
     {/each}
+    {#if temporaryOccasion && ObjectHelper.isSameDate(temporaryOccasion.startTime, date, TimeTick.DAY)}
+        <CalendarOccasion occasion={temporaryOccasion} />
+    {/if}
+    {#if ObjectHelper.isSameDate(date, currentTime, TimeTick.DAY)}
+        <div class="calendar-day-current-now" style="top: {CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(currentTime) * CalendarConstants.PIXELS_PER_HOUR - 12}px;">Now</div>
+        <div class="calendar-day-current-time" style="top: {CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(currentTime) * CalendarConstants.PIXELS_PER_HOUR}px;"></div>
+    {/if}
 </div>

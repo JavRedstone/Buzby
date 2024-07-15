@@ -13,6 +13,7 @@
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData, setDoc, deleteDoc } from 'firebase/firestore';
 	import { HiveConstants } from '$lib/elements/classes/ui/hive/HiveConstants';
+	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 
     export let task: Task = null;
     export let project: Project = null;
@@ -138,8 +139,8 @@
                 taskAssignedChecked.push(task.assignedIds.includes(project.members[i].id));
             }
             setTimeout(() => {
-                taskStartDateInput.valueAsNumber = task.startDate.getTime() - task.startDate.getTimezoneOffset() * 60000;
-                taskEndDateInput.valueAsNumber = task.endDate.getTime() - task.endDate.getTimezoneOffset() * 60000;
+                taskStartDateInput.valueAsNumber = ObjectHelper.getDateInputValue(task.startDate);
+                taskEndDateInput.valueAsNumber = ObjectHelper.getDateInputValue(task.endDate);
             }, 0);
         }
         else {
@@ -186,8 +187,8 @@
             let startDate: Date = new Date(taskStartDateInput.valueAsNumber);
             let endDate: Date = new Date(taskEndDateInput.valueAsNumber);
 
-            let startNumber: number = startDate.getTime() + startDate.getTimezoneOffset() * 60000;
-            let endNumber: number = endDate.getTime() + endDate.getTimezoneOffset() * 60000;
+            let startNumber: number = ObjectHelper.getDateInputValue(startDate);
+            let endNumber: number = ObjectHelper.getDateInputValue(endDate);
             
             if (isNaN(startNumber)) {
                 openSnackbar("Please enter a start date.", "error");

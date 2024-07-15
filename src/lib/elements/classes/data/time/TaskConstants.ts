@@ -3,7 +3,8 @@ export class TaskConstants {
     public static readonly TASK_NAME_MAX_LENGTH = 50;
     public static readonly TASK_DESCRIPTION_MAX_LENGTH = 200;
 
-    public static readonly TASK_DEFAULT_DURATION = 60 * 60 * 1000;
+    public static readonly TASK_DEFAULT_DURATION = 60;
+    public static readonly TASK_ABSOLUTE_MIN_DURATION = 1;
 
     public static readonly TASK_URGENT_SMALL_THRESHOLD = 20;
     public static readonly TASK_URGENT_BIG_THRESHOLD = 80;

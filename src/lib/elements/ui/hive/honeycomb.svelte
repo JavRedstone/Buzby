@@ -13,9 +13,11 @@
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
+	import { TimeTick } from '$lib/elements/classes/ui/gantt/TimeTick';
 
     export let task: Task = null;
     export let project: Project = null;
+    export let openedMenuTask: Task = null;
     export let offsetX: number = 0;
     export let offsetY: number = 0;
 
@@ -32,6 +34,7 @@
     let taskEndDateInput: HTMLInputElement = null;
 
     $: task ? setUrgent() : null;
+    $: openedMenuTask ? setMenuStatus() : null;
 
     function getProject(): void {
         projectSelected.subscribe((value) => {
@@ -113,6 +116,8 @@
     function toggleTaskMenu(): void {
         taskMenuOpen = !taskMenuOpen;
         if (taskMenuOpen) {
+            dispatch("openTaskMenu", { task: task });
+
             if (project.taskIds.length >= ProjectConstants.MAX_NUM_TASKS) {
                 openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_TASKS} tasks.`, "error");
                 taskMenuOpen = false;
@@ -121,13 +126,21 @@
             else {
                 setTimeout(() => {
                     let startDate: Date = ObjectHelper.getDateFromStartofMinute(new Date());
-                    let endDate: Date = ObjectHelper.addMsToDate(startDate, TaskConstants.TASK_DEFAULT_DURATION);
-                    taskStartDateInput.valueAsNumber = startDate.getTime() - startDate.getTimezoneOffset() * 60000;
-                    taskEndDateInput.valueAsNumber = endDate.getTime() - endDate.getTimezoneOffset() * 60000;
+                    let endDate: Date = ObjectHelper.addDateType(startDate, TimeTick.MINUTE, TaskConstants.TASK_DEFAULT_DURATION);
+                    taskStartDateInput.valueAsNumber = ObjectHelper.getDateInputValue(startDate);
+                    taskEndDateInput.valueAsNumber = ObjectHelper.getDateInputValue(endDate);
                 }, 0);
             }
+        } else {
+            dispatch("closeTaskMenu", { task: task });
         }
         clearTaskMenu();
+    }
+
+    function setMenuStatus(): void {
+        if (openedMenuTask.id != task.id) {
+            taskMenuOpen = false;
+        }
     }
 
     function clearTaskMenu(): void {
@@ -184,11 +197,11 @@
                 return;
             }
 
-            let startDate: Date = new Date(taskStartDateInput.valueAsNumber);
-            let endDate: Date = new Date(taskEndDateInput.valueAsNumber);
+            let startDate: Date = ObjectHelper.getDateFromInputValue(taskStartDateInput.valueAsNumber);
+            let endDate: Date = ObjectHelper.getDateFromInputValue(taskEndDateInput.valueAsNumber);
 
-            let startNumber: number = startDate.getTime() + startDate.getTimezoneOffset() * 60000;
-            let endNumber: number = endDate.getTime() + endDate.getTimezoneOffset() * 60000;
+            let startNumber: number = startDate.getTime();
+            let endNumber: number = endDate.getTime();
             
             if (isNaN(startNumber)) {
                 openSnackbar("Please enter a start date.", "error");
@@ -202,6 +215,11 @@
 
             if (endNumber < startNumber) {
                 openSnackbar("End date must be after start date.", "error");
+                return;
+            }
+
+            if (ObjectHelper.getTimeDifference(endDate, startDate, TimeTick.MINUTE) < TaskConstants.TASK_ABSOLUTE_MIN_DURATION) {
+                openSnackbar(`Occasion must be at least ${TaskConstants.TASK_ABSOLUTE_MIN_DURATION} minute${TaskConstants.TASK_ABSOLUTE_MIN_DURATION == 1 ? '' : 's'} long.`, "error");
                 return;
             }
 
@@ -225,8 +243,8 @@
                 assignedIds: assignedIds,
                 hivePosX: task.hivePosX,
                 hivePosY: task.hivePosY,
-                startDate: new Date(startNumber),
-                endDate: new Date(endNumber),
+                startDate: startDate,
+                endDate: endDate
             });
 
             project.taskIds = [...project.taskIds, newTask.id];
@@ -249,7 +267,7 @@
     }
 
     function gotoTask(): void {
-        dispatch("gotoTask");
+        dispatch("gotoTask", { task: task });
     }
 
     function openSnackbar(text: string, type: string): void {
@@ -551,7 +569,7 @@
     }
 </style>
 {#if task != null}
-    {#if task.id.length == 0}
+    {#if task.id.endsWith(HiveConstants.HONEYCOMB_PLACEHOLDER_ID)}
         {#if existed}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->

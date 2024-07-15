@@ -1,10 +1,13 @@
 import { Timestamp } from "firebase/firestore";
 import type { Member } from "../project/Member";
+import { ProjectConstants } from "../project/ProjectConstants";
+import { OccasionConstants } from "./OccasionConstants";
 
 export class Occasion {
     public id: string;
     public name: string;
     public description: string;
+    public color: string;
 
     public assignedIds: string[];
     public assigned: Member[];
@@ -26,6 +29,11 @@ export class Occasion {
         this.description = data.description;
         if (!this.description) {
             this.description = "";
+        }
+
+        this.color = data.color;
+        if (!this.color) {
+            this.color = ProjectConstants.COLORS[OccasionConstants.OCCASION_DEFAULT_COLOR_IDX].hex;
         }
 
         this.assignedIds = data.assignedIds;
@@ -63,8 +71,10 @@ export class Occasion {
 
     public compactify(): any {
         return {
+            id: this.id,
             name: this.name,
             description: this.description,
+            color: this.color,
             assignedIds: this.assignedIds,
             startTime: this.startTime,
             endTime: this.endTime

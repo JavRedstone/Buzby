@@ -136,4 +136,68 @@ export class ObjectHelper {
             return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + amount);
         }
     }
+
+    public static isSameDate(date1: Date, date2: Date, type: string): boolean {
+        if (type == TimeTick.MONTH) {
+            return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth();
+        }
+        if (type == TimeTick.WEEK) {
+            return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth() && date1.getDate() - date1.getDay() === date2.getDate() - date2.getDay();
+        }
+        if (type == TimeTick.DAY) {
+            return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth() && date1.getDate() === date2.getDate();
+        }
+        if (type == TimeTick.HOUR) {
+            return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth() && date1.getDate() === date2.getDate() && date1.getHours() === date2.getHours();
+        }
+        if (type == TimeTick.MINUTE) {
+            return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth() && date1.getDate() === date2.getDate() && date1.getHours() === date2.getHours() && date1.getMinutes() === date2.getMinutes();
+        }
+        if (type == TimeTick.SECOND) {
+            return date1.getTime() === date2.getTime();
+        }
+    }
+
+    public static getTimeDifference(date1: Date, date2: Date, type: string): number {
+        if (type == TimeTick.MONTH) {
+            return (date1.getFullYear() - date2.getFullYear()) * 12 + date1.getMonth() - date2.getMonth();
+        }
+        if (type == TimeTick.WEEK) {
+            return (date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24 * 7);
+        }
+        if (type == TimeTick.DAY) {
+            return (date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
+        }
+        if (type == TimeTick.HOUR) {
+            return (date1.getTime() - date2.getTime()) / (1000 * 60 * 60);
+        }
+        if (type == TimeTick.MINUTE) {
+            return (date1.getTime() - date2.getTime()) / (1000 * 60);
+        }
+        if (type == TimeTick.SECOND) {
+            return (date1.getTime() - date2.getTime()) / 1000;
+        }
+    }
+
+    public static getTimeHours(date: Date): number {
+        return date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+    }
+
+    public static getNearestTime(date: Date, intervalMins: number): Date {
+        let mins: number = date.getMinutes() + date.getSeconds() / 60;
+        let newMins: number = Math.round(mins / intervalMins) * intervalMins;
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), newMins);
+    }
+
+    public static getDateInputValue(date: Date): number {
+        return date.getTime() - date.getTimezoneOffset() * 60000;
+    }
+
+    public static getDateFromInputValue(value: number): Date {
+        return new Date(value + new Date().getTimezoneOffset() * 60000);
+    }
+
+    public static isOverlapping(startDate1, endDate1, startDate2, endDate2): boolean {
+        return startDate1 < endDate2 && endDate1 > startDate2;
+    }
 }

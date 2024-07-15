@@ -172,7 +172,7 @@ export class Project {
             joinedMemberIds: this.joinedMemberIds,
             chatId: this.chatId,
             taskIds: this.taskIds,
-            occasio566nIds: this.occasionIds,
+            occasionIds: this.occasionIds,
             
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };

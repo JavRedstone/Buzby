@@ -97,4 +97,9 @@ export class StringHelper {
         let days: string[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         return days[date.getDay()];
     }
+
+    public static getMonth(date: Date): string {
+        let months: string[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[date.getMonth()];
+    }
 }

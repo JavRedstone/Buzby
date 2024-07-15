@@ -177,15 +177,15 @@
         margin-left: 4px;
         padding-left: 4px;
         padding-right: 4px;
-        background: linear-gradient(to top, var(--primary-lighter), var(--primary-light));
+        background-color: var(--primary);
         border-radius: 4px;
-        box-shadow: 2px 2px 8px var(--grey-300);
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         cursor: pointer;
 
         transition: box-shadow var(--transition-duration), opacity var(--transition-duration);
 
         &:hover {
-            box-shadow: 2px 2px 8px var(--grey-400);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.25);
         }
     }
 
@@ -194,7 +194,7 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        background: linear-gradient(to bottom, var(--primary), var(--primary-dark));
+        background-color: var(--primary-dark);
         border-radius: 4px;
 
         transition: height var(--transition-duration);

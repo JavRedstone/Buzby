@@ -232,6 +232,7 @@
         width: calc(25vw - 96px);
         height: calc(25vw - 96px);
         background: linear-gradient(135deg, var(--primary-light), var(--primary), var(--primary-dark));
+        /* background-color: var(--primary); */
         border: 2px solid var(--primary-dark);
         border-radius: 100%;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
