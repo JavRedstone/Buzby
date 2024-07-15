@@ -250,6 +250,7 @@
         drawerOpen = false;
         projectSelectOpen = false;
         pingsOpen = false;
+        localStorage.clear();
         goto('/login');
     }
 
