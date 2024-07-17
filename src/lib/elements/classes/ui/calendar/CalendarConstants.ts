@@ -1,4 +1,5 @@
 export class CalendarConstants {
+    public static readonly MS_PER_MINUTE: number = 60000;
     public static readonly MINUTES_PER_HOUR: number = 60;
     public static readonly HOURS_PER_DAY: number = 24;
     public static readonly DAYS_PER_WEEK: number = 7;

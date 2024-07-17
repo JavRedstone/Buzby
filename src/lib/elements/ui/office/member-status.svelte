@@ -18,7 +18,7 @@
     import zzz from '$lib/elements/assets/member-status/accessories/zzz.svg';
 
 	import type { Member } from '$lib/elements/classes/data/project/Member';
-	import { onMount } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
@@ -30,8 +30,11 @@
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 
-    export let member: Member = null;
+    let dispatch = createEventDispatcher();
+    
     export let project: Project = null;
+    export let member: Member = null;
+    export let openedKickMember: Member = null;
     export let x: number = 0;
     export let y: number = 0;
     export let nameAbove: boolean = false;
@@ -49,6 +52,8 @@
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
+
+    $: openedKickMember ? setMenuStatus() : null;
 
     function setMemberStatus(): void {
         base = member.avatarBase;
@@ -70,7 +75,7 @@
     function toggleEdit(): void {
         editOpen = !editOpen;
         if (editOpen) {
-            setMemberStatus();            
+            setMemberStatus();
         }
         else {
             saveMemberStatus();
@@ -167,6 +172,17 @@
 
     function toggleKick(): void {
         kickOpen = !kickOpen;
+        if (kickOpen) {
+            dispatch('openKickMenu', { member: member });
+        } else {
+            dispatch('closeKickMenu', { member: member });
+        }
+    }
+
+    function setMenuStatus(): void {
+        if (openedKickMember.id != member.id) {
+            kickOpen = false;
+        }
     }
 
     function confirmKick(): void {

@@ -136,7 +136,7 @@
             taskDescription = task.description;
             taskAssignedChecked = [];
             for (let i = 0; i < project.members.length; i++) {
-                taskAssignedChecked.push(task.assignedIds.includes(project.members[i].id));
+                taskAssignedChecked = [...taskAssignedChecked, task.assignedIds.includes(project.members[i].id)];
             }
             setTimeout(() => {
                 taskStartDateInput.valueAsNumber = ObjectHelper.getDateInputValue(task.startDate);
@@ -381,7 +381,7 @@
     .hive-task-date {
         font-size: 14px;
         margin-left: 4px;
-    }    
+    }
 
     .hive-task-assigned-member-subtitle {
         font-size: 16px;

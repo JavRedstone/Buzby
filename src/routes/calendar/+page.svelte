@@ -2,6 +2,8 @@
     <title>Buzby | Calendar</title>
 </svelte:head>
 <script lang="ts">
+	import { memberStatus } from '$lib/elements/stores/project-store';
+	import Avatar from '$lib/elements/ui/general/avatar.svelte';
 	import { MathHelper } from '$lib/elements/helpers/MathHelper';
 	import Menu from '$lib/elements/ui/general/menu.svelte';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
@@ -13,15 +15,17 @@
 	import { TimeTick } from "$lib/elements/classes/ui/gantt/TimeTick";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
 	import { onDestroy, onMount } from "svelte";
-	import { fade } from 'svelte/transition';
+	import { fade, slide, scale } from 'svelte/transition';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { allProjects, projectSelected } from '$lib/elements/stores/project-store';
 	import { OccasionConstants } from '$lib/elements/classes/data/time/OccasionConstants';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
-	import { setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
+	import { deleteDoc, setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
+	import type { Member } from '$lib/elements/classes/data/project/Member';
 
+    let currMember: Member = null;
     let project: Project = null;
     let occasions: Occasion[] = [];
 
@@ -42,11 +46,24 @@
     let createOpen: boolean = false;
     
     let temporaryOccasion: Occasion = null;
-    let occasionMembersChecked: boolean[] = [];
+    let occasionAssignedChecked: boolean[] = [];
     let occasionStartTimeInput: HTMLInputElement = null;
     let occasionEndTimeInput: HTMLInputElement = null;
 
     let openingDetails: boolean = false;
+    let detailsOpen: boolean = false;
+    let detailsOccasion: Occasion = null;
+    let assignedDetails: Member[] = [];
+    
+    let editOpen: boolean = false;
+    let deleteOpen: boolean = false;
+
+    let occasionEditName: string = "";
+    let occasionEditDescription: string = "";
+    let occasionEditColor: string = "";
+    let occasionEditStartTimeInput: HTMLInputElement = null;
+    let occasionEditEndTimeInput: HTMLInputElement = null;
+    let occasionEditAssignedChecked: boolean[] = [];
 
     function setDateRange(): void {
         let centerDate: Date = ObjectHelper.addDateType(new Date(), TimeTick.WEEK, currentOffset);
@@ -76,6 +93,12 @@
             let scrollAmount: number = CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(currentTime) * CalendarConstants.PIXELS_PER_HOUR - contentContainer.clientHeight / 2;
             contentContainer.scrollTo({ top: scrollAmount, behavior: 'smooth' });
         }
+    }
+
+    function getCurrMember(): void {
+        memberStatus.subscribe((value) => {
+            currMember = value.currentMember;
+        });
     }
 
     function getProject(): void {
@@ -117,6 +140,7 @@
             if (ObjectHelper.addDateType(nearestTime, TimeTick.MINUTE, duration) > endOfDay) {
                 duration = ObjectHelper.getTimeDifference(endOfDay, nearestTime, TimeTick.MINUTE);
             }
+            closeDetails();
             cancelCreate();
             temporaryOccasion = new Occasion({
                 startTime: nearestTime,
@@ -134,7 +158,7 @@
 
     function isOccasionOverlapping(occasion: Occasion): boolean {
         for (let i = 0; i < occasions.length; i++) {
-            if (ObjectHelper.isOverlapping(occasion.startTime, occasion.endTime, occasions[i].startTime, occasions[i].endTime)) {
+            if (occasion.id != occasions[i].id && ObjectHelper.isOverlapping(occasion.startTime, occasion.endTime, occasions[i].startTime, occasions[i].endTime)) {
                 return true;
             }
         }
@@ -144,7 +168,7 @@
     function cancelCreate(): void {
         createOpen = false;
         temporaryOccasion = null;
-        occasionMembersChecked = [];
+        occasionAssignedChecked = [];
     }
 
     function updateProject(): void {
@@ -173,7 +197,7 @@
 
         if (occasionStartTimeInput && occasionEndTimeInput) {
             if (temporaryOccasion.name.trim().length == 0) {
-                openSnackbar("Please enter a occasion name.", "error");
+                openSnackbar("Please enter an occasion name.", "error");
                 return;
             }
 
@@ -183,7 +207,7 @@
             }
 
             if (temporaryOccasion.description.trim().length == 0) {
-                openSnackbar("Please enter a occasion description.", "error");
+                openSnackbar("Please enter an occasion description.", "error");
                 return;
             }
 
@@ -199,17 +223,17 @@
             let endNumber: number = endTime.getTime();
             
             if (isNaN(startNumber)) {
-                openSnackbar("Please enter a start date.", "error");
+                openSnackbar("Please enter a start time.", "error");
                 return;
             }
 
             if (isNaN(endNumber)) {
-                openSnackbar("Please enter an end date.", "error");
+                openSnackbar("Please enter an end time.", "error");
                 return;
             }
 
             if (endNumber < startNumber) {
-                openSnackbar("End date must be after start date.", "error");
+                openSnackbar("End time must be after start time.", "error");
                 return;
             }
 
@@ -224,8 +248,8 @@
             }
 
             let assignedIds: string[] = [];
-            for (let i = 0; i < occasionMembersChecked.length; i++) {
-                if (occasionMembersChecked[i]) {
+            for (let i = 0; i < occasionAssignedChecked.length; i++) {
+                if (occasionAssignedChecked[i]) {
                     assignedIds.push(project.joinedMembers[i].id);
                 }
             }
@@ -269,12 +293,238 @@
         }
     }
 
-    function openDetails(event: CustomEvent): void {
-        let occasion: Occasion = event.detail.occasion;
+    function toggleDetails(event: CustomEvent, forceOpen: boolean = false): void {
+        hideExtras();
+
+        if (detailsOccasion != null && detailsOccasion.id == event.detail.occasion.id) {
+            detailsOpen = !detailsOpen;
+        } else {
+            detailsOccasion = event.detail.occasion;
+            setAssignedDetails();
+            detailsOpen = true;
+        }
+
+        if (forceOpen) {
+            detailsOpen = true;
+        }
+
         openingDetails = true;
+        cancelCreate();
 
         setTimeout(() => {
             openingDetails = false;
+        });
+    }
+
+    function closeDetails(): void {
+        detailsOpen = false;
+        detailsOccasion = null;
+        hideExtras();
+    }
+
+    async function setAssignedDetails(): Promise<void> {
+        if (detailsOccasion) {
+            assignedDetails = [];
+            for (let assignedId of detailsOccasion.assignedIds) {
+                let found: boolean = false;
+                for (let member of project.members) {
+                    if (member.id === assignedId) {
+                        assignedDetails = [...assignedDetails, member];
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    await detailsOccasion.getAssigned(assignedId).then((member) => {
+                        assignedDetails = [...assignedDetails, member];
+                    }).catch((error) => {
+                        openSnackbar("There was an error getting the assigned members. Please try again.", "error");
+                    });
+                }
+            }
+        }
+    }
+
+    function editOccasion(): void {
+        editOpen = !editOpen;
+        deleteOpen = false;
+
+        if (editOpen) {
+            occasionEditName = detailsOccasion.name;
+            occasionEditDescription = detailsOccasion.description;
+            occasionEditColor = detailsOccasion.color;
+            occasionEditAssignedChecked = [];
+            for (let i = 0; i < project.members.length; i++) {
+                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.assignedIds.includes(project.members[i].id)];
+            }
+            setTimeout(() => {
+                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(detailsOccasion.startTime);
+                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(detailsOccasion.endTime);
+            }, 0);
+        }
+        else {
+            hideExtras();
+        }
+    }
+
+    function deleteOccasion(): void {
+        deleteOpen = !deleteOpen;
+        editOpen = false;
+    }
+
+    function hideExtras(): void {
+        editOpen = false;
+        deleteOpen = false;
+
+        occasionEditName = "";
+        occasionEditDescription = "";
+        occasionEditColor = "";
+        occasionEditAssignedChecked = [];
+    }
+
+    function editOccasionConfirmed(): void {
+        if (occasionEditStartTimeInput && occasionEditEndTimeInput) {
+            if (occasionEditName.trim().length == 0) {
+                openSnackbar("Please enter an occasion name.", "error");
+                return;
+            }
+
+            if (occasionEditName.trim().length > OccasionConstants.OCCASION_NAME_MAX_LENGTH) {
+                openSnackbar(`Occasion name is too long. Max length is ${OccasionConstants.OCCASION_NAME_MAX_LENGTH} characters.`, "error");
+                return;
+            }
+
+            if (occasionEditDescription.trim().length == 0) {
+                openSnackbar("Please enter an occasion description.", "error");
+                return;
+            }
+
+            if (occasionEditDescription.trim().length > OccasionConstants.OCCASION_DESCRIPTION_MAX_LENGTH) {
+                openSnackbar(`Occasion description is too long. Max length is ${OccasionConstants.OCCASION_DESCRIPTION_MAX_LENGTH} characters.`, "error");
+                return;
+            }
+            
+            let startTime: Date = ObjectHelper.getDateFromInputValue(occasionEditStartTimeInput.valueAsNumber);
+            let endTime: Date = ObjectHelper.getDateFromInputValue(occasionEditEndTimeInput.valueAsNumber);
+
+            let startNumber: number = startTime.getTime();
+            let endNumber: number = endTime.getTime();
+            
+            if (isNaN(startNumber)) {
+                openSnackbar("Please enter a start time.", "error");
+                return;
+            }
+
+            if (isNaN(endNumber)) {
+                openSnackbar("Please enter an end time.", "error");
+                return;
+            }
+
+            if (endNumber < startNumber) {
+                openSnackbar("End time must be after start time.", "error");
+                return;
+            }
+
+            if (ObjectHelper.getTimeDifference(endTime, startTime, TimeTick.MINUTE) < OccasionConstants.OCCASION_ABSOLUTE_MIN_DURATION) {
+                openSnackbar(`Occasion must be at least ${OccasionConstants.OCCASION_ABSOLUTE_MIN_DURATION} minute${OccasionConstants.OCCASION_ABSOLUTE_MIN_DURATION == 1 ? '' : 's'} long.`, "error");
+                return;
+            }
+
+            let endOfDay: Date = ObjectHelper.addDateType(startTime, TimeTick.DAY, 1);
+            if (endTime > endOfDay) {
+                endTime = endOfDay;
+            }
+
+            let assignedIds: string[] = [];
+            for (let i = 0; i < occasionEditAssignedChecked.length; i++) {
+                if (occasionEditAssignedChecked[i]) {
+                    assignedIds.push(project.joinedMembers[i].id);
+                }
+            }
+
+            if (assignedIds.length == 0) {
+                openSnackbar("Please assign at least one member to the occasion.", "error");
+                return;
+            }
+
+            let occasion: Occasion = new Occasion({
+                id: detailsOccasion.id,
+                name: occasionEditName.trim(),
+                description: occasionEditDescription.trim(),
+                color: occasionEditColor,
+                assignedIds: assignedIds,
+                startTime: startTime,
+                endTime: endTime,
+            });
+
+            if (isOccasionOverlapping(occasion)) {
+                openSnackbar("You cannot create overlapping occasions.", "error");
+                return;
+            }
+
+            let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", occasion.id);
+            setDoc(occasionDoc, occasion.compactify()).then(() => {
+                closeDetails();
+                project.occasions = project.occasions.map((o) => {
+                    if (o.id === occasion.id) {
+                        return occasion;
+                    }
+                    return o;
+                });
+                updateProject();
+                openSnackbar("Occasion edited successfully.", "success");
+                cancelCreate();
+            }).catch((error) => {
+                openSnackbar("An error occurred while editing occasion. Please try again.", "error");
+            });
+        }
+    }
+
+
+    function deleteOccasionConfirmed(): void {
+        project.occasionIds = project.occasionIds.filter((id) => {
+            return id !== detailsOccasion.id;
+        });
+        project.occasions = project.occasions.filter((o) => {
+            return o.id !== detailsOccasion.id;
+        });
+        let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", detailsOccasion.id);
+        deleteDoc(occasionDoc).then(() => {
+            closeDetails();
+            updateProject();
+            openSnackbar("Occasion deleted successfully.", "success");
+        }).catch((error) => {
+            openSnackbar("An error occurred while deleting occasion. Please try again.", "error");
+        });
+    }
+
+    function shift(event: CustomEvent): void {
+        toggleDetails(event, true);
+        editOccasion();
+
+
+    }
+
+    function resize(event: CustomEvent): void {
+        toggleDetails(event, true);
+        editOccasion();
+
+        let occasion: Occasion = event.detail.occasion;
+        let top: boolean = event.detail.top;
+        let dragging: boolean = event.detail.dragging;
+        let amount: number = event.detail.amount;
+
+        let numMinutes: number = amount / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
+        let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes));
+        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
+            timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
+        }
+        let timeClickedClamp: Date = new Date(MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR) * CalendarConstants.MS_PER_MINUTE);
+        setTimeout(() => {
+            if (top) {
+                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+            } else {
+                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+            }
         });
     }
     
@@ -307,6 +557,7 @@
     }
 
     onMount(() => {
+        getCurrMember();
         getProject();
         setDateRange();
         setCurrentInterval();
@@ -566,6 +817,24 @@
         }
     }
 
+    .calendar-create-remove {
+        padding-top: 2px;
+        padding-bottom: 2px;
+        background-color: var(--error);
+        font-size: 12px;
+        color: var(--grey-100);
+        border: none;
+        outline: none;
+        border-radius: 4px;
+        cursor: pointer;
+
+        transition: background-color var(--transition-duration);
+
+        &:hover {
+            background-color: var(--error-dark);
+        }
+    }
+
     .calendar-create-cancel {
         padding-left: 4px;
         padding-right: 4px;
@@ -583,6 +852,104 @@
 
         &:hover {
             background-color: var(--grey-400);
+        }
+    }
+
+    .calendar-create-is-sure {
+        font-size: 12px;
+        color: var(--grey-800);
+    }
+
+    .calendar-details-color-fill {
+        width: 100%;
+        height: 8px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+
+    .calendar-details-name {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
+
+    .calendar-details-description {
+        width: 100%;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--grey-600);
+    }
+
+    .calendar-details-date-container {
+        display: flex;
+        align-items: center;
+        color: var(--grey-600);
+        margin-bottom: 4px;
+    }
+
+    .calendar-details-date {
+        font-size: 12px;
+        margin-left: 4px;
+    }
+
+    .calendar-details-assigned-member-subtitle {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--grey-800);
+    }
+
+    .calendar-details-assigned-member-container {
+        display: flex;
+        align-items: center;
+        margin-right: 8px;
+        margin-top: 8px;
+    }
+
+    .calendar-details-assigned-name {
+        margin-left: 8px;
+        font-size: 12px;
+        color: var(--grey-800);
+    }
+
+    .calendar-details-action {
+        margin-top: 8px;
+        color: var(--grey-600);
+        cursor: pointer;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--grey-800);
+        }
+    }
+
+    .calendar-details-remove {
+        margin-top: 8px;
+        color: var(--error);
+        cursor: pointer;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--error-dark);
+        }
+    }
+
+    .calendar-details-close {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        background-color: var(--off-white);
+        border-radius: 100%;
+        font-size: 32px;
+        color: var(--grey-600);
+        cursor: pointer;
+        z-index: 1001;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--grey-800);
         }
     }
 </style>
@@ -622,7 +989,7 @@
             </div>
             <div class="calendar-days-container">
                 {#each days as day}
-                    <CalendarDay date={day} currentTime={currentTime} occasions={occasions} temporaryOccasion={temporaryOccasion} on:openDetails={openDetails} />
+                    <CalendarDay date={day} currentTime={currentTime} occasions={occasions} temporaryOccasion={temporaryOccasion} on:toggleDetails={toggleDetails} on:shift={shift} on:resize={resize} />
                 {/each}
             </div>
         </div>
@@ -652,18 +1019,18 @@
             <div class="calendar-create-subtitle">Assign members</div>
             {#each project.joinedMembers as member, i}
                 <div class="calendar-create-member-container">
-                    <input class="calendar-create-input-checkbox" type="checkbox" bind:checked={occasionMembersChecked[i]} />
+                    <input class="calendar-create-input-checkbox" type="checkbox" bind:checked={occasionAssignedChecked[i]} />
                     <span class="calendar-create-member">{member.displayName}</span>
                 </div>
             {/each}
         </div>
         <div class="calendar-create-date-container">
-            <div class="calendar-create-subtitle">Start date</div>
+            <div class="calendar-create-subtitle">Start time</div>
             <div class="calendar-create-field">
                 <span class="calendar-create-icon material-symbols-rounded">today</span>
                 <input class="calendar-create-input-field" type="datetime-local" bind:this={occasionStartTimeInput} />
             </div>
-            <div class="calendar-create-subtitle">End date</div>
+            <div class="calendar-create-subtitle">End time</div>
             <div class="calendar-create-field">
                 <span class="calendar-create-icon material-symbols-rounded">event</span>
                 <input class="calendar-create-input-field" type="datetime-local" bind:this={occasionEndTimeInput} />
@@ -671,6 +1038,93 @@
         </div>
         <button class="calendar-create-action" on:click={addOccasion}>Add occasion</button>
         <button class="calendar-create-cancel" on:click={cancelCreate}>Cancel</button>
+    </Menu>
+    {#if detailsOpen}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="calendar-details-close material-symbols-rounded" on:click={closeDetails} transition:scale={{duration: TransitionConstants.DURATION}}>cancel</span>
+    {/if}
+    <Menu bind:open={detailsOpen} left="16px" top="16px" width="250px">
+        <div class="calendar-details-color-fill" style="background-color: {detailsOccasion.color}"></div>
+        <div class="calendar-details-name">{detailsOccasion.name}</div>
+        <div class="calendar-details-description">{detailsOccasion.description}</div>
+        <div class="calendar-details-date-container">
+            <span class="material-symbols-rounded">today</span>
+            <div class="calendar-details-date"><b>Start:</b> {StringHelper.getFormattedDate(detailsOccasion.startTime)}</div>
+        </div>
+        <div class="calendar-details-date-container">
+            <span class="material-symbols-rounded">event</span>
+            <div class="calendar-details-date"><b>End:</b> {StringHelper.getFormattedDate(detailsOccasion.endTime)}</div>
+        </div>
+        <div class="calendar-details-assigned-member-subtitle">Assigned Members</div>
+        {#each assignedDetails as member}
+            {#if member != null}
+                <div class="calendar-details-assigned-member-container">
+                    <Avatar member={member} size="24px" />
+                    <div class="calendar-details-assigned-name" style={currMember && member.id == currMember.id ? "font-weight: 600" : ""}>{member.displayName}</div>
+                </div>
+            {/if}
+        {/each}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="calendar-details-action material-symbols-rounded" style={editOpen ? 'color: var(--grey-800);' : ''} on:click={editOccasion}>edit</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="calendar-details-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteOccasion}>delete</span>
+        {#if editOpen}
+            <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                <div class="calendar-create-field">
+                    <span class="calendar-create-icon material-symbols-rounded">badge</span>
+                    <input class="calendar-create-input-field" type="text" placeholder="Project name" maxlength={OccasionConstants.OCCASION_NAME_MAX_LENGTH} bind:value={occasionEditName} />
+                </div>
+                <div class="calendar-create-field">
+                    <span class="calendar-create-icon material-symbols-rounded">description</span>
+                    <input class="calendar-create-input-field" type="text" placeholder="Project description" maxlength={OccasionConstants.OCCASION_DESCRIPTION_MAX_LENGTH} bind:value={occasionEditDescription} />
+                </div>
+                <div class="calendar-create-field">
+                    <span class="calendar-create-icon material-symbols-rounded">colors</span>
+                    {#each ProjectConstants.COLORS as color}
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div class="calendar-create-color" style="background-color: {color.hex}; {occasionEditColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => occasionEditColor = color.hex}>
+                            <Tooltip>{color.displayName}</Tooltip>
+                        </div>
+                    {/each}
+                </div>
+                <div class="calendar-create-members-container">
+                    <div class="calendar-create-subtitle">Assign members</div>
+                    {#each project.members as member, i}
+                        <div class="calendar-create-member-container">
+                            <input class="calendar-create-input-checkbox" type="checkbox" bind:checked={occasionEditAssignedChecked[i]} />
+                            <span class="calendar-create-member">{member.displayName}</span>
+                        </div>
+                    {/each}
+                </div>
+                <div class="calendar-create-date-container">
+                    <div class="calendar-create-subtitle">Start time</div>
+                    <div class="calendar-create-field">
+                        <span class="calendar-create-icon material-symbols-rounded">today</span>
+                        <input class="calendar-create-input-field" type="datetime-local" bind:this={occasionEditStartTimeInput} />
+                    </div>
+                    <div class="calendar-create-subtitle">End time</div>
+                    <div class="calendar-create-field">
+                        <span class="calendar-create-icon material-symbols-rounded">event</span>
+                        <input class="calendar-create-input-field" type="datetime-local" bind:this={occasionEditEndTimeInput} />
+                    </div>
+                </div>
+                <button class="calendar-create-action" on:click={editOccasionConfirmed}>Save</button>
+                <button class="calendar-create-cancel" on:click={hideExtras}>Cancel</button>
+            </div>
+        {/if}
+        {#if deleteOpen}
+            <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                <div class="calendar-create-field">
+                    <div class="calendar-create-is-sure">Are you sure you want to delete this occasion?</div>
+                </div>
+                <button class="calendar-create-remove" on:click={deleteOccasionConfirmed}>Delete</button>
+                <button class="calendar-create-cancel" on:click={hideExtras}>Cancel</button>
+            </div>
+        {/if}
     </Menu>
 </div>
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

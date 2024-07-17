@@ -29,6 +29,7 @@
     let memberAngles: number[] = [];
     let memberOffsets: Vector2[] = [];
     let memberPositions: Vector2[] = [];
+    let openedKickMember: Member = null;
 
     let inviteEmail: string = '';
     let inviteProcessing: boolean = false;
@@ -164,6 +165,16 @@
         } else {
             openSnackbar("An error occurred while inviting the member. Please try again.", "error");
             inviteProcessing = false;
+        }
+    }
+
+    function setOpenedMenu(event: CustomEvent): void {
+        openedKickMember = event.detail.member;
+    }
+
+    function setClosedMenu(event: CustomEvent): void {
+        if (openedKickMember && openedKickMember.id === event.detail.member.id) {
+            openedKickMember = null;
         }
     }
 
@@ -322,7 +333,7 @@
     </div>
     {#if project}
         {#each project.joinedMembers as member, i}
-            <MemberStatus member={member} project={project} x={memberPositions[i].x} y={memberPositions[i].y} nameAbove={memberOffsets[i].y >= 0} />
+            <MemberStatus project={project} member={member} openedKickMember={openedKickMember} x={memberPositions[i].x} y={memberPositions[i].y} nameAbove={memberOffsets[i].y >= 0} on:openKickMenu={setOpenedMenu} on:closeKickMenu={setClosedMenu} />
         {/each}
     {/if}
 </div>

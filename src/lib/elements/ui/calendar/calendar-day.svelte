@@ -23,8 +23,16 @@
         });
     }
 
-    function openDetails(event: CustomEvent): void {
-        dispatch("openDetails", { occasion: event.detail.occasion });
+    function toggleDetails(event: CustomEvent): void {
+        dispatch("toggleDetails", { occasion: event.detail.occasion });
+    }
+
+    function shift(event: CustomEvent): void {
+        dispatch("shift", event.detail);
+    }
+
+    function resize(event: CustomEvent): void {
+        dispatch("resize", event.detail);
     }
 
     onMount(() => {
@@ -40,20 +48,6 @@
         user-select: none;
     }
 
-    .calendar-day-current-now {
-        box-sizing: border-box;
-        position: absolute;
-        width: 100%;
-        background-color: rgba(var(--accent-rgb), 0.25);
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        color: var(--grey-100);
-        font-size: 8px;
-        text-align: center;
-
-        transition: top var(--transition-duration);
-    }
-
     .calendar-day-current-time {
         box-sizing: border-box;
         position: absolute;
@@ -67,13 +61,12 @@
 </style>
 <div class="calendar-day-container">
     {#each dayOccasions as occasion}
-        <CalendarOccasion occasion={occasion} on:openDetails={openDetails} />
+        <CalendarOccasion occasion={occasion} on:toggleDetails={toggleDetails} on:shift={shift} on:resize={resize} />
     {/each}
     {#if temporaryOccasion && ObjectHelper.isSameDate(temporaryOccasion.startTime, date, TimeTick.DAY)}
-        <CalendarOccasion occasion={temporaryOccasion} />
+        <CalendarOccasion occasion={temporaryOccasion} on:shift={shift} on:resize={resize} />
     {/if}
     {#if ObjectHelper.isSameDate(date, currentTime, TimeTick.DAY)}
-        <div class="calendar-day-current-now" style="top: {CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(currentTime) * CalendarConstants.PIXELS_PER_HOUR - 12}px;">Now</div>
         <div class="calendar-day-current-time" style="top: {CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(currentTime) * CalendarConstants.PIXELS_PER_HOUR}px;"></div>
     {/if}
 </div>
