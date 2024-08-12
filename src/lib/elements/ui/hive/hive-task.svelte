@@ -231,12 +231,6 @@
     }
 
     function deleteTaskConfirmed(): void {
-        project.taskIds = project.taskIds.filter((id) => {
-            return id !== task.id;
-        });
-        project.tasks = project.tasks.filter((t) => {
-            return t.id !== task.id;
-        });
         let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
         deleteDoc(taskDoc).then(() => {
             openSnackbar("Task deleted successfully.", "success");

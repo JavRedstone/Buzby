@@ -7,6 +7,7 @@ import { MemberOccasion } from "./MemberOccasion";
 
 export class Occasion {
     public id: string;
+    public projectId: string;
     public name: string;
     public description: string;
     public color: string;    

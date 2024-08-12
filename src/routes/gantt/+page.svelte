@@ -2,13 +2,14 @@
     <title>Buzby | Gantt</title>
 </svelte:head>
 <script lang="ts">
+	import { Member } from '$lib/elements/classes/data/project/Member';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 	import { TimeTick } from '$lib/elements/classes/ui/gantt/TimeTick';
 	import { GanttConstants } from '$lib/elements/classes/ui/gantt/GanttConstants';
 	import GanttTask from '$lib/elements/ui/gantt/gantt-task.svelte';
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import type { Task } from "$lib/elements/classes/data/time/Task";
-	import { allProjects, projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import HiveList from "$lib/elements/ui/hive/hive-list.svelte";
 	import { onDestroy, onMount } from "svelte";
 	import GanttTick from '$lib/elements/ui/gantt/gantt-tick.svelte';
@@ -18,6 +19,7 @@
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
 
+    let currMember: Member = null;
     let project: Project = null;
     let tasks: Task[] = [];
 
@@ -39,17 +41,19 @@
     let taskGotoed: Task = null;
 
     function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-
-                tasks = [];
-                setTimeout(() => {
-                    getTasks();
+        currentMember.subscribe((value) => {
+            currMember = value;
+            if (currMember != null) {
+                projectSelected.subscribe((value) => {
+                    if (value == null) return;
+                    project = currMember.projects.find((p) => p.id == value);
+                    if (project != null) {
+                        getTasks();
+                    } else {
+                        project = null;
+                        tasks = [];
+                    }
                 });
-            } else {
-                project = null;
-                tasks = [];
             }
         });
     }

@@ -40,10 +40,14 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
-            projectSelected.subscribe((value) => {
-                project = currMember.projects.find((project) => project.id == value);
-                setMemberStatusPositions();
-            });
+            if (currMember) {
+                projectSelected.subscribe((value) => {
+                    project = currMember.projects.find((project) => project.id == value);
+                    if (project) {
+                        setMemberStatusPositions();
+                    }
+                });
+            }
         });
     }
 

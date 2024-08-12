@@ -93,7 +93,6 @@
 
     function deleteMessage(): void {
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
-        project.messageIds = project.messageIds.filter((id) => id !== message.id);
         deleteDoc(messageDoc).then(() => {
             let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.id);
             updateDoc(chatDoc, project.compactify()).then(() => {

@@ -386,9 +386,9 @@
                 removeFinalizedPoll();
             }
 
-            if (project.messageIds.length > MessageConstants.MESSAGE_MAX_COUNT) {
-                for (let i = 0; i < project.messageIds.length - MessageConstants.MESSAGE_MAX_COUNT; i++) {
-                    let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", project.messageIds[i]);
+            if (project.messages.length > MessageConstants.MESSAGE_MAX_COUNT) {
+                for (let i = 0; i < project.messages.length - MessageConstants.MESSAGE_MAX_COUNT; i++) {
+                    let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", project.messages[i].id);
                     deleteDoc(messageDoc);
                 }
             }
@@ -1006,144 +1006,146 @@
         color: var(--grey-800);
     }
 </style>
-<div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
-    <div class="discussion-title-container">
-        <div class="discussion-title">Discussion</div>
-    </div>
-    <div class="discussion-messages-container" bind:this={messagesContainer}>
-        {#each project.messages as message, i}
-            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.memberId !== project.messages[i - 1]?.memberId || message.createdAt.getTime() - project.messages[i - 1]?.createdAt.getTime() > MessageConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
-        {/each}
-    </div>
-    <div class="discussion-input-container">
-        {#if replyOpen}
-            <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 || finalizedPollQuestion.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.member.displayName}</div>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>
-            </div>
-        {/if}
-        {#if finalizedLink.length > 0}
-            <div class="discussion-link-container" transition:fade={{duration: TransitionConstants.DURATION}}>
-                Link preview:
-                <a class="discussion-link-preview" href={finalizedLink} target="_blank" rel="noopener noreferrer">{finalizedLinkName}</a>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeLink}>close</span>
-            </div>
-        {/if}
-        {#if finalizedImageUrl.length > 0}
-            <div class="discussion-image-container" transition:fade={{duration: TransitionConstants.DURATION}}>
-                Image preview:
-                <!-- svelte-ignore a11y-img-redundant-alt -->
-                <img class="discussion-image-preview" src={finalizedImageUrl} alt="Image preview" on:error={invalidImage} />
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeImage}>close</span>
-            </div>
-        {/if}
-        {#if finalizedVideoUrl.length > 0}
-            <div class="discussion-video-container" transition:fade={{duration: TransitionConstants.DURATION}}>
-                Video preview:
-                <!-- svelte-ignore a11y-media-has-caption -->
-                <iframe class="discussion-video-preview" width="160" height="100" src={getEmbed(finalizedVideoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeVideo}>close</span>
-            </div>
-        {/if}
-        {#if finalizedPollQuestion.length > 0}
-            <div class="discussion-poll-container" transition:fade={{duration: TransitionConstants.DURATION}}>
-                <div class="discussion-poll-preview-message">A poll has been added to the message.</div>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removePoll}>close</span>
-            </div>
-        {/if}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="discussion-input-icon-button material-symbols-rounded" on:click={toggleExtra}>add_circle</span>
-        <Menu bind:open={extrasOpen} left="8px" bottom="48px" width="200px">
-            <button class="discussion-extra-button" on:click={openLink}>
-                <span class="discussion-extra-button-icon material-symbols-rounded">link</span>
-                <span>Link</span>
-            </button>
-            <button class="discussion-extra-button" on:click={openImage}>
-                <span class="discussion-extra-button-icon material-symbols-rounded">image</span>
-                <span>Image URL</span>
-            </button>
-            <button class="discussion-extra-button" on:click={openVideo}>
-                <span class="discussion-extra-button-icon material-symbols-rounded">youtube_activity</span>
-                <span>Youtube video URL</span>
-            </button>
-            <button class="discussion-extra-button" on:click={openPoll}>
-                <span class="discussion-extra-button-icon material-symbols-rounded">ballot</span>
-                <span>Poll</span>
-            </button>
-        </Menu>
-        <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <div class="discussion-extra-title">Add link</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraLink} />
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={MessageConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
-            <button class="discussion-extra-action" on:click={addLink}>Add</button>
-            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
-        </Menu>
-        <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <div class="discussion-extra-title">Add image URL</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
-            <button class="discussion-extra-action" on:click={addImage}>Add</button>
-            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
-        </Menu>
-        <Menu bind:open={videoOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <div class="discussion-extra-title">Add Youtube video URL</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
-            <button class="discussion-extra-action" on:click={addVideo}>Add</button>
-            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
-        </Menu>
-        <Menu bind:open={pollOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
-            <div class="discussion-extra-title">Add poll</div>
-            <div class="discussion-extra-subtitle">Poll question</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a poll question..." maxlength={MessageConstants.POLL_QUESTION_MAX_LENGTH} bind:value={extraPollQuestion} />
-            <div class="discussion-poll-options-container">
-                <div class="discussion-extra-subtitle">Poll options</div>
-                {#each extraPollOptions as option, i}
-                    <div class="discussion-poll-option-container" transition:slide={{duration: TransitionConstants.DURATION}}>
-                        <span class="material-symbols-rounded">check_circle</span>
-                        <input class="discussion-poll-option-field" type="text" placeholder={`Option ${i + 1}`} maxlength={MessageConstants.POLL_OPTION_MAX_LENGTH} bind:value={extraPollOptions[i]} />
-                        {#if extraPollOptions.length > 2}
-                            <!-- svelte-ignore a11y-click-events-have-key-events -->
-                            <!-- svelte-ignore a11y-no-static-element-interactions -->
-                            <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={() => removePollOption(i)}>close</span>
-                        {/if}
-                    </div>
-                {/each}
-                {#if extraPollOptions.length < MessageConstants.POLL_MAX_OPTIONS}
-                    <button class="discussion-extra-poll-add-option" on:click={addPollOption}>Add option</button>
-                {/if}
-            </div>
-            <div class="discussion-extra-subtitle">Poll settings</div>
-            <div class="discussion-extra-poll-duration-label">Poll duration</div>
-            <Dropdown label="Poll duration" items={MessageConstants.POLL_DURATIONS} defaultItem="" bind:selectedItem={extraPollDuration} bind:selectedItemIdx={extraPollDurationIdx} bind:open={extraPollDurationOpen} small={true} maxHeight="100px" />
-            <div class="discussion-extra-poll-multiple-container">
-                <input class="discussion-extra-poll-multiple-checkbox" type="checkbox" bind:checked={extraPollMultiple} />
-                <div class="discussion-extra-poll-multiple-label">Allow multiple votes</div>
-            </div>
-            <button class="discussion-extra-action" on:click={addPoll}>Add</button>
-            <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
-        </Menu>
-        <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={MessageConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />
-        <div class="discussion-input-field-progress-line-container">
-            <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
+{#if project}
+    <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
+        <div class="discussion-title-container">
+            <div class="discussion-title">Discussion</div>
         </div>
-        <div class="discussion-input-icon-progress-circle-container">
-            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
+        <div class="discussion-messages-container" bind:this={messagesContainer}>
+            {#each project.messages as message, i}
+                <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.memberId !== project.messages[i - 1]?.memberId || message.createdAt.getTime() - project.messages[i - 1]?.createdAt.getTime() > MessageConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
+            {/each}
         </div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="discussion-input-icon-button material-symbols-rounded" on:click={sendMessage}>send</span>
+        <div class="discussion-input-container">
+            {#if replyOpen}
+                <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 || finalizedPollQuestion.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.member.displayName}</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>
+                </div>
+            {/if}
+            {#if finalizedLink.length > 0}
+                <div class="discussion-link-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                    Link preview:
+                    <a class="discussion-link-preview" href={finalizedLink} target="_blank" rel="noopener noreferrer">{finalizedLinkName}</a>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeLink}>close</span>
+                </div>
+            {/if}
+            {#if finalizedImageUrl.length > 0}
+                <div class="discussion-image-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                    Image preview:
+                    <!-- svelte-ignore a11y-img-redundant-alt -->
+                    <img class="discussion-image-preview" src={finalizedImageUrl} alt="Image preview" on:error={invalidImage} />
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeImage}>close</span>
+                </div>
+            {/if}
+            {#if finalizedVideoUrl.length > 0}
+                <div class="discussion-video-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                    Video preview:
+                    <!-- svelte-ignore a11y-media-has-caption -->
+                    <iframe class="discussion-video-preview" width="160" height="100" src={getEmbed(finalizedVideoUrl)} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removeVideo}>close</span>
+                </div>
+            {/if}
+            {#if finalizedPollQuestion.length > 0}
+                <div class="discussion-poll-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+                    <div class="discussion-poll-preview-message">A poll has been added to the message.</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={removePoll}>close</span>
+                </div>
+            {/if}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="discussion-input-icon-button material-symbols-rounded" on:click={toggleExtra}>add_circle</span>
+            <Menu bind:open={extrasOpen} left="8px" bottom="48px" width="200px">
+                <button class="discussion-extra-button" on:click={openLink}>
+                    <span class="discussion-extra-button-icon material-symbols-rounded">link</span>
+                    <span>Link</span>
+                </button>
+                <button class="discussion-extra-button" on:click={openImage}>
+                    <span class="discussion-extra-button-icon material-symbols-rounded">image</span>
+                    <span>Image URL</span>
+                </button>
+                <button class="discussion-extra-button" on:click={openVideo}>
+                    <span class="discussion-extra-button-icon material-symbols-rounded">youtube_activity</span>
+                    <span>Youtube video URL</span>
+                </button>
+                <button class="discussion-extra-button" on:click={openPoll}>
+                    <span class="discussion-extra-button-icon material-symbols-rounded">ballot</span>
+                    <span>Poll</span>
+                </button>
+            </Menu>
+            <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+                <div class="discussion-extra-title">Add link</div>
+                <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraLink} />
+                <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={MessageConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
+                <button class="discussion-extra-action" on:click={addLink}>Add</button>
+                <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+            </Menu>
+            <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+                <div class="discussion-extra-title">Add image URL</div>
+                <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
+                <button class="discussion-extra-action" on:click={addImage}>Add</button>
+                <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+            </Menu>
+            <Menu bind:open={videoOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+                <div class="discussion-extra-title">Add Youtube video URL</div>
+                <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
+                <button class="discussion-extra-action" on:click={addVideo}>Add</button>
+                <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+            </Menu>
+            <Menu bind:open={pollOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
+                <div class="discussion-extra-title">Add poll</div>
+                <div class="discussion-extra-subtitle">Poll question</div>
+                <input class="discussion-extra-input-field" type="text" placeholder="Type a poll question..." maxlength={MessageConstants.POLL_QUESTION_MAX_LENGTH} bind:value={extraPollQuestion} />
+                <div class="discussion-poll-options-container">
+                    <div class="discussion-extra-subtitle">Poll options</div>
+                    {#each extraPollOptions as option, i}
+                        <div class="discussion-poll-option-container" transition:slide={{duration: TransitionConstants.DURATION}}>
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <input class="discussion-poll-option-field" type="text" placeholder={`Option ${i + 1}`} maxlength={MessageConstants.POLL_OPTION_MAX_LENGTH} bind:value={extraPollOptions[i]} />
+                            {#if extraPollOptions.length > 2}
+                                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                <span class="discussion-extra-preview-cancel material-symbols-rounded" on:click={() => removePollOption(i)}>close</span>
+                            {/if}
+                        </div>
+                    {/each}
+                    {#if extraPollOptions.length < MessageConstants.POLL_MAX_OPTIONS}
+                        <button class="discussion-extra-poll-add-option" on:click={addPollOption}>Add option</button>
+                    {/if}
+                </div>
+                <div class="discussion-extra-subtitle">Poll settings</div>
+                <div class="discussion-extra-poll-duration-label">Poll duration</div>
+                <Dropdown label="Poll duration" items={MessageConstants.POLL_DURATIONS} defaultItem="" bind:selectedItem={extraPollDuration} bind:selectedItemIdx={extraPollDurationIdx} bind:open={extraPollDurationOpen} small={true} maxHeight="100px" />
+                <div class="discussion-extra-poll-multiple-container">
+                    <input class="discussion-extra-poll-multiple-checkbox" type="checkbox" bind:checked={extraPollMultiple} />
+                    <div class="discussion-extra-poll-multiple-label">Allow multiple votes</div>
+                </div>
+                <button class="discussion-extra-action" on:click={addPoll}>Add</button>
+                <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
+            </Menu>
+            <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={MessageConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />
+            <div class="discussion-input-field-progress-line-container">
+                <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
+            </div>
+            <div class="discussion-input-icon-progress-circle-container">
+                <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
+            </div>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="discussion-input-icon-button material-symbols-rounded" on:click={sendMessage}>send</span>
+        </div>
     </div>
-</div>
+{/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

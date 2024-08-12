@@ -100,7 +100,7 @@
         if (taskMenuOpen) {
             dispatch("openTaskMenu", { task: task });
 
-            if (project.taskIds.length >= ProjectConstants.MAX_NUM_TASKS) {
+            if (project.tasks.length >= ProjectConstants.MAX_NUM_TASKS) {
                 openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_TASKS} tasks.`, "error");
                 taskMenuOpen = false;
                 return;
@@ -135,7 +135,7 @@
     }
 
     function addTask(): void {
-        if (project.taskIds.length >= ProjectConstants.MAX_NUM_TASKS) {
+        if (project.tasks.length >= ProjectConstants.MAX_NUM_TASKS) {
             openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_TASKS} tasks.`, "error");
             return;
         }
@@ -201,6 +201,7 @@
 
             let newTask: Task = new Task({
                 id: StringHelper.generateID(),
+                projectId: project.id,
                 name: taskName.trim(),
                 description: taskDescription.trim(),
                 percentage: 0,

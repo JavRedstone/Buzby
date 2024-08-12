@@ -15,6 +15,8 @@
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 	import { MemberProject } from '$lib/elements/classes/data/project/MemberProject';
+	import { goto } from '$app/navigation';
+	import { RouteConstants } from '$lib/elements/classes/ui/core/RouteConstants';
 
     export let project: Project = null;
     export let isRequested: boolean = false;
@@ -48,6 +50,7 @@
     function gotoProject(): void {
         projectSelected.set(project.id);
         localStorage.setItem('selectedProjectId', project.id);
+        goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
     }
 
     function getCurrMember(): void {
@@ -338,12 +341,12 @@
                         setDoc(pingDoc, ping.compactify());
                     });
                 }
-                for (let taskId of project.taskIds) {
-                    let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', taskId);
+                for (let task of project.tasks) {
+                    let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
                     deleteDoc(taskDoc);
                 }
-                for (let occasionId of project.occasionIds) {
-                    let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('occasions', occasionId);
+                for (let occasion of project.occasions) {
+                    let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('occasions', occasion.id);
                     deleteDoc(occasionDoc);
                 }
                 openSnackbar("Project successfully deleted.", "success");

@@ -62,7 +62,7 @@
 
     function gotoHome(): void {
         goto(RouteConstants.HOME);
-        projectSelected.set('');
+        projectSelected.set(null);
     }
 
     function autoRedirect(): void {
@@ -72,6 +72,9 @@
 
             if (pathname != '/') {
                 localStorage.setItem('selectedProjectRoute', pathname);
+                sideOpen = true;
+            } else {
+                sideOpen = false;
             }
             history.forward();
         });
@@ -103,11 +106,11 @@
         let project: Project = currMember.joinedProjects[selectedProjectIdx - 1];
         if (project || selectedProjectName == defaultProjectName) {
             selectedProject = project;
-            projectSelected.set(project.id);
             if (selectedProjectName != defaultProjectName && location.pathname == '/') {
+                projectSelected.set(project.id);
                 goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
             } else if (selectedProjectName == defaultProjectName) {
-                goto(RouteConstants.HOME);
+                gotoHome();
             }
         }
         localStorage.setItem('selectedProjectId', selectedProject ? selectedProject.id : '');

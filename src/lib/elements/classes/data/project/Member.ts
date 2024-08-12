@@ -32,7 +32,7 @@ export class Member {
         this.set(data);
 
         setInterval(() => {
-            console.log(this.projects);
+            // console.log(this.projects);
             currentMember.update((value) => {
                 return value;
             });

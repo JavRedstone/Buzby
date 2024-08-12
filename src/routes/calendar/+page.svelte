@@ -162,7 +162,7 @@
     }
 
     function addOccasion(): void {
-        if (project.occasionIds.length >= ProjectConstants.MAX_NUM_OCCASIONS) {
+        if (project.occasions.length >= ProjectConstants.MAX_NUM_OCCASIONS) {
             openSnackbar(`You can only make a maximum of ${ProjectConstants.MAX_NUM_OCCASIONS} occasions.`, "error");
             return;
         }
@@ -233,6 +233,7 @@
 
             let newOccasion: Occasion = new Occasion({
                 id: StringHelper.generateID(),
+                projectId: project.id,
                 name: temporaryOccasion.name.trim(),
                 description: temporaryOccasion.description.trim(),
                 color: temporaryOccasion.color,
@@ -246,18 +247,10 @@
                 return;
             }
 
-            project.occasionIds = [...project.occasionIds, newOccasion.id];
-            project.occasions = [...project.occasions, newOccasion];
-
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
-            setDoc(projectDoc, project.compactify()).then(() => {
-                let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", newOccasion.id);
-                setDoc(occasionDoc, newOccasion.compactify()).then(() => {
-                    openSnackbar("Occasion added successfully.", "success");
-                    cancelCreate();
-                }).catch((error) => {
-                    openSnackbar("An error occurred while adding occasion. Please try again.", "error");
-                });
+            let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", newOccasion.id);
+            setDoc(occasionDoc, newOccasion.compactify()).then(() => {
+                openSnackbar("Occasion added successfully.", "success");
+                cancelCreate();
             }).catch((error) => {
                 openSnackbar("An error occurred while adding occasion. Please try again.", "error");
             });
@@ -428,12 +421,6 @@
 
 
     function deleteOccasionConfirmed(): void {
-        project.occasionIds = project.occasionIds.filter((id) => {
-            return id !== detailsOccasion.id;
-        });
-        project.occasions = project.occasions.filter((o) => {
-            return o.id !== detailsOccasion.id;
-        });
         let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", detailsOccasion.id);
         deleteDoc(occasionDoc).then(() => {
             closeDetails();

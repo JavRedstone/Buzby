@@ -27,11 +27,19 @@
             currMember = value;
             if (currMember != null) {
                 projectSelected.subscribe((value) => {
+                    if (value == null) {
+                        isOverview = true;
+                        return;
+                    }
                     currentProject = currMember.projects.find((p) => p.id == value);
                     if (currentProject) {
                         isOverview = currentProject.name == ProjectConstants.DEFAULT_PROJECT_NAME;
+                    } else {
+                        isOverview = true;
                     }
                 });
+            } else {
+                isOverview = true;
             }
         });
     }

@@ -28,11 +28,8 @@ export class Project {
     public requestedMemberIds: string[] = [];
     public requestedMembers: Member[] = [];
 
-    public messageIds: string[] = [];
     public messages: Message[] = [];
-    public taskIds: string[] = [];
     public tasks: Task[] = [];
-    public occasionIds: string[] = [];
     public occasions: Occasion[] = [];
     
     constructor(data: any) {
@@ -80,11 +77,8 @@ export class Project {
         let memberProjectQuery = query(memberProjectCollection, where('projectId', '==', this.id));
         onSnapshot(memberProjectQuery, (snapshot) => {
             let memberProjects: MemberProject[] = [];
-            let memberIds: string[] = [];
             let members: Member[] = [];
-            let joinedMemberIds: string[] = [];
             let joinedMembers: Member[] = [];
-            let requestedMemberIds: string[] = [];
             let requestedMembers: Member[] = [];
 
             snapshot.forEach((doc) => {
@@ -121,7 +115,6 @@ export class Project {
         let messagesCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('messages');
         let messagesQuery = query(messagesCollection, where('projectId', '==', this.id));
         onSnapshot(messagesQuery, (snapshot) => {
-            let messageIds: string[] = [];
             let messages: Message[] = [];
             snapshot.forEach((doc) => {
                 let message = new Message(doc.data());
@@ -131,11 +124,9 @@ export class Project {
                     message ? message.set(doc.data()) : message = new Message(doc.data());
                 });
 
-                messageIds.push(message.id);
                 messages.push(message);
             });
 
-            this.messageIds = messageIds;
             this.messages = messages;
         });
     }
@@ -144,7 +135,6 @@ export class Project {
         let tasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('tasks');
         let tasksQuery = query(tasksCollection, where('projectId', '==', this.id));
         onSnapshot(tasksQuery, (snapshot) => {
-            let taskIds: string[] = [];
             let tasks: Task[] = [];
 
             snapshot.forEach((doc) => {
@@ -155,11 +145,9 @@ export class Project {
                     task ? task.set(doc.data()) : task = new Task(doc.data());
                 });
 
-                taskIds.push(task.id);
                 tasks.push(task);
             });
 
-            this.taskIds = taskIds;
             this.tasks = tasks;
         });
     }
@@ -168,7 +156,6 @@ export class Project {
         let occasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('occasions');
         let occasionsQuery = query(occasionsCollection, where('projectId', '==', this.id));
         onSnapshot(occasionsQuery, (snapshot) => {
-            let occasionIds: string[] = [];
             let occasions: Occasion[] = [];
             snapshot.forEach((doc) => {
                 let occasion = new Occasion(doc.data());
@@ -179,10 +166,8 @@ export class Project {
                     occasion.setObjects();
                 });
 
-                occasionIds.push(occasion.id);
                 occasions.push(occasion);
             });
-            this.occasionIds = occasionIds;
             this.occasions = occasions;
         });
     }
