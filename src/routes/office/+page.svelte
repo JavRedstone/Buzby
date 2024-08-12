@@ -134,9 +134,10 @@
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
                 setDoc(projectDoc, project.compactify()).then(async () => {
                     for (let member of members) {
-                        member.requestedProjectIds.push(project.id);
                         let ping: Ping = new Ping({
                             id: StringHelper.generateID(),
+                            memberId: member.id,
+                            projectId: project.id,
                             type: PingConstants.TYPES.PROJECT,
                             title: "Project request",
                             message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,

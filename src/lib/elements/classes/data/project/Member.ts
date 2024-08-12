@@ -23,17 +23,20 @@ export class Member {
     public pings: Ping[] = [];
     
     public memberProjects: MemberProject[] = [];
-    public projectIds: string[] = [];
     public projects: Project[] = [];
-    public ownedProjectIds: string[] = [];
     public ownedProjects: Project[] = [];
-    public joinedProjectIds: string[] = [];
     public joinedProjects: Project[] = [];
-    public requestedProjectIds: string[] = [];
     public requestedProjects: Project[] = [];
 
     public constructor(data: any) {
         this.set(data);
+
+        setInterval(() => {
+            console.log(this.projects);
+            currentMember.update((value) => {
+                return value;
+            });
+        }, 1000);
     }
 
     public set(data: any): void {
@@ -109,13 +112,9 @@ export class Member {
         let memberProjectsQuery = query(memberProjectsCollection, where('memberId', '==', this.id));
         onSnapshot(memberProjectsQuery, (snapshot) => {
             let memberProjects: MemberProject[] = [];
-            let projectIds: string[] = [];
             let projects: Project[] = [];
-            let ownedProjectIds: string[] = [];
             let ownedProjects: Project[] = [];
-            let joinedProjectIds: string[] = [];
             let joinedProjects: Project[] = [];
-            let requestedProjectIds: string[] = [];
             let requestedProjects: Project[] = [];
 
             snapshot.forEach((doc) => {
@@ -130,31 +129,23 @@ export class Member {
                     project.setObjects();
                 });
 
-                projectIds.push(project.id);
                 projects.push(project);
 
                 if (memberProject.isOwner) {
-                    ownedProjectIds.push(project.id);
                     ownedProjects.push(project);
                 }
 
                 if (memberProject.hasJoined) {
-                    joinedProjectIds.push(project.id);
                     joinedProjects.push(project);
                 } else {
-                    requestedProjectIds.push(project.id);
                     requestedProjects.push(project);
                 }
             });
 
             this.memberProjects = memberProjects;
-            this.projectIds = projectIds;
             this.projects = projects;
-            this.ownedProjectIds = ownedProjectIds;
             this.ownedProjects = ownedProjects;
-            this.joinedProjectIds = joinedProjectIds;
             this.joinedProjects = joinedProjects;
-            this.requestedProjectIds = requestedProjectIds;
             this.requestedProjects = requestedProjects;
 
             this.projects.sort((a, b) => {

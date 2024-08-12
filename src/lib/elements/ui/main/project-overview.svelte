@@ -414,8 +414,6 @@
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
             setDoc(projectDoc, project.compactify()).then(() => {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
-                currMember.projectIds.push(project.id);
-                currMember.requestedProjectIds = currMember.requestedProjectIds.filter((id) => id != project.id);
                 setDoc(memberDoc, currMember.compactify()).then(() => {
                     openSnackbar("Successfully joined project.", "success");
                     joinProcessing = false;
@@ -758,7 +756,7 @@
         <div class="project-overview-member-count">{project.members.length - project.joinedMembers.length} pending member{project.members.length - project.joinedMembers.length != 1 ? "s" : ""}</div>
         <div class="project-overview-owner">
             <span class="material-symbols-rounded">supervisor_account</span>
-            <div class="project-overview-owner-name">{project.owner.displayName}</div>
+            <div class="project-overview-owner-name">{project.owner ? project.owner.displayName : ''}</div>
         </div>
         <div class="project-overview-date">Created: {StringHelper.getFormattedDate(project.createdAt)}</div>
         {#if isRequested}

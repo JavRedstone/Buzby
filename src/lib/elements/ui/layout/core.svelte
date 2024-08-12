@@ -83,9 +83,9 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
-            if (currMember) {
-                currMember.setObjects();
-            }
+            // if (currMember) {
+            //     currMember.setObjects();
+            // }
         });
     }
 

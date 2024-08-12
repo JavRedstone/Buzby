@@ -470,7 +470,7 @@
     <div class="overview-projects-container">
         {#if currMember}
             {#each currMember.joinedProjects as project}
-                <ProjectOverview bind:project={project} isRequested={false} isOwner={project.owner.id === currMember.id} />
+                <ProjectOverview bind:project={project} isRequested={false} isOwner={project && project.owner ? project.owner.id === currMember.id : false} />
             {/each}
             {#if currMember.joinedProjects.length === 0}
                 <div class="overview-no-projects">No projects found. Create one above!</div>
