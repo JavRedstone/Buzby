@@ -77,8 +77,15 @@
             taskName = task.name;
             taskDescription = task.description;
             taskAssignedChecked = [];
-            for (let i = 0; i < project.memberIds.length; i++) {
-                taskAssignedChecked = [...taskAssignedChecked, task.memberIds.includes(project.memberIds[i])];
+            for (let i = 0; i < project.members.length; i++) {
+                let hasMember: boolean = false;
+                for (let i = 0; i < task.memberTasks.length; i++) {
+                    if (task.memberTasks[i].memberId == project.members[i].id) {
+                        hasMember = true;
+                        break;
+                    }
+                }
+                taskAssignedChecked = [...taskAssignedChecked, hasMember];
             }
             setTimeout(() => {
                 taskStartDateInput.valueAsNumber = ObjectHelper.getDateInputValue(task.startDate);
@@ -88,6 +95,15 @@
         else {
             hideExtras();
         }
+    }
+
+    function taskHasMember(task: Task, member: Member): boolean {
+        for (let i = 0; i < task.memberTasks.length; i++) {
+            if (task.memberTasks[i].memberId == member.id) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function deleteTask(): void {

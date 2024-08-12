@@ -18,6 +18,10 @@ export class Occasion {
     public members: Member[] = [];
 
     constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any) {
         this.id = data.id;
 
         this.name = data.name;

@@ -19,6 +19,10 @@ export class Task {
     public members: Member[] = [];
 
     constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
 
         this.projectId = data.projectId;
@@ -97,7 +101,7 @@ export class Task {
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberTask.memberId);
                 onSnapshot(memberDoc, (doc) => {
-                    member = new Member(doc.data());
+                    member ? member.set(doc.data()) : member = new Member(doc.data());
                 });
 
                 memberIds.push(member.id);

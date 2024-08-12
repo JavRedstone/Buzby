@@ -87,6 +87,24 @@
                     memberIds.push(member.id);
                     members.push(member);
                 });
+
+                let hasJoinedMember: boolean = false;
+                let hasRequestedMember: boolean = false;
+                if (members.length > 0) {
+                    for (let joinedMember of project.joinedMembers) {
+                        if (joinedMember.id == members[0].id) {
+                            hasJoinedMember = true;
+                            break;
+                        }
+                    }
+                    for (let requestedMember of project.requestedMembers) {
+                        if (requestedMember.id == members[0].id) {
+                            hasRequestedMember = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (memberIds.length == 0) {
                     openSnackbar("No member found with that email.", "error");
                     inviteProcessing = false;
@@ -99,11 +117,11 @@
                     openSnackbar("You cannot invite yourself to a project.", "error");
                     inviteProcessing = false;
                     return;
-                } else if (project.joinedMemberIds.includes(memberIds[0])) {
+                } else if (hasJoinedMember) {
                     openSnackbar("Member is already in the project.", "error");
                     inviteProcessing = false;
                     return;
-                } else if (project.memberIds.includes(memberIds[0])) {
+                } else if (hasRequestedMember) {
                     openSnackbar("Member is already requested to join the project.", "error");
                     inviteProcessing = false;
                     return;
@@ -114,7 +132,6 @@
                 }
 
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-                project.memberIds = [...project.memberIds, ...memberIds];
                 setDoc(projectDoc, project.compactify()).then(async () => {
                     for (let member of members) {
                         member.requestedProjectIds.push(project.id);

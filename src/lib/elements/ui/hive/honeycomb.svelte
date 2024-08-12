@@ -190,7 +190,7 @@
             let assignedIds: string[] = [];
             for (let i = 0; i < taskMembersChecked.length; i++) {
                 if (taskMembersChecked[i]) {
-                    assignedIds.push(project.joinedMemberIds[i]);
+                    assignedIds.push(project.joinedMembers[i].id);
                 }
             }
 

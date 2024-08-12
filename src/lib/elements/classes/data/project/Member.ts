@@ -4,6 +4,7 @@ import { MemberConstants } from "./MemberConstants";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { MemberProject } from "./MemberProject";
 import { Project } from "./Project";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Member {
     public id: string;
@@ -32,6 +33,10 @@ export class Member {
     public requestedProjects: Project[] = [];
 
     public constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
         
         this.displayName = data.displayName;
@@ -76,10 +81,6 @@ export class Member {
         }
 
         this.createdAtTemp = data.createdAtTemp;
-
-        setInterval(() => {
-            console.log(this.projects);
-        }, 1000);
     }
 
     public setObjects(): void {
@@ -125,7 +126,7 @@ export class Member {
 
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', memberProject.projectId);
                 onSnapshot(projectDoc, (doc) => {
-                    project = new Project(doc.data());
+                    project ? project.set(doc.data()) : project = new Project(doc.data());
                     project.setObjects();
                 });
 

@@ -36,6 +36,10 @@ export class Project {
     public occasions: Occasion[] = [];
     
     constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
         
         this.name = data.name;
@@ -91,26 +95,25 @@ export class Project {
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberProject.memberId);
                 onSnapshot(memberDoc, (doc) => {
-                    member = new Member(doc.data());
+                    member ? member.set(doc.data()) : member = new Member(doc.data());
                 });
                 
-                memberIds.push(member.id);
                 members.push(member);
 
                 if (memberProject.isOwner) {
-                    this.ownerId = member.id;
                     this.owner = member;
                 }
 
                 if (memberProject.hasJoined) {
-                    joinedMemberIds.push(member.id);
                     joinedMembers.push(member);
                 } else {
-                    requestedMemberIds.push(member.id);
                     requestedMembers.push(member);
                 }
             });
             this.memberProjects = memberProjects;
+            this.members = members;
+            this.joinedMembers = joinedMembers;
+            this.requestedMembers = requestedMembers;
         });
     }
 
@@ -125,7 +128,7 @@ export class Project {
             
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('messages', message.id);
                 onSnapshot(messageDoc, (doc) => {
-                    message = new Message(doc.data());
+                    message ? message.set(doc.data()) : message = new Message(doc.data());
                 });
 
                 messageIds.push(message.id);
@@ -149,7 +152,7 @@ export class Project {
                 
                 let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
                 onSnapshot(taskDoc, (doc) => {
-                    task = new Task(doc.data());
+                    task ? task.set(doc.data()) : task = new Task(doc.data());
                 });
 
                 taskIds.push(task.id);
@@ -172,7 +175,7 @@ export class Project {
                 
                 let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('occasions', occasion.id);
                 onSnapshot(occasionDoc, (doc) => {
-                    occasion = new Occasion(doc.data());
+                    occasion ? occasion.set(doc.data()) : occasion = new Occasion(doc.data());
                     occasion.setObjects();
                 });
 

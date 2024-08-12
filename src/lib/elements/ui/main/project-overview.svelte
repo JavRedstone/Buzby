@@ -145,11 +145,31 @@
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
             let membersQuery = query(membersCollection, where("email", "==", inviteEmail.toLowerCase()));
             let memberIds: string[] = [];
+            let members: Member[] = [];
             getDocs(membersQuery).then((snapshot) => {
                 snapshot.forEach((doc) => {
                     let member: Member = new Member(doc.data());
                     memberIds.push(member.id);
+                    members.push(member);
                 });
+
+                let hasJoinedMember: boolean = false;
+                let hasRequestedMember: boolean = false;
+                if (members.length > 0) {
+                    for (let joinedMember of project.joinedMembers) {
+                        if (joinedMember.id == members[0].id) {
+                            hasJoinedMember = true;
+                            break;
+                        }
+                    }
+                    for (let requestedMember of project.requestedMembers) {
+                        if (requestedMember.id == members[0].id) {
+                            hasRequestedMember = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (memberIds.length == 0) {
                     openSnackbar("No member found with that email.", "error");
                     inviteProcessing = false;
@@ -162,11 +182,11 @@
                     openSnackbar("You cannot invite yourself to a project.", "error");
                     inviteProcessing = false;
                     return;
-                } else if (project.joinedMemberIds.includes(memberIds[0])) {
+                } else if (hasJoinedMember) {
                     openSnackbar("Member is already in the project.", "error");
                     inviteProcessing = false;
                     return;
-                } else if (project.requestedMemberIds.includes(memberIds[0])) {
+                } else if (hasRequestedMember) {
                     openSnackbar("Member is already requested to join the project.", "error");
                     inviteProcessing = false;
                     return;
@@ -263,11 +283,11 @@
             projectEdited.description = projectDescription;
             projectEdited.color = projectColor;
             setDoc(projectDoc, projectEdited.compactify()).then(() => {
-                for (let memberId of project.memberIds) {
-                    if (memberId != project.ownerId) {
+                for (let member of project.members) {
+                    if (member.id != project.owner.id) {
                         let ping: Ping = new Ping({
                             id: StringHelper.generateID(),
-                            memberId: memberId,
+                            memberId: member.id,
                             projectId: project.id,
                             type: PingConstants.TYPES.PROJECT,
                             title: "Project edited",
@@ -348,8 +368,6 @@
 
         if (currMember) {
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            project.joinedMemberIds = project.joinedMemberIds.filter((id) => id != currMember.id);
-            project.memberIds = project.memberIds.filter((id) => id != currMember.id);
             setDoc(projectDoc, project.compactify()).then(() => {
                 let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
                 if (memberProject) {
@@ -394,7 +412,6 @@
 
         if (currMember) {
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            project.joinedMemberIds.push(currMember.id);
             setDoc(projectDoc, project.compactify()).then(() => {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
                 currMember.projectIds.push(project.id);
@@ -438,7 +455,6 @@
 
         if (currMember) {
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            project.memberIds = project.memberIds.filter((id) => id != currMember.id);
             setDoc(projectDoc, project.compactify()).then(() => {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
                 setDoc(memberDoc, currMember.compactify()).then(() => {
@@ -749,7 +765,7 @@
             <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join project</button>
             <button class="project-overview-project-remove" on:click={rejectProjectConfirmed}>Reject request</button>
         {:else}
-            {#if project.memberIds.length < ProjectConstants.MAX_NUM_MEMBERS}
+            {#if project.members.length < ProjectConstants.MAX_NUM_MEMBERS}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>

@@ -14,6 +14,10 @@ export class Poll {
     public pollOptions: PollOption[] = [];
 
     constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
         
         this.question = data.question;

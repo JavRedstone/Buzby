@@ -13,6 +13,10 @@ export class Ping {
     public createdAtTemp: any;
 
     public constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any) {
         this.id = data.id;
 
         this.type = data.type;

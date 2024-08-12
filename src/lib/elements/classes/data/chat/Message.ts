@@ -22,6 +22,10 @@ export class Message {
     public poll: Poll;
 
     constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
         
         this.memberId = data.memberId;
