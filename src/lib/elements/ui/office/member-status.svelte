@@ -19,9 +19,9 @@
 
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
+	import { currentMember, projectSelected } from '$lib/elements/stores/project-store';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
-	import { setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
+	import { deleteDoc, setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '../general/snackbar.svelte';
 	import type { Project } from '$lib/elements/classes/data/project/Project';
@@ -39,10 +39,10 @@
     export let y: number = 0;
     export let nameAbove: boolean = false;
 
-    let base: number = member.avatarBase;
-    let head: number = member.avatarHead;
-    let eyes: number = member.avatarEyes;
-    let neck: number = member.avatarNeck;
+    let base: number = member.statusBase;
+    let head: number = member.statusHead;
+    let eyes: number = member.statusEyes;
+    let neck: number = member.statusNeck;
 
     let currMember: Member = null;
 
@@ -56,19 +56,15 @@
     $: openedKickMember ? setMenuStatus() : null;
 
     function setMemberStatus(): void {
-        base = member.avatarBase;
-        head = member.avatarHead;
-        eyes = member.avatarEyes;
-        neck = member.avatarNeck;
+        base = member.statusBase;
+        head = member.statusHead;
+        eyes = member.statusEyes;
+        neck = member.statusNeck;
     }
 
     function getCurrentMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
+        currentMember.subscribe((value) => {
+            currMember = value;
         });
     }
 
@@ -87,21 +83,17 @@
             return;
         }
 
-        if (member.avatarBase === base && member.avatarHead === head && member.avatarEyes === eyes && member.avatarNeck === neck) {
+        if (member.statusBase === base && member.statusHead === head && member.statusEyes === eyes && member.statusNeck === neck) {
             return;
         }
 
-        member.avatarBase = base;
-        member.avatarHead = head;
-        member.avatarEyes = eyes;
-        member.avatarNeck = neck;
+        member.statusBase = base;
+        member.statusHead = head;
+        member.statusEyes = eyes;
+        member.statusNeck = neck;
 
         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
         setDoc(memberDoc, member.compactify()).then(() => {
-            memberStatus.update((value) => {
-                value.currentMember = member;
-                return value;
-            });
             openSnackbar('Member status saved successfully.', 'success');
         }).catch((error) => {
             openSnackbar('Error saving member status. Please try again.', 'error');
@@ -110,21 +102,21 @@
 
     function shiftBaseLeft(): void {
         base--;
-        if (base < MemberConstants.AVATAR_BASES.OFFLINE) {
-            base = MemberConstants.AVATAR_BASES.DND;
+        if (base < MemberConstants.STATUS_BASES.OFFLINE) {
+            base = MemberConstants.STATUS_BASES.DND;
         }
     }
 
     function shiftBaseRight(): void {
         base++;
-        if (base > MemberConstants.AVATAR_BASES.DND) {
-            base = MemberConstants.AVATAR_BASES.OFFLINE;
+        if (base > MemberConstants.STATUS_BASES.DND) {
+            base = MemberConstants.STATUS_BASES.OFFLINE;
         }
     }
 
     function shiftHeadLeft(): void {
         head--;
-        if (head < MemberConstants.AVATAR_HEADS.DEFAULT) {
+        if (head < MemberConstants.STATUS_HEADS.DEFAULT) {
             head = MemberConstants.HEADS.length - 2;
         }
     }
@@ -132,13 +124,13 @@
     function shiftHeadRight(): void {
         head++;
         if (head >= MemberConstants.HEADS.length - 1) {
-            head = MemberConstants.AVATAR_HEADS.DEFAULT;
+            head = MemberConstants.STATUS_HEADS.DEFAULT;
         }
     }
 
     function shiftEyesLeft(): void {
         eyes--;
-        if (eyes < MemberConstants.AVATAR_EYES.DEFAULT) {
+        if (eyes < MemberConstants.STATUS_EYES.DEFAULT) {
             eyes = MemberConstants.EYES.length - 2;
         }
     }
@@ -146,13 +138,13 @@
     function shiftEyesRight(): void {
         eyes++;
         if (eyes >= MemberConstants.EYES.length - 1) {
-            eyes = MemberConstants.AVATAR_EYES.DEFAULT;
+            eyes = MemberConstants.STATUS_EYES.DEFAULT;
         }
     }
 
     function shiftNeckLeft(): void {
         neck--;
-        if (neck < MemberConstants.AVATAR_NECKS.DEFAULT) {
+        if (neck < MemberConstants.STATUS_NECKS.DEFAULT) {
             neck = MemberConstants.NECKS.length - 2;
         }
     }
@@ -160,7 +152,7 @@
     function shiftNeckRight(): void {
         neck++;
         if (neck >= MemberConstants.NECKS.length - 1) {
-            neck = MemberConstants.AVATAR_NECKS.DEFAULT;
+            neck = MemberConstants.STATUS_NECKS.DEFAULT;
         }
     }
 
@@ -187,49 +179,27 @@
 
     function confirmKick(): void {
         if (currMember && currMember.id != member.id && currMember.id === project.ownerId) {
-            project.memberIds = project.memberIds.filter((id) => id !== member.id);
-            project.members = project.members.filter((m) => m.id !== member.id);
-            project.joinedMemberIds = project.joinedMemberIds.filter((id) => id !== member.id);
-            project.joinedMembers = project.joinedMembers.filter((m) => m.id !== member.id);
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            setDoc(projectDoc, project.compactify()).then(async () => {
-                member.projectIds = member.projectIds.filter((id) => id !== project.id);
-                let ping: Ping = new Ping({
-                    id: StringHelper.generateID(),
-                    type: PingConstants.TYPES.PROJECT,
-                    title: "Kicked from project",
-                    message: `Member "${currMember.displayName}" kicked you from the project "${project.name}."`,
-                    createdAtTemp: new Date(),
-                });
-                member.pingIds.push(ping.id);
-                let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                setDoc(pingDoc, ping.compactify());
-                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                    await setDoc(memberDoc, member.compactify()).then(() => {
-                        projectSelected.update((value) => {
-                        value.project = project;
-                        value.projectName = project.name;
-                        return value;
-                    });
-                    allProjects.update((value) => {
-                        value.projects = value.projects.map((p) => {
-                            if (p.id === project.id) {
-                                return project;
-                            }
-                            return p;
+            for (let memberProject of project.memberProjects) {
+                if (memberProject.memberId === member.id) {
+                    let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
+                    deleteDoc(memberProjectDoc).then(() => {
+                        openSnackbar('Member kicked successfully.', 'success');
+                        let ping: Ping = new Ping({
+                            id: StringHelper.generateID(),
+                            memberId: member.id,
+                            projectId: project.id,
+                            type: PingConstants.TYPES.PROJECT,
+                            title: "Kicked from project",
+                            message: `Member "${currMember.displayName}" kicked you from the project "${project.name}."`,
+                            createdAtTemp: new Date(),
                         });
-                        return value;
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                        setDoc(pingDoc, ping.compactify());
+                    }).catch((error) => {
+                        openSnackbar('Error kicking member. Please try again.', 'error');
                     });
-                    openSnackbar('Member kicked successfully.', 'success');
-                    cancelKick();
-                }).catch((error) => {
-                    openSnackbar('Error kicking member. Please try again.', 'error');
-                    cancelKick();
-                });
-            }).catch((error) => {
-                openSnackbar('Error kicking member. Please try again.', 'error');
-                cancelKick();
-            });
+                }
+            }
         }
     }
 
@@ -440,23 +410,23 @@
 {:else}
     <div class="member-status-seat-other" style="left: {x}px; top: {y}px;"></div>
 {/if}
-<img class="member-status-base" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.AVATAR_BASES.OFFLINE ? 75 : 100}%);" src={base == MemberConstants.AVATAR_BASES.ONLINE ? beeOnline : base == MemberConstants.AVATAR_BASES.DND ? beeDND : beeOffline} alt="base" />
+<img class="member-status-base" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={base == MemberConstants.STATUS_BASES.ONLINE ? beeOnline : base == MemberConstants.STATUS_BASES.DND ? beeDND : beeOffline} alt="base" />
 
-{#if head > MemberConstants.AVATAR_HEADS.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.AVATAR_BASES.OFFLINE ? 75 : 100}%);" src={head === MemberConstants.AVATAR_HEADS.BOWTIE ? headBowtie : head === MemberConstants.AVATAR_HEADS.CROWN ? headCrown : headFedora} alt="head" transition:fade={{duration:TransitionConstants.DURATION}} />
+{#if head > MemberConstants.STATUS_HEADS.DEFAULT}
+    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={head === MemberConstants.STATUS_HEADS.BOWTIE ? headBowtie : head === MemberConstants.STATUS_HEADS.CROWN ? headCrown : headFedora} alt="head" transition:fade={{duration:TransitionConstants.DURATION}} />
 {/if}
-{#if eyes > MemberConstants.AVATAR_EYES.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.AVATAR_BASES.OFFLINE ? 75 : 100}%);" src={eyes === MemberConstants.AVATAR_EYES.GLASSES ? eyeGlasses : eyeMLG} alt="eyes" transition:fade={{duration:TransitionConstants.DURATION}} />
+{#if eyes > MemberConstants.STATUS_EYES.DEFAULT}
+    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={eyes === MemberConstants.STATUS_EYES.GLASSES ? eyeGlasses : eyeMLG} alt="eyes" transition:fade={{duration:TransitionConstants.DURATION}} />
 {/if}
-{#if neck > MemberConstants.AVATAR_NECKS.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.AVATAR_BASES.OFFLINE ? 75 : 100}%);" src={neck === MemberConstants.AVATAR_NECKS.BOWTIE ? neckBowtie : neckTie} alt="neck" transition:fade={{duration:TransitionConstants.DURATION}} />
+{#if neck > MemberConstants.STATUS_NECKS.DEFAULT}
+    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={neck === MemberConstants.STATUS_NECKS.BOWTIE ? neckBowtie : neckTie} alt="neck" transition:fade={{duration:TransitionConstants.DURATION}} />
 {/if}
 
-{#if base == MemberConstants.AVATAR_BASES.OFFLINE}
+{#if base == MemberConstants.STATUS_BASES.OFFLINE}
     <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={zzz} alt="zzz" transition:fade={{duration:TransitionConstants.DURATION}} />
 {/if}
 
-<div class="member-status-state" style="left: {x - 24}px; top: {y + 24}px; background-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd' : 'offline'}); border-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online-dark' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd-dark' : 'offline-dark'})"></div>
+<div class="member-status-state" style="left: {x - 24}px; top: {y + 24}px; background-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online' : base == MemberConstants.STATUS_BASES.DND ? 'dnd' : 'offline'}); border-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online-dark' : base == MemberConstants.STATUS_BASES.DND ? 'dnd-dark' : 'offline-dark'})"></div>
 
 <div class="member-status-name" style="left: {x}px; top: {nameAbove ? y + 48 : y - 48}px;">{member.displayName}</div>
 

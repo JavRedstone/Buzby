@@ -3,7 +3,7 @@
 </svelte:head>
 <script lang="ts">
     import type { User, UserCredential } from "firebase/auth";
-	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
+	import { authHandlers, currentUser } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from 'svelte';
 	import { goto } from "$app/navigation";
@@ -21,8 +21,8 @@
     let snackbarType: string = 'neutral';
 
     function checkUser(): void {
-        userStatus.subscribe((value: any) => {
-            if (value.currentUser != null && value.currentUser.emailVerified) {
+        currentUser.subscribe((value: any) => {
+            if (value != null && value.emailVerified) {
                 goto(RouteConstants.HOME);
             }
         });

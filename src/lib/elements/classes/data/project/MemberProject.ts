@@ -1,40 +1,31 @@
 import { Timestamp } from "firebase/firestore";
 
-export class Ping {
+export class MemberProject {
     public id: string;
     public memberId: string;
     public projectId: string;
-    public messageId: string;
-    public type: number;
-    public title: string;
-    public message: string;
-    public read: boolean;
+    public isOwner: boolean;
+    public hasJoined: boolean;
     public createdAt: Date;
     public createdAtTemp: any;
 
     public constructor(data: any) {
         this.id = data.id;
+        
+        this.memberId = data.memberId;
 
-        this.type = data.type;
-        if (this.type == null || this.type == undefined) {
-            this.type = 0;
+        this.projectId = data.projectId;
+        
+        this.isOwner = data.isOwner;
+        if (this.isOwner == null || this.isOwner == undefined) {
+            this.isOwner = false;
         }
-
-        this.title = data.title;
-        if (!this.title) {
-            this.title = "";
+            
+        this.hasJoined = data.hasJoined;
+        if (this.hasJoined == null || this.hasJoined == undefined) {
+            this.hasJoined = false;
         }
-
-        this.message = data.message;
-        if (!this.message) {
-            this.message = "";
-        }
-
-        this.read = data.read;
-        if (this.read == null || this.read == undefined) {
-            this.read = false;
-        }
-
+        
         if (data.createdAt) {
             this.createdAt = data.createdAt.toDate();
             if (!this.createdAt) {
@@ -53,10 +44,8 @@ export class Ping {
             id: this.id,
             memberId: this.memberId,
             projectId: this.projectId,
-            type: this.type,
-            title: this.title,
-            message: this.message,
-            read: this.read,
+            isOwner: this.isOwner,
+            hasJoined: this.hasJoined,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }

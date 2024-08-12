@@ -1,28 +1,27 @@
-import { getDoc, Timestamp, type DocumentData, type DocumentReference } from "firebase/firestore";
+import { CollectionReference, getDoc, onSnapshot, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
 import { Member } from "../project/Member";
-import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { MemberTask } from "./MemberTask";
 
 export class Task {
     public id: string;
-
+    public projectId: string;
     public name: string;
     public description: string;
     public percentage: number;
-    
-    public assignedIds: string[] = [];
-    public assigned: Member[] = [];
-
-    public hivePosX: number;
-    public hivePosY: number;
-
+    public hiveX: number;
+    public hiveY: number;
     public startDate: Date;
     public endDate: Date;
 
+    public memberTasks: MemberTask[] = [];
+    public memberIds: string[] = [];
+    public members: Member[] = [];
+
     constructor(data: any) {
         this.id = data.id;
-        if (!this.id) {
-            this.id = "";
-        }
+
+        this.projectId = data.projectId;
 
         this.name = data.name;
         if (!this.name) {
@@ -39,19 +38,14 @@ export class Task {
             this.percentage = 0;
         }
 
-        this.assignedIds = data.assignedIds;
-        if (!this.assignedIds) {
-            this.assignedIds = [];
+        this.hiveX = data.hiveX;
+        if (this.hiveX == null || this.hiveX == undefined) {
+            this.hiveX = 0;
         }
 
-        this.hivePosX = data.hivePosX;
-        if (this.hivePosX == null || this.hivePosX == undefined) {
-            this.hivePosX = 0;
-        }
-
-        this.hivePosY = data.hivePosY;
-        if (this.hivePosY == null || this.hivePosY == undefined) {
-            this.hivePosY = 0;
+        this.hiveY = data.hiveY;
+        if (this.hiveY == null || this.hiveY == undefined) {
+            this.hiveY = 0;
         }
         
         if (data.startDate) {
@@ -85,29 +79,46 @@ export class Task {
         }
     }
 
-    public async getAssigned(assignedId: string): Promise<Member> {
-        if (assignedId) {
-            let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', assignedId);
-            await getDoc(membersDoc).then((doc) => {
-                if (doc.exists()) {
-                    return new Member(doc.data());
-                }
+    public setObjects(): void {
+        this.setMembers();
+    }
+
+    public setMembers(): void {
+        let memberTasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
+        let memberTasksQuery = query(memberTasksCollection, where('taskId', '==', this.id));
+        onSnapshot(memberTasksQuery, (snapshot) => {
+            let memberTasks: MemberTask[] = [];
+            let memberIds: string[] = [];
+            let members: Member[] = [];
+            snapshot.forEach((doc) => {
+                let memberTask: MemberTask = new MemberTask(doc.data());
+
+                let member: Member = new Member({});
+
+                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberTask.memberId);
+                onSnapshot(memberDoc, (doc) => {
+                    member = new Member(doc.data());
+                });
+
+                memberIds.push(member.id);
+                members.push(member);
             });
-        }
-        else {
-            return new Member({});
-        }
+            this.memberIds = memberIds;
+            this.members = members;
+
+            this.memberTasks = memberTasks;
+        });
     }
 
     public compactify(): any {
         return {
             id: this.id,
+            projectId: this.projectId,
             name: this.name,
             description: this.description,
             percentage: this.percentage,
-            assignedIds: this.assignedIds,
-            hivePosX: this.hivePosX,
-            hivePosY: this.hivePosY,
+            hiveX: this.hiveX,
+            hiveY: this.hiveY,
             startDate: this.startDate,
             endDate: this.endDate
         };

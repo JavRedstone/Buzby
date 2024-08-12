@@ -1,9 +1,8 @@
 <script lang="ts">
 	import ChatMessage from './chat-message.svelte';
 	import { fly, fade, slide } from 'svelte/transition';
-	import { ChatConstants } from "$lib/elements/classes/data/chat/ChatConstants";
 	import { Message } from "$lib/elements/classes/data/chat/Message";
-	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { onDestroy, onMount } from "svelte";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { deleteDoc, getDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
@@ -13,17 +12,17 @@
 	import type { Member } from "$lib/elements/classes/data/project/Member";
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import ProgressCircle from '../general/progress-circle.svelte';
-	import { Chat } from '$lib/elements/classes/data/chat/Chat';
 	import ProgressLine from '../general/progress-line.svelte';
 	import { Ping } from '$lib/elements/classes/data/chat/Ping';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 	import Menu from '../general/menu.svelte';
 	import { Poll } from '$lib/elements/classes/data/chat/Poll';
 	import Dropdown from '../general/dropdown.svelte';
+	import { MessageConstants } from '$lib/elements/classes/data/chat/MessageConstants';
+	import { PollOption } from '$lib/elements/classes/data/chat/PollOption';
 
     let currMember: Member = null;
     let project: Project = null;
-    let messages: Message[] = [];
     
     let messagesContainer: HTMLElement = null;
     let messageInput: HTMLInputElement = null;
@@ -45,8 +44,8 @@
 
     let extraPollQuestion: string = "";
     let extraPollOptions: string[] = ["", ""];
-    let extraPollDuration: string = ChatConstants.POLL_DEFAULT_DURATION;
-    let extraPollDurationIdx: number = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+    let extraPollDuration: string = MessageConstants.POLL_DEFAULT_DURATION;
+    let extraPollDurationIdx: number = MessageConstants.POLL_DURATIONS.indexOf(MessageConstants.POLL_DEFAULT_DURATION);
     let extraPollDurationOpen: boolean = false;
     let extraPollMultiple: boolean = false;
 
@@ -56,7 +55,7 @@
     let finalizedVideoUrl: string = "";
     let finalizedPollQuestion: string = "";
     let finalizedPollOptions: string[] = [];
-    let finalizedPollDurationIdx: number = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+    let finalizedPollDurationIdx: number = MessageConstants.POLL_DURATIONS.indexOf(MessageConstants.POLL_DEFAULT_DURATION);
     let finalizedPollMultiple: boolean = false;
 
     let replyOpen: boolean = false;
@@ -70,109 +69,11 @@
     let snackbarType: string = "neutral";
 
     function getMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
-    function getProject(): void {        
-        projectSelected.subscribe(async (value) => {
-            if (value.project && value.project.chat) {
-                project = value.project;
-                messages = value.project.chat.messages;
-
-                await setMessages();
-            } else {
-                project = null;
-                messages = [];
-            }
-        })
-    }
-
-    async function setMessages(): Promise<void> {
-        let hasGottenNewSender: boolean = false;
-        for (let i = 0; i < messages.length; i++) {
-            if (project.memberIds.includes(messages[i].senderId)) {
-                messages[i].sender = project.members.find((m) => m.id === messages[i].senderId);
-            } else if (messages[i].sender.id.length == 0) {
-                await messages[i].getSender();
-                hasGottenNewSender = true;
-            }
-
-            if (messages[i].replyId.length > 0) {
-                messages[i].reply = messages.find((m) => m.id === messages[i].replyId);
-            }
-        }
-
-        messages = messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-        project.chat.messages = messages;
-
-        if (hasGottenNewSender) {
-            allProjects.update((value) => {
-                value.projects = value.projects.map((p) => {
-                    if (p.id === project.id) {
-                        return project;
-                    }
-                    return p;
-                });
-                return value;
+        currentMember.subscribe((c) => {
+            currMember = c;
+            projectSelected.subscribe((value) => {
+                project = currMember.projects.find((p) => p.id === value);
             });
-            
-
-            projectSelected.update((value) => {
-                value.project = project;
-                value.projectName = project.name;
-                return value;
-            });
-        }
-
-        if (messagesContainer) {
-            setTimeout(() => {
-                if (messagesContainer) {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
-            }, 0); // Wait for the DOM to update
-        }
-    }
-
-    async function refreshChat(ignorePercentage: boolean): Promise<void> {
-        if (messagePercentage < 100 && !ignorePercentage) {
-            return;
-        }
-        let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
-        let doc = await getDoc(chatDoc);
-        if (doc.exists()) {
-            project.chat = new Chat(doc.data());
-            await project.chat.setObjects();
-            messages = project.chat.messages;
-            await setMessages();
-        }
-
-        updateProject();
-
-        messagePercentage = 0;
-    }
-
-    function updateProject(): void {
-        projectSelected.update((value) => {
-            value.project = project;
-            value.projectName = project.name;
-            return value;
-        });
-
-        allProjects.update((value) => {
-            value.projects = value.projects.map((p) => {
-                if (p.id === project.id) {
-                    return project;
-                }
-                return p;
-            });
-            return value;
         });
     }
 
@@ -192,8 +93,8 @@
     function removeExtraPoll(): void {
         extraPollQuestion = "";
         extraPollOptions = ["", ""];
-        extraPollDuration = ChatConstants.POLL_DEFAULT_DURATION;
-        extraPollDurationIdx = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+        extraPollDuration = MessageConstants.POLL_DEFAULT_DURATION;
+        extraPollDurationIdx = MessageConstants.POLL_DURATIONS.indexOf(MessageConstants.POLL_DEFAULT_DURATION);
         extraPollDurationOpen = false;
         extraPollMultiple = false;
     }
@@ -214,7 +115,7 @@
     function removeFinalizedPoll(): void {
         finalizedPollQuestion = "";
         finalizedPollOptions = [];
-        finalizedPollDurationIdx = ChatConstants.POLL_DURATIONS.indexOf(ChatConstants.POLL_DEFAULT_DURATION);
+        finalizedPollDurationIdx = MessageConstants.POLL_DURATIONS.indexOf(MessageConstants.POLL_DEFAULT_DURATION);
         finalizedPollMultiple = false;
     }
 
@@ -296,17 +197,17 @@
             return;
         }
 
-        if (extraLink.length > ChatConstants.URL_MAX_LENGTH) {
-            openSnackbar(`Link is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+        if (extraLink.length > MessageConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Link is too long. Max length is ${MessageConstants.URL_MAX_LENGTH} characters.`, "error");
             return;
         }
 
         if (extraLinkName.trim().length === 0) {
-            extraLinkName = extraLink.substring(0, ChatConstants.URL_NAME_MAX_LENGTH);
+            extraLinkName = extraLink.substring(0, MessageConstants.URL_NAME_MAX_LENGTH);
         }
 
-        if (extraLinkName.length > ChatConstants.URL_NAME_MAX_LENGTH) {
-            openSnackbar(`Link display text is too long. Max length is ${ChatConstants.URL_NAME_MAX_LENGTH} characters.`, "error");
+        if (extraLinkName.length > MessageConstants.URL_NAME_MAX_LENGTH) {
+            openSnackbar(`Link display text is too long. Max length is ${MessageConstants.URL_NAME_MAX_LENGTH} characters.`, "error");
             return;
         }
 
@@ -325,8 +226,8 @@
             return;
         }
 
-        if (extraImageUrl.length > ChatConstants.URL_MAX_LENGTH) {
-            openSnackbar(`Image URL is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+        if (extraImageUrl.length > MessageConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Image URL is too long. Max length is ${MessageConstants.URL_MAX_LENGTH} characters.`, "error");
             return;
         }
 
@@ -344,8 +245,8 @@
             return;
         }
 
-        if (extraVideoUrl.length > ChatConstants.URL_MAX_LENGTH) {
-            openSnackbar(`Video url is too long. Max length is ${ChatConstants.URL_MAX_LENGTH} characters.`, "error");
+        if (extraVideoUrl.length > MessageConstants.URL_MAX_LENGTH) {
+            openSnackbar(`Video url is too long. Max length is ${MessageConstants.URL_MAX_LENGTH} characters.`, "error");
             return;
         }
 
@@ -368,8 +269,8 @@
             return;
         }
 
-        if (extraPollQuestion.length > ChatConstants.POLL_QUESTION_MAX_LENGTH) {
-            openSnackbar(`Poll question is too long. Max length is ${ChatConstants.POLL_QUESTION_MAX_LENGTH} characters.`, "error");
+        if (extraPollQuestion.length > MessageConstants.POLL_QUESTION_MAX_LENGTH) {
+            openSnackbar(`Poll question is too long. Max length is ${MessageConstants.POLL_QUESTION_MAX_LENGTH} characters.`, "error");
             return;
         }
 
@@ -379,8 +280,8 @@
             return;
         }
 
-        if (options.length > ChatConstants.POLL_MAX_OPTIONS) {
-            openSnackbar(`Poll has too many options. Max number of options is ${ChatConstants.POLL_MAX_OPTIONS}.`, "error");
+        if (options.length > MessageConstants.POLL_MAX_OPTIONS) {
+            openSnackbar(`Poll has too many options. Max number of options is ${MessageConstants.POLL_MAX_OPTIONS}.`, "error");
             return;
         }
 
@@ -396,11 +297,11 @@
     }
 
     function addPollOption(): void {
-        if (extraPollOptions.length < ChatConstants.POLL_MAX_OPTIONS) {
+        if (extraPollOptions.length < MessageConstants.POLL_MAX_OPTIONS) {
             extraPollOptions = [...extraPollOptions, ""];
         }
         else {
-            openSnackbar(`You can only add up to ${ChatConstants.POLL_MAX_OPTIONS} options in a poll.`, "error");
+            openSnackbar(`You can only add up to ${MessageConstants.POLL_MAX_OPTIONS} options in a poll.`, "error");
         }
     }
 
@@ -443,8 +344,8 @@
             messageProcessing = false;
             return;
         }
-        if (messageText.length > ChatConstants.MESSAGE_MAX_LENGTH) {
-            openSnackbar(`Message is too long. Max length is ${ChatConstants.MESSAGE_MAX_LENGTH} characters.`, "error");
+        if (messageText.length > MessageConstants.MESSAGE_MAX_LENGTH) {
+            openSnackbar(`Message is too long. Max length is ${MessageConstants.MESSAGE_MAX_LENGTH} characters.`, "error");
             messageProcessing = false;
             return;
         }
@@ -452,45 +353,44 @@
         messagePercentage = 0;
 
         if (currMember) {
-            await refreshChat(true);
-
             let message: Message = new Message({
                 id: StringHelper.generateID(),
-                text: messageText,
-                senderId: currMember.id,
+                memberId: currMember.id,
                 replyId: replyOpen && replyMessage ? replyMessage.id : '',
-                link: finalizedLink,
-                linkName: finalizedLinkName,
-                imageUrl: finalizedImageUrl,
-                videoUrl: finalizedVideoUrl,
-                pollId: '',
+                text: messageText,
+                edited: false,
                 createdAtTemp: serverTimestamp()
             });
 
             let poll: Poll = null;
+            let pollOptions: PollOption[] = [];
             if (finalizedPollQuestion.length > 0) {
                 poll = new Poll({
                     id: StringHelper.generateID(),
                     question: finalizedPollQuestion,
-                    options: finalizedPollOptions,
-                    votes: Array.from({length: finalizedPollOptions.length}, () => 0),
-                    votedMemberIds: [],
                     multiple: finalizedPollMultiple,
-                    duration: ChatConstants.POLL_DURATIONS_MS[finalizedPollDurationIdx],
+                    duration: MessageConstants.POLL_DURATIONS_MS[finalizedPollDurationIdx],
                     createdAtTemp: serverTimestamp()
                 });
 
-                message.pollId = poll.id;
+                for (let option of finalizedPollOptions) {
+                    pollOptions.push(new PollOption({
+                        id: StringHelper.generateID(),
+                        pollId: poll.id,
+                        memberId: null,
+                        text: option,
+                        createdAtTemp: serverTimestamp()
+                    }));
+                }
+
                 removeFinalizedPoll();
             }
 
-            project.chat.messageIds = [...project.chat.messageIds, message.id];
-
-            let lastMessage: Message = messages[0];
-            let lastMessageDeleted: boolean = false;
-            if (project.chat.messageIds.length > ChatConstants.MESSAGE_MAX_COUNT) {
-                project.chat.messageIds = project.chat.messageIds.filter((id) => id !== lastMessage.id);
-                lastMessageDeleted = true;
+            if (project.messageIds.length > MessageConstants.MESSAGE_MAX_COUNT) {
+                for (let i = 0; i < project.messageIds.length - MessageConstants.MESSAGE_MAX_COUNT; i++) {
+                    let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", project.messageIds[i]);
+                    deleteDoc(messageDoc);
+                }
             }
             
             messageText = "";
@@ -499,102 +399,77 @@
 
             replyOpen = false;
             
-            let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", project.chatId);
-            setDoc(chatDoc, project.chat.compactify()).then(() => {
-                let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
-                setDoc(messageDoc, message.compactify()).then(() => {
-                    getDoc(messageDoc).then(async (doc) => {
-                        let newMessage: Message = new Message(doc.data());
-                        newMessage.sender = currMember;
-                        newMessage.reply = replyMessage;
-                        project.chat.messages = [newMessage, ...project.chat.messages];
-                        messages = project.chat.messages;
+            let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", message.id);
+            setDoc(messageDoc, message.compactify()).then(() => {
+                getDoc(messageDoc).then(async (doc) => {
+                    let newMessage: Message = new Message(doc.data());
+                    newMessage.member = currMember;
+                    newMessage.reply = replyMessage;
 
-                        if (newMessage.text.search(/@([^\s]+)/g) != -1) {
-                            let pingedMembers: Member[] = [];
-                            for (let match of newMessage.text.match(/@([^\s]+)/g)) {
-                                for (let m of project.joinedMembers) {
-                                    if (match.toLowerCase() === `@${m.displayName.toLowerCase()}` && !pingedMembers.includes(m) && m.id !== currMember.id) {
-                                        pingedMembers.push(m);
-                                        let ping: Ping = new Ping({
-                                            id: StringHelper.generateID(),
-                                            type: PingConstants.TYPES.USER,
-                                            title: "Member pinged",
-                                            message: `Member "${currMember.displayName}" pinged you in project "${project.name}".`,
-                                            createdAtTemp: serverTimestamp(),
-                                        });
-                                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                                        setDoc(pingDoc, ping.compactify());
-                                        m.pingIds.push(ping.id);
-                                        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", m.id);
-                                        await setDoc(memberDoc, m.compactify());
-                                        break;
-                                    }
+                    if (newMessage.text.search(/@([^\s]+)/g) != -1) {
+                        let pingedMembers: Member[] = [];
+                        for (let match of newMessage.text.match(/@([^\s]+)/g)) {
+                            for (let m of project.joinedMembers) {
+                                if (match.toLowerCase() === `@${m.displayName.toLowerCase()}` && !pingedMembers.includes(m) && m.id !== currMember.id) {
+                                    pingedMembers.push(m);
+                                    let ping: Ping = new Ping({
+                                        id: StringHelper.generateID(),
+                                        type: PingConstants.TYPES.USER,
+                                        title: "Member pinged",
+                                        message: `Member "${currMember.displayName}" pinged you in project "${project.name}".`,
+                                        createdAtTemp: serverTimestamp(),
+                                    });
+                                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                                    setDoc(pingDoc, ping.compactify());
+                                    m.pingIds.push(ping.id);
+                                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", m.id);
+                                    await setDoc(memberDoc, m.compactify());
+                                    break;
                                 }
                             }
                         }
+                    }
+                    
+                    if (newMessage.pollId.length > 0) {
+                        let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("polls", newMessage.pollId);
+                        setDoc(pollDoc, poll.compactify());
 
-                        if (newMessage.reply != null && newMessage.reply.senderId !== currMember.id) {
-                            let ping: Ping = new Ping({
-                                id: StringHelper.generateID(),
-                                type: PingConstants.TYPES.USER,
-                                title: "Member replied",
-                                message: `Member "${currMember.displayName}" replied to your message in "${project.name}".`,
-                                createdAtTemp: serverTimestamp(),
-                            });
-                            let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                            setDoc(pingDoc, ping.compactify());
-                            newMessage.reply.sender.pingIds.push(ping.id);
-                            let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", newMessage.reply.sender.id);
-                            await setDoc(memberDoc, newMessage.reply.sender.compactify());
+                        for (let pollOption of pollOptions) {
+                            let pollOptionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pollOptions", pollOption.id);
+                            setDoc(pollOptionDoc, pollOption.compactify());
                         }
+                    }
 
-                        if (newMessage.pollId.length > 0) {
-                            let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("polls", newMessage.pollId);
-                            await setDoc(pollDoc, poll.compactify());
-                            let pollRes = await getDoc(pollDoc);
-                            let newPoll: Poll = new Poll(pollRes.data());
-                            newMessage.poll = newPoll;
-                        }
-
-                        updateProject();
-
-                        messageProcessing = false;
-                        messagePercentage = 0;
-                        cancelReply();
-                    }).catch((error) => {
-                        openSnackbar("An error occurred while sending the message.", "error");
-                        messageProcessing = false;
-                        messagePercentage = 0;
-                        cancelReply();
-                    });
+                    messageProcessing = false;
                     messagePercentage = 0;
+                    cancelReply();
+
+                    if (newMessage.reply != null && newMessage.reply.memberId !== currMember.id) {
+                        let ping: Ping = new Ping({
+                            id: StringHelper.generateID(),
+                            memberId: newMessage.reply.memberId,
+                            projectId: project.id,
+                            messageId: newMessage.id,
+                            type: PingConstants.TYPES.USER,
+                            title: "Member replied",
+                            message: `Member "${currMember.displayName}" replied to your message in "${project.name}".`,
+                            createdAtTemp: serverTimestamp(),
+                        });
+                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                        setDoc(pingDoc, ping.compactify());
+                    }
                 }).catch((error) => {
                     openSnackbar("An error occurred while sending the message.", "error");
                     messageProcessing = false;
                     messagePercentage = 0;
                     cancelReply();
                 });
-                if (lastMessageDeleted) {
-                    let lastMessageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("messages", lastMessage.id);
-                    deleteDoc(lastMessageDoc).then(() => {
-                        project.chat.messages = project.chat.messages.slice(1);
-                        messages = project.chat.messages;
-
-                        updateProject();
-
-                        messageProcessing = false;
-                        messagePercentage = 0;
-                    }).catch((error) => {
-                        openSnackbar("An error occurred while sending the message.", "error");
-                        messageProcessing = false;
-                        messagePercentage = 0;
-                    });
-                }
+                messagePercentage = 0;
             }).catch((error) => {
                 openSnackbar("An error occurred while sending the message.", "error");
                 messageProcessing = false;
                 messagePercentage = 0;
+                cancelReply();
             });
         } else {
             openSnackbar("An error occurred while sending the message.", "error");
@@ -621,8 +496,8 @@
     }
 
     function mentionSender(message: Message): void {
-        if (message.sender != null) {
-            messageText = `${messageText} @${message.sender.displayName} `;
+        if (message.member != null) {
+            messageText = `${messageText} @${message.member.displayName} `;
             messageInput.focus();
         }
     }
@@ -674,7 +549,6 @@
 
     onMount(() => {
         getMember();
-        getProject();
         setKeybinds();
     });
 
@@ -707,25 +581,6 @@
         font-size: 16px;
         font-weight: 500;
         color: var(--grey-800);
-    }
-
-    .discussion-title-icon-progress-circle-container {
-        position: absolute;
-        right: 8px;
-        margin-top: -1px;
-    }
-
-    .discussion-title-icon-button {
-        position: absolute;
-        right: 10px;
-        font-size: 24px;
-        color: var(--grey-800);
-        cursor: pointer;
-        transition: color var(--transition-duration);
-
-        &:hover {
-            color: var(--accent);
-        }
     }
     
     .discussion-messages-container {
@@ -1154,16 +1009,10 @@
 <div class="discussion-container" transition:fly={{x: "50%", duration: TransitionConstants.DURATION}}>
     <div class="discussion-title-container">
         <div class="discussion-title">Discussion</div>
-        <div class="discussion-title-icon-progress-circle-container">
-            <ProgressCircle radius={12} bind:percentage={messagePercentage} storageName="messageRefreshPercentage" autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
-        </div>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="discussion-title-icon-button material-symbols-rounded" on:click={() => refreshChat(false)}>refresh</span>
     </div>
     <div class="discussion-messages-container" bind:this={messagesContainer}>
-        {#each messages as message, i}
-            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.senderId !== messages[i - 1]?.senderId || message.createdAt.getTime() - messages[i - 1]?.createdAt.getTime() > ChatConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0 && message.reply != null} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
+        {#each project.messages as message, i}
+            <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.memberId !== project.messages[i - 1]?.memberId || message.createdAt.getTime() - project.messages[i - 1]?.createdAt.getTime() > MessageConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
         {/each}
     </div>
     <div class="discussion-input-container">
@@ -1171,7 +1020,7 @@
             <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 || finalizedPollQuestion.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.sender.displayName}</div>
+                <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.member.displayName}</div>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>
@@ -1237,33 +1086,33 @@
         </Menu>
         <Menu bind:open={linkOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
             <div class="discussion-extra-title">Add link</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraLink} />
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={ChatConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a link..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraLink} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a display text..." maxlength={MessageConstants.URL_NAME_MAX_LENGTH} bind:value={extraLinkName} />
             <button class="discussion-extra-action" on:click={addLink}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={imageOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
             <div class="discussion-extra-title">Add image URL</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type an image URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraImageUrl} />
             <button class="discussion-extra-action" on:click={addImage}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={videoOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
             <div class="discussion-extra-title">Add Youtube video URL</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={ChatConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a Youtube video URL..." maxlength={MessageConstants.URL_MAX_LENGTH} bind:value={extraVideoUrl} />
             <button class="discussion-extra-action" on:click={addVideo}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
         <Menu bind:open={pollOpen} left="8px" bottom="48px" width="calc(100% - 64px)">
             <div class="discussion-extra-title">Add poll</div>
             <div class="discussion-extra-subtitle">Poll question</div>
-            <input class="discussion-extra-input-field" type="text" placeholder="Type a poll question..." maxlength={ChatConstants.POLL_QUESTION_MAX_LENGTH} bind:value={extraPollQuestion} />
+            <input class="discussion-extra-input-field" type="text" placeholder="Type a poll question..." maxlength={MessageConstants.POLL_QUESTION_MAX_LENGTH} bind:value={extraPollQuestion} />
             <div class="discussion-poll-options-container">
                 <div class="discussion-extra-subtitle">Poll options</div>
                 {#each extraPollOptions as option, i}
                     <div class="discussion-poll-option-container" transition:slide={{duration: TransitionConstants.DURATION}}>
                         <span class="material-symbols-rounded">check_circle</span>
-                        <input class="discussion-poll-option-field" type="text" placeholder={`Option ${i + 1}`} maxlength={ChatConstants.POLL_OPTION_MAX_LENGTH} bind:value={extraPollOptions[i]} />
+                        <input class="discussion-poll-option-field" type="text" placeholder={`Option ${i + 1}`} maxlength={MessageConstants.POLL_OPTION_MAX_LENGTH} bind:value={extraPollOptions[i]} />
                         {#if extraPollOptions.length > 2}
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -1271,13 +1120,13 @@
                         {/if}
                     </div>
                 {/each}
-                {#if extraPollOptions.length < ChatConstants.POLL_MAX_OPTIONS}
+                {#if extraPollOptions.length < MessageConstants.POLL_MAX_OPTIONS}
                     <button class="discussion-extra-poll-add-option" on:click={addPollOption}>Add option</button>
                 {/if}
             </div>
             <div class="discussion-extra-subtitle">Poll settings</div>
             <div class="discussion-extra-poll-duration-label">Poll duration</div>
-            <Dropdown label="Poll duration" items={ChatConstants.POLL_DURATIONS} defaultItem="" bind:selectedItem={extraPollDuration} bind:selectedItemIdx={extraPollDurationIdx} bind:open={extraPollDurationOpen} small={true} maxHeight="100px" />
+            <Dropdown label="Poll duration" items={MessageConstants.POLL_DURATIONS} defaultItem="" bind:selectedItem={extraPollDuration} bind:selectedItemIdx={extraPollDurationIdx} bind:open={extraPollDurationOpen} small={true} maxHeight="100px" />
             <div class="discussion-extra-poll-multiple-container">
                 <input class="discussion-extra-poll-multiple-checkbox" type="checkbox" bind:checked={extraPollMultiple} />
                 <div class="discussion-extra-poll-multiple-label">Allow multiple votes</div>
@@ -1285,12 +1134,12 @@
             <button class="discussion-extra-action" on:click={addPoll}>Add</button>
             <button class="discussion-extra-cancel" on:click={toggleExtra}>Cancel</button>
         </Menu>
-        <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={ChatConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />
+        <input type="text" class="discussion-input-field" placeholder="Type a message..." maxlength={MessageConstants.MESSAGE_MAX_LENGTH} bind:value={messageText} on:focusin={() => messageFocused = true} on:focusout={() => messageFocused = false} bind:this={messageInput} />
         <div class="discussion-input-field-progress-line-container">
-            <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+            <ProgressLine percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
         </div>
         <div class="discussion-input-icon-progress-circle-container">
-            <ProgressCircle radius={12} percentage={messagePercentage} autoFill={true} autofillTime={ChatConstants.MESSAGE_TIMEOUT} />
+            <ProgressCircle radius={12} bind:percentage={messagePercentage} autoFill={true} autofillTime={MessageConstants.MESSAGE_TIMEOUT} />
         </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->

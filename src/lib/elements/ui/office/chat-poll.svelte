@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { ChatConstants } from "$lib/elements/classes/data/chat/ChatConstants";
+	import { MessageConstants } from "$lib/elements/classes/data/chat/MessageConstants";
 	import { Poll } from "$lib/elements/classes/data/chat/Poll";
+	import { PollOption } from "$lib/elements/classes/data/chat/PollOption";
 	import type { Member } from "$lib/elements/classes/data/project/Member";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
-	import { memberStatus, projectSelected } from "$lib/elements/stores/project-store";
-	import { getDoc, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
+	import { getDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import { onDestroy, onMount } from "svelte";
 	import { slide } from "svelte/transition";
 
@@ -17,8 +18,13 @@
     let currMember: Member = null;
     let project: Project = null;
 
-    let selectedOptionIdxs = [];
-    let totalVotes = 0;
+    let pollOptions: string[] = [];
+    let pollVotes: number[] = [];
+
+    let selectedOptions: string[] = [];
+
+    let votedMemberIds: string[] = [];
+    let votedMembers: Member[] = [];
 
     let votedAlready = false;
     let timeLeftInterval = null;
@@ -27,8 +33,59 @@
 
     $: poll ? updatePoll() : null;
 
-    function countTotalVotes(): void {
-        totalVotes = poll.votes.reduce((acc, curr) => acc + curr, 0);
+    function getCurrMember(): void {
+        currentMember.subscribe((value) => {
+            currMember = value;
+            if (currMember != null) {
+                return;
+            }
+            projectSelected.subscribe((value) => {
+                project = currMember.projects.find((p) => p.id == value);
+                if (project != null) {
+                    updatePoll();
+                }
+            });
+        });
+    }
+
+    function getPollOptions(): void {
+        let options: string[] = [];
+        if (poll) {
+            for (let pollOption of poll.pollOptions) {
+                if (!pollOption.memberId) {
+                    options = [...options, pollOption.text];
+                }
+            }
+        }
+        pollOptions = options;
+    }
+
+    function getPollVotes(): void {
+        let votes: number[] = [];
+        if (poll) {
+            for (let pollOption of poll.pollOptions) {
+                if (pollOption.memberId) {
+                    let idx = pollOptions.indexOf(pollOption.text);
+                    if (idx !== -1) {
+                        votes[idx] = votes[idx] ? votes[idx] + 1 : 1;
+                    }
+                }
+            }
+        }
+        pollVotes = votes;
+    }
+
+    function getVotedMembers(): void {
+        let memberIds: string[] = [];
+        let members: Member[] = [];
+        if (poll) {
+            for (let pollOption of poll.pollOptions) {
+                memberIds = [...memberIds, pollOption.member.id];
+                members = [...members, pollOption.member];
+            }
+        }
+        votedMemberIds = memberIds;
+        votedMembers = members;
     }
 
     function getTimeLeft(): void {
@@ -39,81 +96,53 @@
         }
     }
 
-    function selectOption(idx: number): void {
+    function selectOption(text: string): void {
         if (poll.multiple) {
-            if (selectedOptionIdxs.includes(idx)) {
-                selectedOptionIdxs = selectedOptionIdxs.filter((i) => i !== idx);
+            if (selectedOptions.includes(text)) {
+                selectedOptions = selectedOptions.filter((option) => option !== text);
             } else {
-                selectedOptionIdxs = [...selectedOptionIdxs, idx];
+                selectedOptions = [...selectedOptions, text];
             }
         } else {
-            if (selectedOptionIdxs.includes(idx)) {
-                selectedOptionIdxs = [];
+            if (selectedOptions.includes(text)) {
+                selectedOptions = [];
             } else {
-                selectedOptionIdxs = [idx];
+                selectedOptions = [text];
             }
         }
     }
 
     async function vote(): Promise<void> {
-        if (selectedOptionIdxs.length === 0) {
+        if (selectedOptions.length === 0) {
             return;
         }
 
-        let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', poll.id);
-        let doc = await getDoc(pollDoc);
-        poll = new Poll(doc.data());
-        
-        updatePoll();
-
-        if (currMember && !poll.votedMemberIds.includes(currMember.id)) {
-            poll.votedMemberIds = [...poll.votedMemberIds, currMember.id];
-            poll.votes = poll.votes.map((vote, i) => {
-                if (selectedOptionIdxs.includes(i)) {
-                    return vote + 1;
-                } else {
-                    return vote;
-                }
-            });
+        if (currMember && !votedMemberIds.includes(currMember.id)) {
             votedAlready = true;
-            countTotalVotes();
-
-            updateProject();
             
-            let pollDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', poll.id);
-            setDoc(pollDoc, poll.compactify());
+            for (let i of selectedOptions) {
+                let pollOption: PollOption = new PollOption({
+                    id: StringHelper.generateID(),
+                    pollId: poll.id,
+                    memberId: currMember.id,
+                    text: selectedOptions[i],
+                    createdAtTemp: serverTimestamp(),
+                })
+
+                let pollOptionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pollOptions', pollOption.id);
+                await setDoc(pollOptionDoc, pollOption.compactify());
+            }
 
             updatePoll();
         }
     }
 
-    function updateProject(): void {
-        for (let message of project.chat.messages) {
-            if (message.poll && message.poll.id === poll.id) {
-                message.poll = poll;
-            }
-        }
-        projectSelected.update((value) => {
-            value.project = project;
-            return value;
-        });
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-                updatePoll();
-            } else {
-                project = null;
-            }
-        });
-    }
-
     function updatePoll(): void {
         if (poll) {
-            countTotalVotes();
-            if (currMember && poll.votedMemberIds.includes(currMember.id)) {
+            getPollOptions();
+            getPollVotes();
+            getVotedMembers();
+            if (currMember && votedMemberIds.includes(currMember.id)) {
                 votedAlready = true;
             } else {
                 votedAlready = false;
@@ -123,21 +152,9 @@
         }
     }
 
-    function getCurrMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-                updatePoll();
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
     onMount(() => {
         getCurrMember();
-        getProject();
-        timeLeftInterval = setInterval(getTimeLeft, ChatConstants.POLL_TIME_LEFT_INTERVAL);
+        timeLeftInterval = setInterval(getTimeLeft, MessageConstants.POLL_TIME_LEFT_INTERVAL);
     });
 
     onDestroy(() => {
@@ -293,16 +310,16 @@
             {/if}
         {/if}
         <div class="chat-poll-options-container">
-            {#each poll.options as option, i}
+            {#each pollOptions as option, i}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class={votedAlready || timeLeft <= 0 ? 'chat-poll-option-container' : 'chat-poll-option-button-container'} on:click={() => selectOption(i)}>
+                <div class={votedAlready || timeLeft <= 0 ? 'chat-poll-option-container' : 'chat-poll-option-button-container'} on:click={() => selectOption(option)}>
                     {#if votedAlready || timeLeft <= 0}
-                        <div class="chat-poll-option-percentage-bar" style="width: {poll.votes[i] / totalVotes * 100 || 0}%"></div>
-                        <div class="chat-poll-option-vote-count">{poll.votes[i]} vote{poll.votes[i] === 1 ? '' : 's'}</div>
-                        <div class="chat-poll-option-vote-percentage">{Math.round(poll.votes[i] / totalVotes * 100) || 0}%</div>
+                        <div class="chat-poll-option-percentage-bar" style="width: {pollVotes[i] / pollVotes[i] * 100 || 0}%"></div>
+                        <div class="chat-poll-option-vote-count">{pollVotes[i]} vote{pollVotes[i] === 1 ? '' : 's'}</div>
+                        <div class="chat-poll-option-vote-percentage">{Math.round(pollVotes[i] / pollVotes[i] * 100) || 0}%</div>
                     {:else}
-                        {#if selectedOptionIdxs.includes(i)}
+                        {#if selectedOptions.includes(option)}
                             {#if poll.multiple}
                                 <div class="chat-poll-option-icon material-symbols-rounded">check_box</div>
                             {:else}
@@ -321,7 +338,7 @@
             {/each}
         </div>
         <div class="chat-poll-live-container">
-            <div class="chat-poll-live-text">{poll.votedMemberIds.length} vote{poll.votedMemberIds.length === 1 ? '' : 's'}</div>
+            <div class="chat-poll-live-text">{votedMemberIds.length} vote{votedMemberIds.length === 1 ? '' : 's'}</div>
             <div class="chat-poll-live-text">
                 {#if timeLeft > 0}
                     {timeLeftString} left

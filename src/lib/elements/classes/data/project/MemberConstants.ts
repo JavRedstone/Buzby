@@ -20,28 +20,32 @@ export class MemberConstants {
         "Tie",
     ];
 
-    public static readonly AVATAR_BASES: any = {
+    public static readonly STATUS_BASES: any = {
         OFFLINE: -1,
         ONLINE: 0,
         DND: 1,
     };
 
-    public static readonly AVATAR_HEADS: any = {
+    public static readonly STATUS_HEADS: any = {
         DEFAULT: -1,
         BOWTIE: 0,
         CROWN: 1,
         FEDORA: 2,
     };
 
-    public static readonly AVATAR_EYES: any = {
+    public static readonly STATUS_EYES: any = {
         DEFAULT: -1,
         GLASSES: 0,
         MLG: 1,
     };
 
-    public static readonly AVATAR_NECKS: any = {
+    public static readonly STATUS_NECKS: any = {
         DEFAULT: -1,
         BOWTIE: 0,
         TIE: 1,
+    };
+
+    public static readonly AVATAR_CHOICES: any = {
+        DEFAULT: -1,
     };
 }

@@ -1,48 +1,46 @@
-import { CollectionReference, getDoc, getDocs, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
-import { Chat } from "../chat/Chat";
+import { CollectionReference, getDoc, getDocs, onSnapshot, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
 import { Member } from "./Member";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { ProjectConstants } from "./ProjectConstants";
 import { Task } from "../time/Task";
 import { Occasion } from "../time/Occasion";
+import { DataConstants } from "../general/DataConstants";
+import { goto } from "$app/navigation";
+import { Message } from "../chat/Message";
+import { MemberProject } from "./MemberProject";
 
 export class Project {
     public id: string;
-    
     public name: string;
     public description: string;
     public color: string;
-
-    public ownerId: string;
-    public owner: Member = new Member({});
-
-    public memberIds: string[];
-    public members: Member[] = [];
-
-    public joinedMemberIds: string[];
-    public joinedMembers: Member[] = [];
-    
-    public chatId: string;
-    public chat: Chat = new Chat({});
-
-    public taskIds: string[] = [];
-    public tasks: Task[] = [];
-
-    public occasionIds: string[] = [];
-    public occasions: Occasion[] = [];
-
     public createdAt: Date;
     public createdAtTemp: any;
+
+    public ownerId: string;
+    public owner: Member;
+
+    public memberProjects: MemberProject[] = [];
+    public memberIds: string[] = [];
+    public members: Member[] = [];
+    public joinedMemberIds: string[] = [];
+    public joinedMembers: Member[] = [];
+    public requestedMemberIds: string[] = [];
+    public requestedMembers: Member[] = [];
+
+    public messageIds: string[] = [];
+    public messages: Message[] = [];
+    public taskIds: string[] = [];
+    public tasks: Task[] = [];
+    public occasionIds: string[] = [];
+    public occasions: Occasion[] = [];
     
     constructor(data: any) {
         this.id = data.id;
-        if (!this.id) {
-            this.id = "";
-        }
         
         this.name = data.name;
         if (!this.name) {
-            this.name = "Unnamed Project";
+            this.name = "Untitled";
         }
         this.description = data.description;
         if (!this.description) {
@@ -51,35 +49,6 @@ export class Project {
         this.color = data.color;
         if (!this.color) {
             this.color = ProjectConstants.COLORS[0].hex;
-        }
-
-        this.ownerId = data.ownerId;
-        if (!this.ownerId) {
-            this.ownerId = "";
-        }
-
-        this.memberIds = data.memberIds;
-        if (!this.memberIds) {
-            this.memberIds = [];
-        }
-        this.joinedMemberIds = data.joinedMemberIds;
-        if (!this.joinedMemberIds) {
-            this.joinedMemberIds = [];
-        }
-        
-        this.chatId = data.chatId;
-        if (!this.chatId) {
-            this.chatId = "";
-        }
-
-        this.taskIds = data.taskIds;
-        if (!this.taskIds) {
-            this.taskIds = [];
-        }
-
-        this.occasionIds = data.occasionIds;
-        if (!this.occasionIds) {
-            this.occasionIds = [];
         }
 
         if (data.createdAt) {
@@ -95,69 +64,124 @@ export class Project {
         this.createdAtTemp = data.createdAtTemp;
     }
 
-    public async setObjects(): Promise<void> {        
-        this.members = [];
-        if (this.memberIds && this.memberIds.length > 0) {
-            let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
-            let membersQuery = query(membersCollection, where('id', 'in', this.memberIds));
-            await getDocs(membersQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.members.push(new Member(doc.data()));
+    public setObjects(): void {        
+        this.setMembers();
+        this.setMessages();
+        this.setTasks();
+        this.setOccasions();
+    }
 
-                    if (doc.data().id === this.ownerId) {
-                        this.owner = new Member(doc.data());
-                    }
+    public setMembers(): void {
+        let memberProjectCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('memberProjects');
+        let memberProjectQuery = query(memberProjectCollection, where('projectId', '==', this.id));
+        onSnapshot(memberProjectQuery, (snapshot) => {
+            let memberProjects: MemberProject[] = [];
+            let memberIds: string[] = [];
+            let members: Member[] = [];
+            let joinedMemberIds: string[] = [];
+            let joinedMembers: Member[] = [];
+            let requestedMemberIds: string[] = [];
+            let requestedMembers: Member[] = [];
 
-                    if (this.joinedMemberIds && this.joinedMemberIds.includes(doc.data().id)) {
-                        this.joinedMembers.push(new Member(doc.data()));
-                    }
+            snapshot.forEach((doc) => {
+                let memberProject = new MemberProject(doc.data());
+                memberProjects.push(memberProject);
+                
+                let member: Member = new Member({});
+
+                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberProject.memberId);
+                onSnapshot(memberDoc, (doc) => {
+                    member = new Member(doc.data());
                 });
-            });
-        }
-        else {
-            this.members = [];
-        }
+                
+                memberIds.push(member.id);
+                members.push(member);
 
-        if (this.chatId) {
-            let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('chats', this.chatId);
-            await getDoc(chatDoc).then(async (doc) => {
-                if (doc.exists()) {
-                    this.chat = new Chat(doc.data());
-                    await this.chat.setObjects();
+                if (memberProject.isOwner) {
+                    this.ownerId = member.id;
+                    this.owner = member;
+                }
+
+                if (memberProject.hasJoined) {
+                    joinedMemberIds.push(member.id);
+                    joinedMembers.push(member);
+                } else {
+                    requestedMemberIds.push(member.id);
+                    requestedMembers.push(member);
                 }
             });
-        }
-        else {
-            this.chat = new Chat({});
-        }
+            this.memberProjects = memberProjects;
+        });
+    }
 
-        this.tasks = [];
-        if (this.taskIds && this.taskIds.length > 0) {
-            let tasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('tasks');
-            let tasksQuery = query(tasksCollection, where('id', 'in', this.taskIds));
-            await getDocs(tasksQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.tasks.push(new Task(doc.data()));
+    public setMessages(): void {
+        let messagesCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('messages');
+        let messagesQuery = query(messagesCollection, where('projectId', '==', this.id));
+        onSnapshot(messagesQuery, (snapshot) => {
+            let messageIds: string[] = [];
+            let messages: Message[] = [];
+            snapshot.forEach((doc) => {
+                let message = new Message(doc.data());
+            
+                let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('messages', message.id);
+                onSnapshot(messageDoc, (doc) => {
+                    message = new Message(doc.data());
                 });
-            });
-        }
-        else {
-            this.tasks = [];
-        }
 
-        this.occasions = [];
-        if (this.occasionIds && this.occasionIds.length > 0) {
-            let occasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('occasions');
-            let occasionsQuery = query(occasionsCollection, where('id', 'in', this.occasionIds));
-            await getDocs(occasionsQuery).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    this.occasions.push(new Occasion(doc.data()));
-                });
+                messageIds.push(message.id);
+                messages.push(message);
             });
-        }
-        else {
-            this.occasions = [];
-        }
+
+            this.messageIds = messageIds;
+            this.messages = messages;
+        });
+    }
+
+    public setTasks(): void {
+        let tasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('tasks');
+        let tasksQuery = query(tasksCollection, where('projectId', '==', this.id));
+        onSnapshot(tasksQuery, (snapshot) => {
+            let taskIds: string[] = [];
+            let tasks: Task[] = [];
+
+            snapshot.forEach((doc) => {
+                let task = new Task(doc.data());
+                
+                let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
+                onSnapshot(taskDoc, (doc) => {
+                    task = new Task(doc.data());
+                });
+
+                taskIds.push(task.id);
+                tasks.push(task);
+            });
+
+            this.taskIds = taskIds;
+            this.tasks = tasks;
+        });
+    }
+
+    public setOccasions(): void {
+        let occasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('occasions');
+        let occasionsQuery = query(occasionsCollection, where('projectId', '==', this.id));
+        onSnapshot(occasionsQuery, (snapshot) => {
+            let occasionIds: string[] = [];
+            let occasions: Occasion[] = [];
+            snapshot.forEach((doc) => {
+                let occasion = new Occasion(doc.data());
+                
+                let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('occasions', occasion.id);
+                onSnapshot(occasionDoc, (doc) => {
+                    occasion = new Occasion(doc.data());
+                    occasion.setObjects();
+                });
+
+                occasionIds.push(occasion.id);
+                occasions.push(occasion);
+            });
+            this.occasionIds = occasionIds;
+            this.occasions = occasions;
+        });
     }
 
     public compactify(): any {
@@ -165,15 +189,7 @@ export class Project {
             id: this.id,
             name: this.name,
             description: this.description,
-            color: this.color,
-            
-            ownerId: this.ownerId,
-            memberIds: this.memberIds,
-            joinedMemberIds: this.joinedMemberIds,
-            chatId: this.chatId,
-            taskIds: this.taskIds,
-            occasionIds: this.occasionIds,
-            
+            color: this.color,            
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }

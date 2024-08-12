@@ -8,12 +8,13 @@
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import { onDestroy, onMount } from "svelte";
 	import { fade, scale, slide } from "svelte/transition";
-	import { allProjects, memberStatus, projectSelected } from '$lib/elements/stores/project-store';
+	import { currentMember, projectSelected } from '$lib/elements/stores/project-store';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants.js';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData, setDoc, deleteDoc } from 'firebase/firestore';
 	import { HiveConstants } from '$lib/elements/classes/ui/hive/HiveConstants';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
+	import { MemberTask } from '$lib/elements/classes/data/time/MemberTask';
 
     export let task: Task = null;
     export let project: Project = null;
@@ -42,52 +43,11 @@
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
 
+    $: task ? setUrgent() : null;
+
     function getCurrMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
-    async function setAssigned(): Promise<void> {
-        if (task) {
-            assigned = [];
-            for (let assignedId of task.assignedIds) {
-                let found: boolean = false;
-                for (let member of project.members) {
-                    if (member.id === assignedId) {
-                        assigned = [...assigned, member];
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    await task.getAssigned(assignedId).then((member) => {
-                        assigned = [...assigned, member];
-                    }).catch((error) => {
-                        openSnackbar("There was an error getting the assigned members. Please try again.", "error");
-                    });
-                }
-            }
-        }
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-                for (let t of project.tasks) {
-                    if (task.id === t.id) {
-                        task = t;
-                    }
-                }
-                setAssigned();
-                setUrgent();
-            } else {
-                project = null;
-            }
+        currentMember.subscribe((value) => {
+            currMember = value;
         });
     }
 
@@ -109,24 +69,6 @@
         }
     }
 
-    function updateProject(): void {
-        projectSelected.update((value) => {
-            value.project = project;
-            value.projectName = project.name;
-            return value;
-        });
-
-        allProjects.update((value) => {
-            value.projects = value.projects.map((p) => {
-                if (p.id === project.id) {
-                    return project;
-                }
-                return p;
-            });
-            return value;
-        });
-    }
-
     function editTask(): void {
         editOpen = !editOpen;
         deleteOpen = false;
@@ -135,8 +77,8 @@
             taskName = task.name;
             taskDescription = task.description;
             taskAssignedChecked = [];
-            for (let i = 0; i < project.members.length; i++) {
-                taskAssignedChecked = [...taskAssignedChecked, task.assignedIds.includes(project.members[i].id)];
+            for (let i = 0; i < project.memberIds.length; i++) {
+                taskAssignedChecked = [...taskAssignedChecked, task.memberIds.includes(project.memberIds[i])];
             }
             setTimeout(() => {
                 taskStartDateInput.valueAsNumber = ObjectHelper.getDateInputValue(task.startDate);
@@ -205,12 +147,25 @@
                 return;
             }
 
+            let prevAssignedIds: string[] = task.memberIds;
+
             let assignedIds: string[] = [];
             for (let i = 0; i < taskAssignedChecked.length; i++) {
                 if (taskAssignedChecked[i]) {
                     assignedIds.push(project.members[i].id);
                 }
             }
+
+            let membersToAdd: string[] = assignedIds.filter((id) => {
+                return !prevAssignedIds.includes(id);
+            });
+            let membersToRemove: string[] = prevAssignedIds.filter((id) => {
+                return !assignedIds.includes(id);
+            });
+
+            let memberTasksToRemove: MemberTask[] = task.memberTasks.filter((mt) => {
+                return mt.taskId == task.id && membersToRemove.includes(mt.memberId);
+            });
 
             if (assignedIds.length == 0) {
                 openSnackbar("Please assign at least one member to the task.", "error");
@@ -222,25 +177,36 @@
                 name: taskName.trim(),
                 description: taskDescription.trim(),
                 percentage: task.percentage,
-                assignedIds: assignedIds,
-                hivePosX: task.hivePosX,
-                hivePosY: task.hivePosY,
+                hiveX: task.hiveX,
+                hiveY: task.hiveY,
                 startDate: new Date(startNumber),
                 endDate: new Date(endNumber),
             });
 
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", newTask.id);
             setDoc(taskDoc, newTask.compactify()).then(() => {
-                task = newTask;
+                for (let i = 0; i < membersToAdd.length; i++) {
+                    let memberTask: MemberTask = new MemberTask({
+                        id: StringHelper.generateID(),
+                        memberId: membersToAdd[i],
+                        taskId: newTask.id,
+                    });
+                    let memberTaskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberTasks", memberTask.id);
+                    setDoc(memberTaskDoc, memberTask.compactify()).then(() => {
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while assigning member to task. Please try again.", "error");
+                    });
+                }
+
+                for (let i = 0; i < memberTasksToRemove.length; i++) {
+                    let memberTaskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberTasks", memberTasksToRemove[i].id);
+                    deleteDoc(memberTaskDoc).then(() => {
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while unassigning member from task. Please try again.", "error");
+                    });
+                }
+
                 hideExtras();
-                setAssigned();
-                project.tasks = project.tasks.map((t) => {
-                    if (t.id === task.id) {
-                        return task;
-                    }
-                    return t;
-                });
-                updateProject();
                 openSnackbar("Task edited successfully.", "success");
             }).catch((error) => {
                 openSnackbar("An error occurred while editing task. Please try again.", "error");
@@ -257,7 +223,6 @@
         });
         let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
         deleteDoc(taskDoc).then(() => {
-            updateProject();
             openSnackbar("Task deleted successfully.", "success");
         }).catch((error) => {
             openSnackbar("An error occurred while deleting task. Please try again.", "error");
@@ -273,8 +238,6 @@
     onMount(() => {
         existed = true;
         getCurrMember();
-        setAssigned();
-        getProject();
     });
 
     onDestroy(() => {

@@ -2,7 +2,7 @@
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import type { Task } from "$lib/elements/classes/data/time/Task";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
-	import { projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { onMount } from "svelte";
 	import { fly } from "svelte/transition";
 	import HiveTask from "./hive-task.svelte";
@@ -32,28 +32,32 @@
     }
 
     function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-
-                if (project.tasks.length == tasks.length) {
-                    getTasks();
-                }
-                else {
-                    tasks = [];
-                    setTimeout(() => {
-                        getTasks();
-                    });
-                }
-            } else {
-                project = null;
-                tasks = [];
+        currentMember.subscribe((c) => {
+            if (c == null) {
+                return;
             }
+            projectSelected.subscribe((value) => {
+                project = c.projects.find((p) => p.id == value);
+                if (project != null) {
+                    if (project.tasks.length == tasks.length) {
+                        getTasks();
+                    }
+                    else {
+                        tasks = [];
+                        setTimeout(() => {
+                            getTasks();
+                        });
+                    }
+                } else {
+                    project = null;
+                    tasks = [];
+                }
+            });
         });
     }
 
     function getTasks(): void {
-        tasks = project.tasks;
+        tasks = [...project.tasks];
 
         let total = 0;
         for (let task of tasks) {

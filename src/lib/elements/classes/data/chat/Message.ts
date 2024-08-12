@@ -1,58 +1,38 @@
-import { DocumentReference, getDoc, Timestamp, type DocumentData } from "firebase/firestore";
+import { DocumentReference, getDoc, onSnapshot, Timestamp, type DocumentData } from "firebase/firestore";
 import { Member } from "../project/Member";
 import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { Poll } from "./Poll";
 
 export class Message {
     public id: string;
-
-    public text: string;
-
-    public senderId: string;
-    public sender: Member = new Member({});
-
+    public memberId: string;
+    public pollId: string;
     public replyId: string;
-    public reply: Message;
-
-    public edited: boolean = false;
-
+    public text: string;
     public link: string;
     public linkName: string;
-
     public imageUrl: string;
-
     public videoUrl: string;
-
-    public pollId: string;
-    public poll: Poll;
-
+    public edited: boolean = false;
     public createdAt: Date;
     public createdAtTemp: any;
+    
+    public member: Member;
+    public reply: Message;
+    public poll: Poll;
 
     constructor(data: any) {
         this.id = data.id;
-        if (!this.id) {
-            this.id = "";
-        }
+        
+        this.memberId = data.memberId;
+
+        this.replyId = data.replyId;
+
+        this.pollId = data.pollId;
 
         this.text = data.text;
         if (!this.text) {
             this.text = "";
-        }
-
-        this.senderId = data.senderId;
-        if (!this.senderId) {
-            this.senderId = "";
-        }
-
-        this.replyId = data.replyId;
-        if (!this.replyId) {
-            this.replyId = "";
-        }
-
-        this.edited = data.edited;
-        if (this.edited == null || this.edited == undefined) {
-            this.edited = false;
         }
 
         this.linkName = data.linkName;
@@ -74,9 +54,9 @@ export class Message {
             this.videoUrl = "";
         }
 
-        this.pollId = data.pollId;
-        if (!this.pollId) {
-            this.pollId = "";
+        this.edited = data.edited;
+        if (this.edited == null || this.edited == undefined) {
+            this.edited = false;
         }
 
         if (data.createdAt) {
@@ -92,46 +72,52 @@ export class Message {
         this.createdAtTemp = data.createdAtTemp;
     }
 
-    public async setObjects(): Promise<void> {
-        if (this.pollId) {
-            let pollsDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('polls', this.pollId);
-            await getDoc(pollsDoc).then((doc) => {
-                if (doc.exists()) {
-                    this.poll = new Poll(doc.data());
-                }
+    public setObjects(): void {
+        this.setMember();
+        this.setReply();
+        this.setPoll();
+    }
+
+    public setMember(): void {
+        if (this.memberId) {
+            let memberDoc: DocumentReference<DocumentData> = getFirestoreDoc("members", this.memberId);
+            onSnapshot(memberDoc, (doc) => {
+                this.member = new Member(doc.data());
             });
-        }
-        else {
-            this.poll = new Poll({});
         }
     }
 
-    public async getSender(): Promise<void> {
-        if (this.senderId) {
-            let membersDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', this.senderId);
-            await getDoc(membersDoc).then((doc) => {
-                if (doc.exists()) {
-                    this.sender = new Member(doc.data());
-                }
+    public setReply(): void {
+        if (this.replyId) {
+            let replyDoc: DocumentReference<DocumentData> = getFirestoreDoc("messages", this.replyId);
+            onSnapshot(replyDoc, (doc) => {
+                this.reply = new Message(doc.data());
             });
         }
-        else {
-            this.sender = new Member({});
+    }
+
+    public setPoll(): void {
+        if (this.pollId) {
+            let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc("polls", this.pollId);
+            onSnapshot(pollDoc, (doc) => {
+                this.poll = new Poll(doc.data());
+                this.poll.setObjects();
+            });
         }
     }
 
     public compactify(): any {
         return {
             id: this.id,
-            text: this.text,
-            senderId: this.senderId,
+            memberId: this.memberId,
             replyId: this.replyId,
-            edited: this.edited,
+            pollId: this.pollId,
+            text: this.text,
             link: this.link,
             linkName: this.linkName,
             imageUrl: this.imageUrl,
             videoUrl: this.videoUrl,
-            pollId: this.pollId,
+            edited: this.edited,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
         };
     }

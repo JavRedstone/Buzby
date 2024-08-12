@@ -3,8 +3,7 @@
 </svelte:head>
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { memberStatus } from '$lib/elements/stores/project-store';
-	import { allProjects } from '$lib/elements/stores/project-store';
+	import { currentMember } from '$lib/elements/stores/project-store';
 	import { CollectionReference, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 	import { getFirestoreCollection, getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData } from 'firebase/firestore';
@@ -39,24 +38,13 @@
     let snackbarType: string = "neutral";
 
     function getCurrMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
+        currentMember.subscribe((value) => {
+            currMember = value;
+            projectSelected.subscribe((value) => {
+                project = currMember.projects.find((project) => project.id == value);
                 setMemberStatusPositions();
-            } else {
-                project = null;
-            }
-        })
+            });
+        });
     }
 
     function setMemberStatusPositions(): void {
@@ -90,6 +78,9 @@
             let membersQuery = query(membersCollection, where("email", "==", inviteEmail));
             let memberIds: string[] = [];
             let members: Member[] = [];
+            
+            inviteEmail = '';
+            
             getDocs(membersQuery).then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
                     let member: Member = new Member(doc.data());
@@ -124,7 +115,6 @@
 
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
                 project.memberIds = [...project.memberIds, ...memberIds];
-                project.members = [...project.members, ...members];
                 setDoc(projectDoc, project.compactify()).then(async () => {
                     for (let member of members) {
                         member.requestedProjectIds.push(project.id);
@@ -141,18 +131,7 @@
                         let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
                         await setDoc(memberDoc, member.compactify());
                     }
-                    allProjects.update((value) => {
-                        value.projects = value.projects.map((p) => {
-                            if (p.id == project.id) {
-                                p.memberIds = project.memberIds;
-                                p.members = project.members;
-                            }
-                            return p;
-                        });
-                        return value;
-                    });
                     openSnackbar("Successfully invited member.", "success");
-                    inviteEmail = '';
                     inviteProcessing = false;
                 }).catch(() => {
                     openSnackbar("An error occurred while inviting the member. Please try again.", "error");
@@ -198,7 +177,6 @@
     
     onMount(() => {
         getCurrMember();
-        getProject();
         setListeners();
     });
 

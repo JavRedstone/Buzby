@@ -7,12 +7,12 @@
 	import { deleteDoc, updateDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '../general/snackbar.svelte';
-	import { memberStatus, projectSelected } from '$lib/elements/stores/project-store';
+	import { currentMember, projectSelected } from '$lib/elements/stores/project-store';
 	import type { Project } from '$lib/elements/classes/data/project/Project';
 	import type { Member } from '$lib/elements/classes/data/project/Member';
-	import { ChatConstants } from '$lib/elements/classes/data/chat/ChatConstants';
 	import ChatPoll from './chat-poll.svelte';
 	import Avatar from '../general/avatar.svelte';
+	import { MessageConstants } from '$lib/elements/classes/data/chat/MessageConstants';
 
     let dispatch = createEventDispatcher();
     
@@ -40,11 +40,11 @@
 
     $: message.text ? messageFormattedText = getMessageFormattedText(message.text) : messageFormattedText = "";
     $: message.text ? messageFormatting = getMessageFormatting(message.text) : messageFormatting = "";
-    $: isHighlighted && highlightedId == message.id ? highlightTimeout = setTimeout(() => isHighlighted = false, ChatConstants.MESSAGE_HIGHLIGHT_DURATION) : clearTimeout(highlightTimeout);
+    $: isHighlighted && highlightedId == message.id ? highlightTimeout = setTimeout(() => isHighlighted = false, MessageConstants.MESSAGE_HIGHLIGHT_DURATION) : clearTimeout(highlightTimeout);
 
     function getMember(): void {
-        memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
+        currentMember.subscribe((value) => {
+            currMember = value;
             getMessageFormattedText(message.text);
             getMessageFormatting(message.text);
         });
@@ -88,24 +88,15 @@
         message.text = messageText;
         message.edited = true;
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
-        projectSelected.update((value) => {
-            value.project.chat = project.chat;
-            return value;
-        });
         updateDoc(messageDoc, message.compactify());
     }
 
     function deleteMessage(): void {
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
-        project.chat.messageIds = project.chat.messageIds.filter((id) => id !== message.id);
-        project.chat.messages = project.chat.messages.filter((msg) => msg.id !== message.id);
-        projectSelected.update((value) => {
-            value.project.chat = project.chat;
-            return value;
-        });
+        project.messageIds = project.messageIds.filter((id) => id !== message.id);
         deleteDoc(messageDoc).then(() => {
-            let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.chat.id);
-            updateDoc(chatDoc, project.chat.compactify()).then(() => {
+            let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.id);
+            updateDoc(chatDoc, project.compactify()).then(() => {
                 if (message.pollId.length > 0) {
                     let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
                     deleteDoc(pollDoc);
@@ -143,7 +134,7 @@
         if (text.search(/`(.*?)`/g) != -1) {
             textFormatting = 'background-color: var(--grey-300); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px; font-family: monospace;';
         }
-        if (currMember && (text.search(/@([^\s]+)/g) != -1 || (message.reply != null && message.reply.senderId === currMember.id))) {
+        if (currMember && (text.search(/@([^\s]+)/g) != -1 || (message.reply != null && message.reply.memberId === currMember.id))) {
             let mentions: string[] = [];
             let mention: string = '';
             if (text.search(/@([^\s]+)/g) != -1) {
@@ -160,7 +151,7 @@
                     }
                 }
             }
-            if (mention.length > 0 || (message.reply != null && message.reply.senderId === currMember.id)) {
+            if (mention.length > 0 || (message.reply != null && message.reply.memberId === currMember.id)) {
                 textFormatting += 'background-color: rgba(var(--primary-rgb), 0.25); padding-left: 4px; padding-right: 4px; padding-top: 2px; padding-bottom: 2px; border-radius: 4px;';
             }
             if (mentions.length > 0) {
@@ -479,25 +470,25 @@
                 <div class="chat-message-reply-arrow"></div>
                 {#if message.reply != null}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <div class="chat-message-reply-display" style="width: {message.senderId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}" on:click={jumpToReply}>
-                        {message.reply.sender.displayName}: {message.reply.text}
+                    <div class="chat-message-reply-display" style="width: {message.memberId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}" on:click={jumpToReply}>
+                        {message.reply.member.displayName}: {message.reply.text}
                     </div>
                 {:else}
-                    <div class="chat-message-reply-deleted" style="width: {message.senderId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}">Original message deleted.</div>
+                    <div class="chat-message-reply-deleted" style="width: {message.memberId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}">Original message deleted.</div>
                 {/if}
             {/if}
             
             <div class="chat-message-avatar-container" style="top: {message.replyId.length > 0 ? 28 : 4}px;">
-                <Avatar member={message.sender} size="42px" />
+                <Avatar member={message.member} size="42px" />
             </div>
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <div class="chat-message-name" on:click={clickedName}>{message.sender.displayName}</div>
+                    <div class="chat-message-name" on:click={clickedName}>{message.member.displayName}</div>
                     <div class="chat-message-date">{StringHelper.getFormattedDate(message.createdAt)}</div>
                 </div>
                 <div class="chat-message-large-container">
-                    <div class="chat-message-extra-container" style="margin-left: 50px; width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
+                    <div class="chat-message-extra-container" style="margin-left: 50px; width: {message.memberId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
                         {#if editOpen}
                             <!-- svelte-ignore a11y-autofocus -->
                             <input class="chat-message-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
@@ -519,7 +510,7 @@
                         {/if}
                     </div>
                     {#if hovered}
-                        {#if message.senderId == currMember.id}
+                        {#if message.memberId == currMember.id}
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <span class="chat-message-action material-symbols-rounded" on:click={reply}>reply</span>
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -535,7 +526,7 @@
             </div>
         {:else}
             <div class="chat-message-time">{StringHelper.getFormattedTime(message.createdAt)}</div>
-            <div class="chat-message-extra-container" style="width: {message.senderId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
+            <div class="chat-message-extra-container" style="width: {message.memberId == currMember.id ? 'calc(100% - 116px)' : 'calc(100% - 80px)'};">
                 {#if editOpen}
                     <!-- svelte-ignore a11y-autofocus -->
                     <input class="chat-message-edit-input" bind:value={messageText} on:focusout={cancelEdit} autofocus />
@@ -557,7 +548,7 @@
                 {/if}
             </div>
             {#if hovered}
-                {#if message.senderId == currMember.id}
+                {#if message.memberId == currMember.id}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <span class="chat-message-action material-symbols-rounded" on:click={reply}>reply</span>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->

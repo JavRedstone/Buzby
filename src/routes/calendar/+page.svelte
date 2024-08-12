@@ -2,7 +2,6 @@
     <title>Buzby | Calendar</title>
 </svelte:head>
 <script lang="ts">
-	import { memberStatus } from '$lib/elements/stores/project-store';
 	import Avatar from '$lib/elements/ui/general/avatar.svelte';
 	import { MathHelper } from '$lib/elements/helpers/MathHelper';
 	import Menu from '$lib/elements/ui/general/menu.svelte';
@@ -17,7 +16,7 @@
 	import { onDestroy, onMount } from "svelte";
 	import { fade, slide, scale } from 'svelte/transition';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
-	import { allProjects, projectSelected } from '$lib/elements/stores/project-store';
+	import { currentMember, projectSelected } from '$lib/elements/stores/project-store';
 	import { OccasionConstants } from '$lib/elements/classes/data/time/OccasionConstants';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
@@ -96,21 +95,12 @@
     }
 
     function getCurrMember(): void {
-        memberStatus.subscribe((value) => {
-            currMember = value.currentMember;
-        });
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-
+        currentMember.subscribe((value) => {
+            currMember = value;
+            projectSelected.subscribe((value) => {
+                project = currMember.projects.find((p) => p.id == value);
                 occasions = project.occasions;
-            } else {
-                project = null;
-                occasions = [];
-            }
+            });
         });
     }
 
@@ -169,24 +159,6 @@
         createOpen = false;
         temporaryOccasion = null;
         occasionAssignedChecked = [];
-    }
-
-    function updateProject(): void {
-        projectSelected.update((value) => {
-            value.project = project;
-            value.projectName = project.name;
-            return value;
-        });
-
-        allProjects.update((value) => {
-            value.projects = value.projects.map((p) => {
-                if (p.id === project.id) {
-                    return project;
-                }
-                return p;
-            });
-            return value;
-        });
     }
 
     function addOccasion(): void {
@@ -281,7 +253,6 @@
             setDoc(projectDoc, project.compactify()).then(() => {
                 let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", newOccasion.id);
                 setDoc(occasionDoc, newOccasion.compactify()).then(() => {
-                    updateProject();
                     openSnackbar("Occasion added successfully.", "success");
                     cancelCreate();
                 }).catch((error) => {
@@ -300,7 +271,6 @@
             detailsOpen = !detailsOpen;
         } else {
             detailsOccasion = event.detail.occasion;
-            setAssignedDetails();
             detailsOpen = true;
         }
 
@@ -322,28 +292,6 @@
         hideExtras();
     }
 
-    async function setAssignedDetails(): Promise<void> {
-        if (detailsOccasion) {
-            assignedDetails = [];
-            for (let assignedId of detailsOccasion.assignedIds) {
-                let found: boolean = false;
-                for (let member of project.members) {
-                    if (member.id === assignedId) {
-                        assignedDetails = [...assignedDetails, member];
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    await detailsOccasion.getAssigned(assignedId).then((member) => {
-                        assignedDetails = [...assignedDetails, member];
-                    }).catch((error) => {
-                        openSnackbar("There was an error getting the assigned members. Please try again.", "error");
-                    });
-                }
-            }
-        }
-    }
-
     function editOccasion(): void {
         editOpen = !editOpen;
         deleteOpen = false;
@@ -354,7 +302,7 @@
             occasionEditColor = detailsOccasion.color;
             occasionEditAssignedChecked = [];
             for (let i = 0; i < project.members.length; i++) {
-                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.assignedIds.includes(project.members[i].id)];
+                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.memberIds.includes(project.members[i].id)];
             }
             setTimeout(() => {
                 occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(detailsOccasion.startTime);
@@ -470,7 +418,6 @@
                     }
                     return o;
                 });
-                updateProject();
                 openSnackbar("Occasion edited successfully.", "success");
                 cancelCreate();
             }).catch((error) => {
@@ -490,7 +437,6 @@
         let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", detailsOccasion.id);
         deleteDoc(occasionDoc).then(() => {
             closeDetails();
-            updateProject();
             openSnackbar("Occasion deleted successfully.", "success");
         }).catch((error) => {
             openSnackbar("An error occurred while deleting occasion. Please try again.", "error");
@@ -558,7 +504,6 @@
 
     onMount(() => {
         getCurrMember();
-        getProject();
         setDateRange();
         setCurrentInterval();
         setListeners();

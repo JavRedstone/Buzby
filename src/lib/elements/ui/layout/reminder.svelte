@@ -2,15 +2,15 @@
     <title>Buzby | Reminder</title>
 </svelte:head>
 <script lang="ts">
-    import { userStatus } from '$lib/elements/stores/auth-store';
+    import { currentUser } from '$lib/elements/stores/auth-store';
     import type { User } from 'firebase/auth';
     import { onMount } from 'svelte';
 
-    let currentUser: User = null;
+    let currUser: User = null;
 
     function getUser(): void {
-        userStatus.subscribe((value) => {
-            currentUser = value.currentUser;
+        currentUser.subscribe((value) => {
+            currUser = value;
         });
     }
 
@@ -27,6 +27,6 @@
         color: var(--primary-dark);
     }
 </style>
-{#if currentUser == null}
+{#if currUser == null}
     <div class="reminder-text">You are not logged in. Please log in to access this page.</div>
 {/if}

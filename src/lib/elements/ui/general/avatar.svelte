@@ -1,19 +1,19 @@
 <script lang="ts">
 	import type { Member } from "$lib/elements/classes/data/project/Member";
 	import { MemberConstants } from "$lib/elements/classes/data/project/MemberConstants";
-	import { memberStatus } from "$lib/elements/stores/project-store";
+	import { currentMember } from "$lib/elements/stores/project-store";
 	import { onMount } from "svelte";
 
     export let member: Member = null;
     export let size: string = "";
 
-    let base: number = member.avatarBase;
+    let base: number = member.statusBase;
 
     function getCurrentMember(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null && member.id == value.currentMember.id) {
-                member = value.currentMember;
-                base = member.avatarBase;
+        currentMember.subscribe((value) => {
+            if (value != null && member != null && member.id == value.id) {
+                member = value;
+                base = member.statusBase;
             }
         })
     }
@@ -35,7 +35,7 @@
     }
 </style>
 {#if member != null}
-    <div class="avatar-image-container" style="width: {size}; height: {size}; border-color: var(--{base == MemberConstants.AVATAR_BASES.ONLINE ? 'online' : base == MemberConstants.AVATAR_BASES.DND ? 'dnd' : 'offline'})">
+    <div class="avatar-image-container" style="width: {size}; height: {size}; border-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online' : base == MemberConstants.STATUS_BASES.DND ? 'dnd' : 'offline'})">
 
     </div>
 {/if}

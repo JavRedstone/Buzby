@@ -6,10 +6,10 @@
     import type { User, UserCredential } from "firebase/auth";
 	import { type DocumentData, setDoc, DocumentReference, serverTimestamp, getDoc } from "firebase/firestore";
     import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
+	import { authHandlers, currentUser } from "$lib/elements/stores/auth-store";
 	import Snackbar from "$lib/elements/ui/general/snackbar.svelte";
 	import { onMount } from "svelte";
-	import { memberStatus } from "$lib/elements/stores/project-store";
+	import { currentMember } from "$lib/elements/stores/project-store";
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import { goto } from '$app/navigation';
 	import { RouteConstants } from '$lib/elements/classes/ui/core/RouteConstants';
@@ -26,8 +26,8 @@
     let snackbarType: string = 'neutral';
     
     function checkUser(): void {
-        userStatus.subscribe((value: any) => {
-            if (value.currentUser != null && value.currentUser.emailVerified) {
+        currentUser.subscribe((value: any) => {
+            if (value != null && value.emailVerified) {
                 goto(RouteConstants.HOME);
             }
         });
@@ -43,28 +43,15 @@
                         id: credential.user.uid,
                         displayName: credential.user.displayName == null ? StringHelper.getEmailName(credential.user.email) : credential.user.displayName,
                         email: credential.user.email.toLowerCase(),
-
-                        avatarHat: 0,
-                        avatarGlasses: 0,
-
-                        projectIds: [],
-                        requestedProjectIds: [],
-
-                        pings: [],
-
+                        statusBase: 0,
+                        statusHead: 0,
+                        statusEyes: 0,
+                        statusNeck: 0,
+                        avatarChoice: 0,
                         createdAtTemp: serverTimestamp(),
                     });
                     setDoc(memberDoc, member.compactify()).then(() => {
-                        getDoc(memberDoc).then((doc) => {
-                            member = new Member(doc.data());
-                            memberStatus.update((value) => {
-                                value.currentMember = member;
-                                return value;
-                            });
-                            sendVerificationEmail();
-                        }).catch(() => {
-                            openSnackbar('Error signing up. Please try again.', 'error');
-                        });
+                        sendVerificationEmail();
                     }).catch(() => {
                         openSnackbar('Error signing up. Please try again.', 'error');
                     });

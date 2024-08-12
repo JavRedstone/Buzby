@@ -1,18 +1,18 @@
 <script lang="ts">
 	import Reminder from './../lib/elements/ui/layout/reminder.svelte';
 	import { type User } from 'firebase/auth';
-	import { userStatus } from '$lib/elements/stores/auth-store';
+	import { currentUser } from '$lib/elements/stores/auth-store';
 	import Core from "$lib/elements/ui/layout/core.svelte";
 	import { onMount } from "svelte";
 
     let sideOpen: boolean = false;
 
-    let currentUser: User = null;
+    let currUser: User = null;
     let w: Window = null;
 
     function getUser(): void {
-        userStatus.subscribe((value) => {
-            currentUser = value.currentUser;
+        currentUser.subscribe((value) => {
+            currUser = value;
         });
     }
 
@@ -170,7 +170,7 @@
     }
 </style>
 <div class="layout-slot-container" style="{sideOpen ? 'left: 48px; width: calc(100vw - 48px);' : 'left: 0; width: 100vw;'}">
-    {#if currentUser || (w && (location.pathname == '/' || location.pathname == '/login' || location.pathname == '/signup'))}
+    {#if currUser || (w && (location.pathname == '/' || location.pathname == '/login' || location.pathname == '/signup'))}
         <slot />
     {:else}
         <Reminder />

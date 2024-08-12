@@ -55,7 +55,7 @@
     }
 
     function getTasks(): void {
-        tasks = project.tasks;
+        tasks = [...project.tasks];
 
         let total = 0;
         for (let task of tasks) {
@@ -180,28 +180,9 @@
                 }
                 return t;
             });
-            updateProject();
             openSnackbar("Task edited successfully.", "success");
         }).catch((error) => {
             openSnackbar("An error occurred while editing task. Please try again.", "error");
-        });
-    }
-
-    function updateProject(): void {
-        projectSelected.update((value) => {
-            value.project = project;
-            value.projectName = project.name;
-            return value;
-        });
-
-        allProjects.update((value) => {
-            value.projects = value.projects.map((p) => {
-                if (p.id === project.id) {
-                    return project;
-                }
-                return p;
-            });
-            return value;
         });
     }
 
@@ -283,7 +264,7 @@
         height: calc(100% - 48px);
         margin-top: 48px;
         overflow-x: hidden;
-        overflow-y: auto;
+        overflow-y: hidden;
         cursor: grab;
         border-top: 1px solid var(--grey-300);
     }

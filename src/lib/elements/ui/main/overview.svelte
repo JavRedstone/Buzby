@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { currentMember } from '$lib/elements/stores/project-store';
 	import ProjectOverview from './project-overview.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
@@ -8,7 +9,6 @@
 	import { getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference } from 'firebase/firestore';
-	import { Chat } from '$lib/elements/classes/data/chat/Chat';
 	import { getDocs } from 'firebase/firestore';
 	import { where } from 'firebase/firestore';
 	import { query } from 'firebase/firestore';
@@ -19,13 +19,11 @@
 	import { onMount } from 'svelte';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
-	import { allProjects, memberStatus } from '$lib/elements/stores/project-store';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
+	import { MemberProject } from '$lib/elements/classes/data/project/MemberProject';
 
     let currMember: Member = null;
-    let projects: Project[] = [];
-    let requestedProjects: Project[] = [];
 
     let createOpen: boolean = false;
     let createProcessing: boolean = false;
@@ -91,88 +89,74 @@
             let membersCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection("members");
             let membersQuery = query(membersCollection, where("email", "in", memberEmails));
             let memberIds: string[] = [];
-            let members: Member[] = [];
             getDocs(membersQuery).then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
                     memberIds.push(doc.id);
-                    members.push(new Member(doc.data()));
                 });
 
-                if (memberIds.includes(currMember.id)) {
-                    openSnackbar("You cannot add yourself to the project.", "error");
-                    createProcessing = false;
-                    return;
-                }
-
                 if (memberIds.length > 0) {
-                    memberIds.push(currMember.id);
+                    createOpen = false;
 
-                    let chat: Chat = new Chat({
+                    memberIds.push(currMember.id);
+                    let project: Project = new Project({
                         id: StringHelper.generateID(),
-                        messageIds: [],
+                        name: projectName,
+                        description: projectDescription,
+                        color: projectColor,
+                        createdAtTemp: serverTimestamp(),
                     });
 
-                    let chatDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("chats", chat.id);
-                    setDoc(chatDoc, chat.compactify()).then(() => {
-                        let project: Project = new Project({
+                    let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
+                    setDoc(projectDoc, project.compactify()).then(() => {
+                        let ownerProject: MemberProject = new MemberProject({
                             id: StringHelper.generateID(),
-                            name: projectName,
-                            description: projectDescription,
-                            color: projectColor,
-                            ownerId: currMember.id,
-                            memberIds: memberIds,
-                            joinedMemberIds: [currMember.id],
-                            chatId: chat.id,
-                            taskIds: [],
-                            eventIds: [],
+                            memberId: currMember.id,
+                            projectId: project.id,
+                            isOwner: true,
+                            hasJoined: true,
                             createdAtTemp: serverTimestamp(),
                         });
-
-                        let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
-                        setDoc(projectDoc, project.compactify()).then(() => {
-                            getDoc(projectDoc).then(async (doc) => {
-                                project = new Project(doc.data());
-                                for (let member of members) {
-                                    let ping: Ping = new Ping({
-                                        id: StringHelper.generateID(),
-                                        type: PingConstants.TYPES.PROJECT,
-                                        title: "Project request",
-                                        message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
-                                        createdAtTemp: serverTimestamp(),
-                                    });
-                                    member.pingIds.push(ping.id);
-                                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
-                                    setDoc(pingDoc, ping.compactify());
-                                    member.requestedProjectIds.push(project.id);
-                                    let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", member.id);
-                                    await setDoc(memberDoc, member.compactify());
+                        let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberProjects", ownerProject.id);
+                        setDoc(memberProjectDoc, ownerProject.compactify()).then(() => {
+                            for (let memberId of memberIds) {
+                                if (memberId === currMember.id) {
+                                    continue;
                                 }
-                                currMember.projectIds.push(project.id);
-                                let currentMemberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("members", currMember.id);
-                                setDoc(currentMemberDoc, currMember.compactify()).then(async () => {
-                                    await project.setObjects();
-
-                                    allProjects.update((value) => {
-                                        value.projects = [...value.projects, project];
-                                        value.projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-                                        return value;
-                                    });
-                                    
-                                    openSnackbar("Project created successfully.", "success");
-                                    createProcessing = false;
-                                    cancel();
-                                }).catch((error) => {
-                                    openSnackbar("An error occurred while creating the project.", "error");
+                                let memberProject: MemberProject = new MemberProject({
+                                    id: StringHelper.generateID(),
+                                    memberId: memberId,
+                                    projectId: project.id,
+                                    isOwner: false,
+                                    hasJoined: false,
+                                    createdAtTemp: serverTimestamp(),
+                                });
+                                let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberProjects", memberProject.id);
+                                setDoc(memberProjectDoc, memberProject.compactify()).then(
+                                    () => {
+                                        let ping: Ping = new Ping({
+                                            id: StringHelper.generateID(),
+                                            memberId: memberId,
+                                            projectId: project.id,
+                                            type: PingConstants.TYPES.PROJECT,
+                                            title: "Project request",
+                                            message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
+                                            createdAtTemp: serverTimestamp(),
+                                        });
+                                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("pings", ping.id);
+                                        setDoc(pingDoc, ping.compactify());
+                                    }
+                                ).catch((error) => {
+                                    openSnackbar("An error occurred while inviting members to the project.", "error");
                                     createProcessing = false;
                                 });
-                            }).catch((error) => {
-                                openSnackbar("An error occurred while creating the project.", "error");
-                                createProcessing = false;
-                            });
+                            }
                         }).catch((error) => {
                             openSnackbar("An error occurred while creating the project.", "error");
                             createProcessing = false;
                         });
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while creating the project.", "error");
+                        createProcessing = false;
                     });
                 }
                 else {
@@ -212,20 +196,9 @@
         }
     }
 
-    function getUser(): void {
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
-    function getProjects(): void {
-        allProjects.subscribe((value) => {
-            projects = value.projects;
-            requestedProjects = value.requestedProjects;
+    function getCurrMember(): void {
+        currentMember.subscribe((value) => {
+            currMember = value;
         });
     }
 
@@ -236,8 +209,7 @@
     }
 
     onMount(() => {
-        getUser();
-        getProjects();
+        getCurrMember();
     });
 </script>
 <style>
@@ -447,9 +419,9 @@
         Create Project
     </button>
     
-    {#if createOpen}
+    {#if currMember && createOpen}
         <div class="overview-create-project-container" transition:slide={{duration: TransitionConstants.DURATION}}>
-            {#if projects.length < ProjectConstants.MAX_NUM_PROJECTS}
+            {#if currMember.joinedProjects.length < ProjectConstants.MAX_NUM_PROJECTS}
                 <div class="overview-create-project-field">
                     <span class="overview-create-project-icon material-symbols-rounded">badge</span>
                     <input class="overview-create-project-input" type="text" placeholder="Project Name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
@@ -496,20 +468,24 @@
 
     <h2>Projects</h2>
     <div class="overview-projects-container">
-        {#each projects as project}
-            <ProjectOverview bind:project={project} isRequested={false} isOwner={project.ownerId === currMember.id} />
-        {/each}
-        {#if projects.length === 0}
-            <div class="overview-no-projects">No projects found. Create one above!</div>
+        {#if currMember}
+            {#each currMember.joinedProjects as project}
+                <ProjectOverview bind:project={project} isRequested={false} isOwner={project.owner.id === currMember.id} />
+            {/each}
+            {#if currMember.joinedProjects.length === 0}
+                <div class="overview-no-projects">No projects found. Create one above!</div>
+            {/if}
         {/if}
     </div>
     <h2>Requested Projects</h2>
     <div class="overview-requested-projects-container">
-        {#each requestedProjects as project}
-            <ProjectOverview bind:project={project} isRequested={true} isOwner={false} />
-        {/each}
-        {#if requestedProjects.length === 0}
-            <div class="overview-no-projects">No requested projects found. Receive a request to join a project!</div>
+        {#if currMember}
+            {#each currMember.requestedProjects as project}
+                <ProjectOverview bind:project={project} isRequested={true} isOwner={false} />
+            {/each}
+            {#if currMember.requestedProjects.length === 0}
+                <div class="overview-no-projects">No requested projects found. Receive a request to join a project!</div>
+            {/if}
         {/if}
     </div>
 </div>

@@ -6,13 +6,13 @@
 	import Dropdown from "../general/dropdown.svelte";
 	import type { User } from "firebase/auth";
 	import { onMount } from "svelte";
-	import { authHandlers, userStatus } from "$lib/elements/stores/auth-store";
+	import { authHandlers, currentUser } from "$lib/elements/stores/auth-store";
 	import { auth, getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 	import Snackbar from "../general/snackbar.svelte";
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
-	import { allProjects, memberStatus, projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { Project } from "$lib/elements/classes/data/project/Project";
-	import { DocumentReference, deleteDoc, getDoc, getDocs, query, setDoc, where, type CollectionReference, type DocumentData } from "firebase/firestore";
+	import { DocumentReference, deleteDoc, getDoc, getDocs, onSnapshot, query, setDoc, where, type CollectionReference, type DocumentData } from "firebase/firestore";
 	import { TransitionConstants } from "$lib/elements/classes/ui/core/TransitionConstants";
 	import { Member } from "$lib/elements/classes/data/project/Member";
 	import Menu from "../general/menu.svelte";
@@ -36,12 +36,8 @@
     let selectedProject: Project = null;
     let selectedProjectName: string = defaultProjectName;
     let selectedProjectIdx: number = 0;
-    
-    let projectNames: string[] = [defaultProjectName];
-    let projects: Project[] = [];
-    let requestedProjects: Project[] = [];
 
-    let pings: Ping[] = [];
+    let projectNames: string[] = [defaultProjectName];
     
     let snackbarOpen: boolean = false;
     let snackbarText: string = '';
@@ -66,11 +62,7 @@
 
     function gotoHome(): void {
         goto(RouteConstants.HOME);
-        projectSelected.update((value) => {
-            value.projectName = defaultProjectName;
-            value.project = null;
-            return value;
-        });
+        projectSelected.set('');
     }
 
     function autoRedirect(): void {
@@ -84,138 +76,16 @@
             history.forward();
         });
         if (selectedProjectName == defaultProjectName) {
-            gotoHome(); // this works as it reloads page when manually changing link
+            gotoHome();
         }
     }
 
-    function getProjects(): void {
-        if (currMember == null) return;
-        let projectsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('projects');
-        let projectsQuery = null;
-        if (currMember.projectIds.length == 0) {
-            projectsQuery = query(projectsCollection, where('id', 'in', ['']));
-        } else {
-            projectsQuery = query(projectsCollection, where('id', 'in', currMember.projectIds));
-        }
-        
-        let projectsClone: Project[] = [];
-
-        getDocs(projectsQuery).then(
-            async (querySnapshot) => {
-                querySnapshot.forEach(
-                    async (doc) => {
-                        let project: Project = new Project(doc.data());
-                        await project.setObjects();
-                        if (projectsClone.find((p) => p.id == project.id) == null) {
-                            projectsClone.push(project);
-                        }
-
-                        projectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-                        allProjects.update((value) => {
-                            value.projects = projectsClone;
-                            return value;
-                        });
-                    }
-                );
-
-                let prjs: Project[] = [];
-                for (let doc of querySnapshot.docs) {
-                    let prj: Project = new Project(doc.data());
-                    prjs.push(prj);
-                }
-                prjs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-                let selectedProjectId: string = localStorage.getItem('selectedProjectId');
-                let selectedProjectRoute: string = localStorage.getItem('selectedProjectRoute');
-
-                for (let i = 0; i < prjs.length; i++) {
-                    let project: Project = prjs[i];
-                    if (selectedProjectId && selectedProjectId == project.id) {
-                        selectedProject = project;
-                        selectedProjectIdx = i + 1;
-                        await selectedProject.setObjects();
-                        projectSelected.update((value) => {
-                            value.projectName = project.name;
-                            value.project = project;
-                            return value;
-                        });
-                        if (selectedProject) {
-                            if (selectedProjectRoute && selectedProjectRoute != '/') {
-                                goto(selectedProjectRoute);
-                            } else {
-                                goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
-                            }
-                        } else {
-                            goto(RouteConstants.HOME);
-                        }
-                    }
-                }
+    function getCurrMember(): void {
+        currentMember.subscribe((value) => {
+            currMember = value;
+            if (currMember) {
+                currMember.setObjects();
             }
-        ).catch(
-            (error: any) => {
-                openSnackbar('Error getting projects. Please try again later.', 'error');
-            }
-        );
-
-        let requestedProjectsQuery = null;
-        if (currMember.requestedProjectIds.length == 0) {
-            requestedProjectsQuery = query(projectsCollection, where('id', 'in', ['']));
-        } else {
-            requestedProjectsQuery = query(projectsCollection, where('id', 'in', currMember.requestedProjectIds));
-        }
-
-        let requestedProjectsClone: Project[] = [];
-
-        getDocs(requestedProjectsQuery).then(
-            (querySnapshot) => {
-                querySnapshot.forEach(
-                    async (doc) => {
-                        let requestedProject: Project = new Project(doc.data());
-                        await requestedProject.setObjects();
-                        if (requestedProjectsClone.find((p) => p.id == requestedProject.id) == null) {
-                            requestedProjectsClone.push(requestedProject);
-                        }
-
-                        requestedProjectsClone.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-                        allProjects.update((value) => {
-                            value.requestedProjects = requestedProjectsClone;
-                            return value;
-                        });
-                    }
-                );
-            }
-        ).catch(
-            (error: any) => {
-                openSnackbar('Error getting requested projects. Please try again later.', 'error');
-            }
-        );
-
-        allProjects.subscribe((value) => {
-            projects = value.projects;
-            projectNames = [defaultProjectName];
-            for (let project of projects) {
-                projectNames = [...projectNames, project.name];
-            }
-            requestedProjects = value.requestedProjects;
-        });
-
-        projectSelected.subscribe((value) => {
-            selectedProject = value.project;
-            selectedProjectName = value.projectName;
-            if (selectedProjectName == defaultProjectName) {
-                sideOpen = false;
-                drawerOpen = false;
-            } else {
-                selectedProjectIdx = projects.findIndex((p) => p.id == selectedProject.id) + 1;
-                sideOpen = true;
-                if (location.pathname == '/') {
-                    goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
-                }
-            }
-            pingsOpen = false;
-            projectSelectOpen = false;
         });
     }
 
@@ -227,14 +97,13 @@
     function selectProject(): void {
         drawerOpen = false;
         pingsOpen = false;
-        let project: Project = projects[selectedProjectIdx - 1];
+        if (currMember == null) {
+            return;
+        }
+        let project: Project = currMember.joinedProjects[selectedProjectIdx - 1];
         if (project || selectedProjectName == defaultProjectName) {
             selectedProject = project;
-            projectSelected.update((value) => {
-                value.projectName = selectedProjectName;
-                value.project = project;
-                return value;
-            });
+            projectSelected.set(project.id);
             if (selectedProjectName != defaultProjectName && location.pathname == '/') {
                 goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
             } else if (selectedProjectName == defaultProjectName) {
@@ -258,32 +127,23 @@
         auth.onAuthStateChanged(
             (user) => {
                 if (user != null) {
-                    userStatus.update((value) => {
-                        value.currentUser = user;
-                        return value;
-                    });
+                    currentUser.set(user);
                     currUser = user;
 
                     let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', user.uid);
-                    getDoc(memberDoc).then(
-                        async (doc) => {
-                            if (doc.exists()) {
-                                let member: Member = new Member(doc.data());
-                                await member.setObjects();
-                                memberStatus.update((value) => {
-                                    value.currentMember = member;
-                                    return value;
-                                });
-                                currMember = member;
+                    onSnapshot(memberDoc, {
+                        includeMetadataChanges: true
+                    }, (doc) => {
+                        if (doc.exists()) {
+                            let member: Member = new Member(doc.data());
+                            member.setObjects();
+                            currMember = member;
 
-                                getProjects();
-                                pings = member.pings;
-                                pings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-                            }
+                            currentMember.set(member);
+
+                            getCurrMember();
                         }
-                    )
-                } else {
-                    // No user is signed in.
+                    });
                 }
             }
         );
@@ -296,37 +156,7 @@
         try {
             authHandlers.logout().then(
                 () => {
-                    currUser = null;
-                    currMember = null;
-                    selectedProject = null;
-                    selectedProjectName = defaultProjectName;
-                    selectedProjectIdx = 0;
-                    projectNames = [defaultProjectName];
-                    projects = [];
-                    requestedProjects = []; 
-                    pings = [];
-
                     localStorage.clear();
-                    
-                    allProjects.update((value) => {
-                        value.projects = [];
-                        value.requestedProjects = [];
-                        return value;
-                    });
-                    projectSelected.update((value) => {
-                        value.projectName = defaultProjectName;
-                        value.project = null;
-                        return value;
-                    });
-                    memberStatus.update((value) => {
-                        value.currentMember = null;
-                        return value;
-                    });
-                    userStatus.update((value) => {
-                        value.currentUser = null;
-                        return value;
-                    });
-
                     openSnackbar('Logged out successfully. Good bye!', 'neutral');
 
                     goto(RouteConstants.HOME).then(() => {
@@ -355,61 +185,38 @@
         pingsOpen = !pingsOpen;
     }
 
-    async function markPingRead(ping: Ping): Promise<void> {
+    function getUnreadCount(pings: Ping[]): number {
+        let count: number = 0;
+        for (let ping of pings) {
+            if (!ping.read) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    function markPingRead(ping: Ping): void {
         drawerOpen = false;
         projectSelectOpen = false;
 
-        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-        await deleteDoc(pingDoc).catch(
-            (error: any) => {
-                openSnackbar('Error marking notification as read. Please try again.', 'error');
-            }
-        );
+        if (!currMember || !ping) {
+            return;
+        }
 
-        currMember.pingIds = currMember.pingIds.filter((id) => id != ping.id);
-        currMember.pings = currMember.pings.filter((p) => p.id != ping.id);
-        pings = currMember.pings;
-        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
-        await setDoc(memberDoc, currMember.compactify()).then(
-            () => {
-                memberStatus.update((value) => {
-                    value.currentMember = currMember;
-                    return value;
-                });
-                openSnackbar('Notification marked as read.', 'neutral');
-            }
-        ).catch(
+        ping.read = true;
+
+        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+        setDoc(pingDoc, ping.compactify()).catch(
             (error: any) => {
                 openSnackbar('Error marking notification as read. Please try again.', 'error');
             }
         );
     }
 
-    async function markAllPingsRead(): Promise<void> {
-        drawerOpen = false;
-        projectSelectOpen = false;
-
-        for (let pingId of currMember.pingIds) {
-            let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', pingId);
-            await deleteDoc(pingDoc);
+    function markAllPingsRead(): void {
+        for (let ping of currMember.pings) {
+            markPingRead(ping);
         }
-        currMember.pingIds = [];
-        currMember.pings = [];
-        pings = currMember.pings;
-        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currUser.uid);
-        await setDoc(memberDoc, currMember.compactify()).then(
-            () => {
-                memberStatus.update((value) => {
-                    value.currentMember = currMember;
-                    return value;
-                });
-                openSnackbar('All notifications marked as read.', 'neutral');
-            }
-        ).catch(
-            (error: any) => {
-                openSnackbar('Error marking notifications as read. Please try again.', 'error');
-            }
-        );
     }
 
     function getPingColor(ping: Ping): string {
@@ -631,31 +438,33 @@
             <a on:click={togglePings}>
                 <span class="core-header-icon material-symbols-rounded">notifications_active</span>
             </a>
-            {#if pings.length > 0}
-                <Badge>{pings.length}</Badge>
+            {#if currMember}
+                {#if currMember.pings.length > 0}
+                    <Badge>getUnreadCount(currMember.pings)</Badge>
+                {/if}
+                <Menu bind:open={pingsOpen} right="0" top="48px" width="200px" height="200px">
+                    <div class="core-pings-title">Notifications</div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <a class="core-pings-mark-all" on:click={markAllPingsRead}>
+                        <span class="material-symbols-rounded">clear_all</span>
+                    </a>
+                    {#each currMember.pings as ping, i}
+                        <div class="core-ping-container" style="{i == currMember.pings.length - 1 ? 'border-bottom: none;' : ''}">
+                            <div class="core-ping-title" style="color: {getPingColor(ping)}">{ping.title}</div>
+                            <div class="core-ping-time">{StringHelper.getFormattedDate(ping.createdAt)}</div>
+                            <div class="core-ping-message">{ping.message}</div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <!-- svelte-ignore a11y-missing-attribute -->
+                            <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
+                                <span class="material-symbols-rounded">mark_email_read</span>
+                            </a>
+                        </div>
+                    {/each}
+                </Menu>
             {/if}
-            <Menu bind:open={pingsOpen} right="0" top="48px" width="200px" height="200px">
-                <div class="core-pings-title">Notifications</div>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a class="core-pings-mark-all" on:click={markAllPingsRead}>
-                    <span class="material-symbols-rounded">clear_all</span>
-                </a>
-                {#each pings as ping, i}
-                    <div class="core-ping-container" style="{i == pings.length - 1 ? 'border-bottom: none;' : ''}">
-                        <div class="core-ping-title" style="color: {getPingColor(ping)}">{ping.title}</div>
-                        <div class="core-ping-time">{StringHelper.getFormattedDate(ping.createdAt)}</div>
-                        <div class="core-ping-message">{ping.message}</div>
-                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                        <!-- svelte-ignore a11y-no-static-element-interactions -->
-                        <!-- svelte-ignore a11y-missing-attribute -->
-                        <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
-                            <span class="material-symbols-rounded">mark_email_read</span>
-                        </a>
-                    </div>
-                {/each}
-            </Menu>
         </div>
         <div class="core-header-icon-container" style="right: 74px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->

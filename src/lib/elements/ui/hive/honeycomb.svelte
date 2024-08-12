@@ -4,16 +4,17 @@
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import { HiveConstants } from "$lib/elements/classes/ui/hive/HiveConstants";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
-	import { setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
+	import { getDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from "firebase/firestore";
 	import Menu from "../general/menu.svelte";
 	import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
-	import { allProjects, projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 	import { TimeTick } from '$lib/elements/classes/ui/gantt/TimeTick';
+	import { MemberTask } from '$lib/elements/classes/data/time/MemberTask';
 
     export let task: Task = null;
     export let project: Project = null;
@@ -36,22 +37,7 @@
     $: task ? setUrgent() : null;
     $: openedMenuTask ? setMenuStatus() : null;
 
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-                if (task && task.id.length > 0) {
-                    let t: Task = project.tasks.find((t) => t.id === task.id);
-                    if (t) {
-                        task = t;
-                    }
-                }
-                setUrgent();
-            } else {
-                project = null;
-            }
-        });
-    }
+    $: task ? setUrgent() : null;
 
     function setUrgent(): void {
         if (task && task.id.length > 0 && task.id != TaskConstants.TASK_CENTER_ID && task.percentage < 100) {
@@ -83,11 +69,9 @@
                 openSnackbar("Task completed!", "success");
             }
 
-            setUrgent();
-
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
             setDoc(taskDoc, task.compactify()).then(() => {
-                updateProject();
+                
             }).catch((error) => {
                 openSnackbar("Error updating task. Please try again", "error");
             });
@@ -102,11 +86,9 @@
                 task.percentage = 0;
             }
 
-            setUrgent();
-
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
             setDoc(taskDoc, task.compactify()).then(() => {
-                updateProject();
+                
             }).catch((error) => {
                 openSnackbar("Error updating task. Please try again", "error");
             });
@@ -150,24 +132,6 @@
         for (let i = 0; i < project.joinedMembers.length; i++) {
             taskMembersChecked.push(false);
         }
-    }
-
-    function updateProject(): void {
-        projectSelected.update((value) => {
-            value.project = project;
-            value.projectName = project.name;
-            return value;
-        });
-
-        allProjects.update((value) => {
-            value.projects = value.projects.map((p) => {
-                if (p.id === project.id) {
-                    return project;
-                }
-                return p;
-            });
-            return value;
-        });
     }
 
     function addTask(): void {
@@ -226,7 +190,7 @@
             let assignedIds: string[] = [];
             for (let i = 0; i < taskMembersChecked.length; i++) {
                 if (taskMembersChecked[i]) {
-                    assignedIds.push(project.joinedMembers[i].id);
+                    assignedIds.push(project.joinedMemberIds[i]);
                 }
             }
 
@@ -240,26 +204,31 @@
                 name: taskName.trim(),
                 description: taskDescription.trim(),
                 percentage: 0,
-                assignedIds: assignedIds,
-                hivePosX: task.hivePosX,
-                hivePosY: task.hivePosY,
+                hiveX: task.hiveX,
+                hiveY: task.hiveY,
                 startDate: startDate,
                 endDate: endDate
             });
 
-            project.taskIds = [...project.taskIds, newTask.id];
-            project.tasks = [...project.tasks, newTask];
+            let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", newTask.id);
+            setDoc(taskDoc, newTask.compactify()).then(() => {
+                for (let assignedId of assignedIds) {
+                    let memberTask: MemberTask = new MemberTask({
+                        id: StringHelper.generateID(),
+                        taskId: newTask.id,
+                        memberId: assignedId,
+                        createdAtTemp: serverTimestamp()
+                    });
+                    let memberTaskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberTasks", memberTask.id);
+                    setDoc(memberTaskDoc, memberTask.compactify()).then(() => {
+                        
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while adding task. Please try again.", "error");
+                    });
+                }
 
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("projects", project.id);
-            setDoc(projectDoc, project.compactify()).then(() => {
-                let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", newTask.id);
-                setDoc(taskDoc, newTask.compactify()).then(() => {
-                    updateProject();
-                    openSnackbar("Task added successfully.", "success");
-                    toggleTaskMenu();
-                }).catch((error) => {
-                    openSnackbar("An error occurred while adding task. Please try again.", "error");
-                });
+                openSnackbar("Task added successfully.", "success");
+                toggleTaskMenu();
             }).catch((error) => {
                 openSnackbar("An error occurred while adding task. Please try again.", "error");
             });
@@ -276,7 +245,6 @@
 
     onMount(() => {
         existed = true;
-        getProject();
         setUrgent();
     });
 
@@ -573,12 +541,12 @@
         {#if existed}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="honeycomb-hexagon-container-empty hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px; {taskMenuOpen ? 'background-color: var(--primary); color: var(--primary);' : ''}" on:click={toggleTaskMenu} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+            <div class="honeycomb-hexagon-container-empty hexagon" style="left: {task.hiveX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hiveY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px; {taskMenuOpen ? 'background-color: var(--primary); color: var(--primary);' : ''}" on:click={toggleTaskMenu} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="honeycomb-hexagon-empty hexagon">
                     <span class="honeycomb-hexagon-add material-symbols-rounded">add_circle</span>
                 </div>
             </div>
-            <Menu bind:open={taskMenuOpen} left="{task.hivePosX + offsetX}px" top="{task.hivePosY + offsetY}px" width="250px">
+            <Menu bind:open={taskMenuOpen} left="{task.hiveX + offsetX}px" top="{task.hiveY + offsetY}px" width="250px">
                 <div class="honeycomb-title">Add task</div>
                 <div class="honeycomb-subtitle">Task details</div>
                 <div class="honeycomb-field">
@@ -616,7 +584,7 @@
         {/if}
     {:else if task.id == TaskConstants.TASK_CENTER_ID}
         {#if existed}
-            <div class="honeycomb-hexagon-container-center hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+            <div class="honeycomb-hexagon-container-center hexagon" style="left: {task.hiveX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hiveY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="honeycomb-hexagon-center hexagon">
                     <div class="honeycomb-hexagon-fill-center" style="height: {isNaN(task.percentage) ? 0 : task.percentage}%"></div>
                     <div class="honeycomb-hexagon-center-label">Overall</div>
@@ -632,7 +600,7 @@
         {#if existed}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="honeycomb-hexagon-container hexagon" style="left: {task.hivePosX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hivePosY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" on:click={gotoTask} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
+            <div class="honeycomb-hexagon-container hexagon" style="left: {task.hiveX + offsetX - HiveConstants.HONEYCOMB_WIDTH / 2}px; top: {task.hiveY + offsetY - HiveConstants.HONEYCOMB_HEIGHT / 2}px; width: {HiveConstants.HONEYCOMB_WIDTH}px; height: {HiveConstants.HONEYCOMB_HEIGHT}px;" on:click={gotoTask} transition:scale={{opacity:TransitionConstants.OPACITY, start:TransitionConstants.START_SMALL, duration:TransitionConstants.DURATION}}>
                 <div class="honeycomb-hexagon hexagon" style={isUrgent ? 'width: 85%; height: 85%;' : 'width: 95%; height: 95%;'}>
                     <div class="honeycomb-hexagon-fill" style="height: {task.percentage}%"></div>
                     <div class="honeycomb-hexagon-fill-percentage">{task.percentage}%</div>

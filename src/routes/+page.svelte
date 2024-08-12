@@ -7,9 +7,8 @@
 	import { Project } from '$lib/elements/classes/data/project/Project';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
 	import type { User } from 'firebase/auth';
-	import { userStatus } from '$lib/elements/stores/auth-store';
 	import { onMount } from 'svelte';
-	import { memberStatus } from '$lib/elements/stores/project-store';
+	import { currentMember } from '$lib/elements/stores/project-store';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Overview from '$lib/elements/ui/main/overview.svelte';
 	import Home from '$lib/elements/ui/layout/home.svelte';
@@ -23,28 +22,17 @@
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
 
-    function getUser(): void {
-        userStatus.subscribe((value) => {
-            if (value.currentUser != null && value.currentUser.emailVerified) {
-                currUser = value.currentUser;                
-            } else {
-                currUser = null;
+    function getCurrMember(): void {
+        currentMember.subscribe((value) => {
+            currMember = value;
+            if (currMember != null) {
+                projectSelected.subscribe((value) => {
+                    currentProject = currMember.projects.find((p) => p.id == value);
+                    if (currentProject) {
+                        isOverview = currentProject.name == ProjectConstants.DEFAULT_PROJECT_NAME;
+                    }
+                });
             }
-        });
-
-        memberStatus.subscribe((value) => {
-            if (value.currentMember != null) {
-                currMember = value.currentMember;
-            } else {
-                currMember = null;
-            }
-        });
-    }
-
-    function getProject(): void {
-        projectSelected.subscribe((value) => {
-            isOverview = value.projectName == ProjectConstants.DEFAULT_PROJECT_NAME;
-            currentProject = value.project;
         });
     }
 
@@ -55,15 +43,14 @@
     }
 
     onMount(() => {
-        getUser();
-        getProject();
+        getCurrMember();
     });
 </script>
 <style>
     
 </style>
 
-{#if currUser && currMember}
+{#if currMember}
     {#if isOverview}
         <Overview />
     {/if}

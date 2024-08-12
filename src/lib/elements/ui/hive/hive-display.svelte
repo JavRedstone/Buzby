@@ -4,7 +4,7 @@
 	import { Vector2 } from "three";
 	import Honeycomb from "./honeycomb.svelte";
 	import { createEventDispatcher, onMount } from "svelte";
-	import { projectSelected } from "$lib/elements/stores/project-store";
+	import { currentMember, projectSelected } from "$lib/elements/stores/project-store";
 	import { Task } from "$lib/elements/classes/data/time/Task";
 	import type { Project } from "$lib/elements/classes/data/project/Project";
 	import Snackbar from "../general/snackbar.svelte";
@@ -29,8 +29,8 @@
 
     let centerTask: Task = new Task({
         id: TaskConstants.TASK_CENTER_ID,
-        hivePosX: 0,
-        hivePosY: 0,
+        hiveX: 0,
+        hiveY: 0,
     });
     let tasks: Task[] = [];
     let placeholderTasks: Task[] = [];
@@ -43,57 +43,63 @@
     let snackbarType: string = "neutral";
 
     function getTasks(): void {
-        projectSelected.subscribe((value) => {
-            if (value.project != null) {
-                project = value.project;
-                tasks = value.project.tasks;
-                placeholderTasks = [];
-
-                let total = 0;
-                for (let task of tasks) {
-                    total += task.percentage;
-                }
-                projectPercentage = total / tasks.length;
-
-                centerTask.percentage = projectPercentage;
-                setPlaceHolders(centerTask);
-
-                for (let task of tasks) {
-                    setPlaceHolders(task);
-                }
-            } else {
-                project = null;
-                tasks = [];
-                placeholderTasks = [];
-                projectPercentage = 0;
+        currentMember.subscribe((c) => {
+            if (c == null) {
+                return;
             }
+            projectSelected.subscribe((value) => {
+                project = c.projects.find((p) => p.id === value);
+
+                if (project != null && project.tasks != null) {
+                    tasks = project.tasks;
+                    placeholderTasks = [];
+
+                    let total = 0;
+                    for (let task of tasks) {
+                        total += task.percentage;
+                    }
+                    projectPercentage = total / tasks.length;
+
+                    centerTask.percentage = projectPercentage;
+                    setPlaceHolders(centerTask);
+
+                    for (let task of tasks) {
+                        setPlaceHolders(task);
+                    }
+                } else {
+                    project = null;
+                    tasks = [];
+                    placeholderTasks = [];
+                    projectPercentage = 0;
+                }
+            });
         });
     }
 
     function setPlaceHolders(task: Task): void {
         for (let placeholder of placeholderTasks) {
-            if (MathHelper.areNumberAlmostEqual(placeholder.hivePosX, task.hivePosX) && MathHelper.areNumberAlmostEqual(placeholder.hivePosY, task.hivePosY)) {
+            if (MathHelper.areNumberAlmostEqual(placeholder.hiveX, task.hiveX) && MathHelper.areNumberAlmostEqual(placeholder.hiveY, task.hiveY)) {
                 placeholderTasks.splice(placeholderTasks.indexOf(placeholder), 1);
                 break;
             }
         }
 
         for (let i = 0; i < honeycombOffset.length; i++) {
-            let pos: Vector2 = new Vector2(task.hivePosX + honeycombOffset[i].x, task.hivePosY + honeycombOffset[i].y);
+            let pos: Vector2 = new Vector2(task.hiveX + honeycombOffset[i].x, task.hiveY + honeycombOffset[i].y);
 
             let badPos: boolean = false;
 
-            if (MathHelper.areNumberAlmostEqual(centerTask.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(centerTask.hivePosY, pos.y)) {
+            if (MathHelper.areNumberAlmostEqual(centerTask.hiveX, pos.x) && MathHelper.areNumberAlmostEqual(centerTask.hiveY, pos.y)) {
                 badPos = true;
             }
             for (let task2 of tasks) {
-                if (MathHelper.areNumberAlmostEqual(task2.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(task2.hivePosY, pos.y)) {
+                if (MathHelper.areNumberAlmostEqual(task2.hiveX, pos.x) && MathHelper.areNumberAlmostEqual(task2.hiveY, pos.y)) {
                     badPos = true;
                     break;
                 }
             }
             for (let placeholder of placeholderTasks) {
-                if (MathHelper.areNumberAlmostEqual(placeholder.hivePosX, pos.x) && MathHelper.areNumberAlmostEqual(placeholder.hivePosY, pos.y)) {
+                if (MathHelper.areNumberAlmostEqual(placeholder.hiveX, pos.x) && MathHelper.areNumberAlmostEqual(placeholder.hiveY, pos.y)) {
                     badPos = true;
                     break;
                 }
@@ -102,8 +108,8 @@
             if (!badPos) {
                 placeholderTasks.push(new Task({
                     id: `${StringHelper.generateID()}${HiveConstants.HONEYCOMB_PLACEHOLDER_ID}`,
-                    hivePosX: pos.x,
-                    hivePosY: pos.y,
+                    hiveX: pos.x,
+                    hiveY: pos.y,
                 }));
             }
         }

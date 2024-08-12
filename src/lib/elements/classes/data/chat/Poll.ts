@@ -1,44 +1,24 @@
-import { Timestamp } from "firebase/firestore";
+import { CollectionReference, getDoc, getDocs, onSnapshot, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
+import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { PollOption } from "./PollOption";
 
 export class Poll {
     public id: string;
-
     public question: string;
-
-    public options: string[];
-    public votes: number[];
-    public votedMemberIds: string[];
-
     public multiple: boolean;
     public duration: number;
-
     public createdAt: Date;
     public createdAtTemp: any;
 
+    public pollOptionIds: string[] = [];
+    public pollOptions: PollOption[] = [];
+
     constructor(data: any) {
         this.id = data.id;
-        if (!this.id) {
-            this.id = "";
-        }
         
         this.question = data.question;
         if (!this.question) {
             this.question = "";
-        }
-
-        this.options = data.options;
-        if (!this.options) {
-            this.options = [];
-        }
-
-        this.votes = data.votes;
-        if (!this.votes) {
-            this.votes = [];
-        }
-
-        this.votedMemberIds = data.votedMemberIds;
-        if (!this.votedMemberIds) {
-            this.votedMemberIds = [];
         }
 
         this.multiple = data.multiple;
@@ -64,13 +44,34 @@ export class Poll {
         this.createdAtTemp = data.createdAtTemp;
     }
 
+    public setObjects(): void {
+        let pollOptionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('pollOptions');
+        let pollOptionsQuery = query(pollOptionsCollection, where('projectId', '==', this.id));
+        onSnapshot(pollOptionsQuery, (snapshot) => {
+            let pollOptionIds: string[] = [];
+            let pollOptions: PollOption[] = [];
+            snapshot.forEach((doc) => {
+                let pollOption = new PollOption(doc.data());
+            
+                let pollOptionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pollOptions', pollOption.id);
+                onSnapshot(pollOptionDoc, (doc) => {
+                    pollOption = new PollOption(doc.data());
+                    pollOption.setObjects();
+                });
+
+                pollOptionIds.push(pollOption.id);
+                pollOptions.push(pollOption);
+            });
+
+            this.pollOptionIds = pollOptionIds;
+            this.pollOptions = pollOptions;
+        });
+    }
+
     public compactify(): any {
         return {
             id: this.id,
             question: this.question,
-            options: this.options,
-            votes: this.votes,
-            votedMemberIds: this.votedMemberIds,
             multiple: this.multiple,
             duration: this.duration,
             createdAt: this.createdAtTemp ? this.createdAtTemp : Timestamp.fromDate(this.createdAt)
