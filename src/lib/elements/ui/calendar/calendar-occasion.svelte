@@ -32,32 +32,32 @@
     function dragOccasion(event: DragEvent): void {
         if (resizing) return;
         shifting = true;
-        dispatch("shift", { occasion: occasion, dragging: shifting, amountX: event.offsetX, amountY: event.offsetY });
+        // dispatch("shift", { occasion: occasion, dragging: shifting, amountX: event.offsetX, amountY: event.offsetY });
     }
 
     function stopDragOccasion(event: DragEvent): void {
         if (resizing) return;
         shifting = false;
-        dispatch("shift", { occasion: occasion, dragging: shifting, amountX: event.offsetX, amountY: event.offsetY });
+        // dispatch("shift", { occasion: occasion, dragging: shifting, amountX: event.offsetX, amountY: event.offsetY });
     }
 
     function dragTop(event: MouseEvent): void {
         resizing = true;
-        dispatch("resize", { occasion: occasion, top: true, dragging: resizing, amount: event.offsetY });
+        // dispatch("resize", { occasion: occasion, top: true, dragging: resizing, amount: event.offsetY });
     }
 
     function dragBottom(event: MouseEvent): void {
         resizing = true;
-        dispatch("resize", { occasion: occasion, top: false, dragging: resizing, amount: event.offsetY });
+        // dispatch("resize", { occasion: occasion, top: false, dragging: resizing, amount: event.offsetY });
     }
 
     function stopDragTop(event: MouseEvent): void {
-        dispatch("resize", { occasion: occasion, top: true, dragging: false, amount: event.offsetY });
+        // dispatch("resize", { occasion: occasion, top: true, dragging: false, amount: event.offsetY });
         setTimeout(() => resizing = false, 0);
     }
 
     function stopDragBottom(event: MouseEvent): void {
-        dispatch("resize", { occasion: occasion, top: false, dragging: false, amount: event.offsetY });
+        // dispatch("resize", { occasion: occasion, top: false, dragging: false, amount: event.offsetY });
         setTimeout(() => resizing = false, 0);
     }
 </script>
