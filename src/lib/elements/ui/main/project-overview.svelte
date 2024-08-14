@@ -72,9 +72,11 @@
         leaveOpen = false;
 
         inviteEmail = "";
-        projectName = project.name;
-        projectDescription = project.description;
-        projectColor = project.color;
+        if (project) {
+            projectName = project.name;
+            projectDescription = project.description;
+            projectColor = project.color;
+        }
     }
 
     function inviteMember(): void {
@@ -222,7 +224,7 @@
                         title: "Project request",
                         message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
                         read: false,
-                        createdAtTemp: new Date(),
+                        createdAtTemp: serverTimestamp(),
                     });
                     let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
                     setDoc(pingDoc, ping.compactify());
@@ -296,7 +298,7 @@
                             title: "Project edited",
                             message: `The project "${project.name}" has been edited by the owner "${project.owner.displayName} to have the name "${projectName}", description "${projectDescription}", and color "${ProjectConstants.findColorByHex(projectColor).displayName}".`,
                             read: false,
-                            createdAtTemp: new Date(),
+                            createdAtTemp: serverTimestamp(),
                         });
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
                         setDoc(pingDoc, ping.compactify());
@@ -335,7 +337,7 @@
                             type: PingConstants.TYPES.PROJECT,
                             title: "Project deleted",
                             message: `The project "${project.name}" has been deleted by the owner "${project.owner.displayName}".`,
-                            createdAtTemp: new Date(),
+                            createdAtTemp: serverTimestamp(),
                         });
                         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
                         setDoc(pingDoc, ping.compactify());
@@ -370,36 +372,30 @@
         }
 
         if (currMember) {
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            setDoc(projectDoc, project.compactify()).then(() => {
-                let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
-                if (memberProject) {
-                    let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
-                    deleteDoc(memberProjectDoc).then(() => {
-                        openSnackbar("Successfully left project.", "success");
-                        leaveProcessing = false;
-                        hideExtras();
-
-                        let ping: Ping = new Ping({
-                            id: StringHelper.generateID(),
-                            memberId: project.ownerId,
-                            projectId: project.id,
-                            type: PingConstants.TYPES.PROJECT,
-                            title: "Member left",
-                            message: `Member "${currMember.displayName}" has left the project "${project.name}".`,
-                            createdAtTemp: new Date(),
-                        });
-                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        setDoc(pingDoc, ping.compactify());
-                    });
-                } else {
-                    openSnackbar("An error occurred while leaving the project. Please try again.", "error");
+            let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
+            if (memberProject) {
+                let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
+                deleteDoc(memberProjectDoc).then(() => {
+                    openSnackbar("Successfully left project.", "success");
                     leaveProcessing = false;
-                }
-            }).catch(() => {
+                    hideExtras();
+
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        memberId: project.ownerId,
+                        projectId: project.id,
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Member left",
+                        message: `Member "${currMember.displayName}" has left the project "${project.name}".`,
+                        createdAtTemp: serverTimestamp(),
+                    });
+                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                    setDoc(pingDoc, ping.compactify());
+                });
+            } else {
                 openSnackbar("An error occurred while leaving the project. Please try again.", "error");
                 leaveProcessing = false;
-            });
+            }
         } else {
             openSnackbar("An error occurred while leaving the project. Please try again.", "error");
             leaveProcessing = false;
@@ -414,29 +410,35 @@
         }
 
         if (currMember) {
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            setDoc(projectDoc, project.compactify()).then(() => {
-                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
-                setDoc(memberDoc, currMember.compactify()).then(() => {
-                    openSnackbar("Successfully joined project.", "success");
-                    joinProcessing = false;
-                    hideExtras();
-
-                    let ping: Ping = new Ping({
-                        id: StringHelper.generateID(),
-                        memberId: project.ownerId,
-                        projectId: project.id,
-                        type: PingConstants.TYPES.PROJECT,
-                        title: "Member joined",
-                        message: `Member "${currMember.displayName}" has joined the project "${project.name}".`,
-                        createdAtTemp: new Date(),
-                    });
-                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                    setDoc(pingDoc, ping.compactify());
-                }).catch(() => {
-                    openSnackbar("An error occurred while joining the project. Please try again.", "error");
-                    joinProcessing = false;
+            let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
+            memberProject.hasJoined = true;
+            if (!memberProject) {
+                memberProject = new MemberProject({
+                    id: StringHelper.generateID(),
+                    memberId: currMember.id,
+                    projectId: project.id,
+                    isOwner: false,
+                    hasJoined: true,
+                    createdAtTemp: serverTimestamp()
                 });
+            }
+            let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
+            setDoc(memberProjectDoc, memberProject.compactify()).then(() => {
+                openSnackbar("Successfully joined project.", "success");
+                joinProcessing = false;
+                hideExtras();
+
+                let ping: Ping = new Ping({
+                    id: StringHelper.generateID(),
+                    memberId: project.ownerId,
+                    projectId: project.id,
+                    type: PingConstants.TYPES.PROJECT,
+                    title: "Member joined",
+                    message: `Member "${currMember.displayName}" has joined the project "${project.name}".`,
+                    createdAtTemp: serverTimestamp(),
+                });
+                let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                setDoc(pingDoc, ping.compactify());
             }).catch(() => {
                 openSnackbar("An error occurred while joining the project. Please try again.", "error");
                 joinProcessing = false;
@@ -455,10 +457,10 @@
         }
 
         if (currMember) {
-            let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-            setDoc(projectDoc, project.compactify()).then(() => {
-                let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
-                setDoc(memberDoc, currMember.compactify()).then(() => {
+            let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
+            if (memberProject) {
+                let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
+                deleteDoc(memberProjectDoc).then(() => {
                     openSnackbar("Successfully rejected project.", "success");
                     rejectProcessing = false;
                     hideExtras();
@@ -478,10 +480,7 @@
                     openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
                     rejectProcessing = false;
                 });
-            }).catch(() => {
-                openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
-                rejectProcessing = false;
-            });
+            }
         } else {
             openSnackbar("An error occurred while rejecting the project. Please try again.", "error");
             rejectProcessing = false;            
@@ -750,7 +749,7 @@
     }
 </style>
 
-{#if existed && project}
+{#if existed && project && project.id && project.id != ''}
     <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
         <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
         <div class="project-overview-name">{project.name}</div>

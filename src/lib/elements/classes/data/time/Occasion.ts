@@ -4,6 +4,7 @@ import { ProjectConstants } from "../project/ProjectConstants";
 import { OccasionConstants } from "./OccasionConstants";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { MemberOccasion } from "./MemberOccasion";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Occasion {
     public id: string;
@@ -15,7 +16,6 @@ export class Occasion {
     public endTime: Date;
 
     public memberOccasions: MemberOccasion[] = [];
-    public memberIds: string[] = [];
     public members: Member[] = [];
 
     constructor(data: any) {
@@ -24,6 +24,14 @@ export class Occasion {
 
     public set(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
+
+        this.projectId = data.projectId;
+        if (!this.projectId) {
+            this.projectId = '';
+        }
 
         this.name = data.name;
         if (!this.name) {
@@ -89,22 +97,30 @@ export class Occasion {
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberOccasion.memberId);
                 onSnapshot(memberDoc, (doc) => {
-                    member = new Member(doc.data());
+                    member ? member.set(doc.data()) : member = new Member(doc.data());
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
                 memberIds.push(member.id);
                 members.push(member);
             });
-            this.memberIds = memberIds;
             this.members = members;
 
             this.memberOccasions = memberOccasions;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
     public compactify(): any {
         return {
             id: this.id,
+            projectId: this.projectId,
             name: this.name,
             description: this.description,
             color: this.color,

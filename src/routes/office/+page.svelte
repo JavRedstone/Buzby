@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { currentMember } from '$lib/elements/stores/project-store';
-	import { CollectionReference, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+	import { CollectionReference, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 	import { getFirestoreCollection, getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import { DocumentReference, type DocumentData } from 'firebase/firestore';
 	import { TransitionConstants } from '$lib/elements/classes/ui/core/TransitionConstants';
@@ -21,6 +21,7 @@
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
 	import { PingConstants } from '$lib/elements/classes/data/chat/PingConstants';
 	import { Member } from '$lib/elements/classes/data/project/Member';
+	import { MemberProject } from '$lib/elements/classes/data/project/MemberProject';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -135,26 +136,32 @@
                     return;
                 }
 
-                let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
-                setDoc(projectDoc, project.compactify()).then(async () => {
-                    for (let member of members) {
-                        let ping: Ping = new Ping({
-                            id: StringHelper.generateID(),
-                            memberId: member.id,
-                            projectId: project.id,
-                            type: PingConstants.TYPES.PROJECT,
-                            title: "Project request",
-                            message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
-                            createdAtTemp: new Date(),
-                        });
-                        member.pingIds.push(ping.id);
-                        let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
-                        setDoc(pingDoc, ping.compactify());
-                        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', member.id);
-                        await setDoc(memberDoc, member.compactify());
-                    }
+                let memberProject: MemberProject = new MemberProject({
+                    id: StringHelper.generateID(),
+                    memberId: memberIds[0],
+                    projectId: project.id,
+                    isOwner: false,
+                    hasJoined: false,
+                    createdAtTemp: serverTimestamp()
+                });
+
+                let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
+                setDoc(memberProjectDoc, memberProject.compactify()).then(() => {
                     openSnackbar("Successfully invited member.", "success");
                     inviteProcessing = false;
+
+                    let ping: Ping = new Ping({
+                        id: StringHelper.generateID(),
+                        memberId: memberIds[0],
+                        projectId: project.id,
+                        type: PingConstants.TYPES.PROJECT,
+                        title: "Project request",
+                        message: `Member "${currMember.displayName}" requested to add you to the project "${project.name}."`,
+                        read: false,
+                        createdAtTemp: serverTimestamp(),
+                    });
+                    let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
+                    setDoc(pingDoc, ping.compactify());
                 }).catch(() => {
                     openSnackbar("An error occurred while inviting the member. Please try again.", "error");
                     inviteProcessing = false;

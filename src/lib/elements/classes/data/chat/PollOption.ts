@@ -1,6 +1,7 @@
 import { DocumentReference, getDoc, onSnapshot, Timestamp, type DocumentData } from "firebase/firestore";
 import { Member } from "../project/Member";
 import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class PollOption {
     public id: string;
@@ -13,6 +14,10 @@ export class PollOption {
     public member: Member;
 
     public constructor(data: any) {
+        this.set(data);
+    }
+
+    public set(data: any): void {
         this.id = data.id;
 
         this.pollId = data.pollId;
@@ -41,7 +46,11 @@ export class PollOption {
         if (this.memberId) {
             let memberDoc: DocumentReference<DocumentData> = getFirestoreDoc("members", this.memberId);
             onSnapshot(memberDoc, (doc) => {
-                this.member = new Member(doc.data());
+                this.member ? this.member.set(doc.data()) : this.member = new Member(doc.data());
+
+                currentMember.update((value) => {
+                    return value;
+                });
             });
         }
     }

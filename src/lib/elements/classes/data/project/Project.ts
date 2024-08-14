@@ -8,6 +8,7 @@ import { DataConstants } from "../general/DataConstants";
 import { goto } from "$app/navigation";
 import { Message } from "../chat/Message";
 import { MemberProject } from "./MemberProject";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Project {
     public id: string;
@@ -38,6 +39,9 @@ export class Project {
 
     public set(data: any): void {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
         
         this.name = data.name;
         if (!this.name) {
@@ -90,6 +94,9 @@ export class Project {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberProject.memberId);
                 onSnapshot(memberDoc, (doc) => {
                     member ? member.set(doc.data()) : member = new Member(doc.data());
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
                 
                 members.push(member);
@@ -108,6 +115,10 @@ export class Project {
             this.members = members;
             this.joinedMembers = joinedMembers;
             this.requestedMembers = requestedMembers;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
@@ -122,12 +133,20 @@ export class Project {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('messages', message.id);
                 onSnapshot(messageDoc, (doc) => {
                     message ? message.set(doc.data()) : message = new Message(doc.data());
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
                 messages.push(message);
             });
 
             this.messages = messages;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
@@ -143,12 +162,20 @@ export class Project {
                 let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
                 onSnapshot(taskDoc, (doc) => {
                     task ? task.set(doc.data()) : task = new Task(doc.data());
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
                 tasks.push(task);
             });
 
             this.tasks = tasks;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
@@ -164,11 +191,19 @@ export class Project {
                 onSnapshot(occasionDoc, (doc) => {
                     occasion ? occasion.set(doc.data()) : occasion = new Occasion(doc.data());
                     occasion.setObjects();
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
                 occasions.push(occasion);
             });
             this.occasions = occasions;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 

@@ -18,6 +18,24 @@ export class Ping {
 
     public set(data: any) {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
+
+        this.memberId = data.memberId;
+        if (!this.memberId) {
+            this.memberId = '';
+        }
+
+        this.projectId = data.projectId;
+        if (!this.projectId) {
+            this.projectId = '';
+        }
+
+        this.messageId = data.messageId;
+        if (!this.messageId) {
+            this.messageId = '';
+        }
 
         this.type = data.type;
         if (this.type == null || this.type == undefined) {
@@ -57,6 +75,7 @@ export class Ping {
             id: this.id,
             memberId: this.memberId,
             projectId: this.projectId,
+            messageId: this.messageId,
             type: this.type,
             title: this.title,
             message: this.message,

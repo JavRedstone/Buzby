@@ -46,6 +46,8 @@
     let currUser: User = null;
     let currMember: Member = null;
 
+    $: w ? setRoute(window) : null;
+
     function toggleDrawer(): void {
         if (selectedProjectName == defaultProjectName) {
             sideOpen = false;
@@ -61,25 +63,31 @@
     }
 
     function gotoHome(): void {
-        goto(RouteConstants.HOME);
-        projectSelected.set(null);
+        goto(RouteConstants.HOME).then(() => {
+            setRoute(window);
+            projectSelected.set(null);
+        });
     }
 
     function autoRedirect(): void {
         navigating.subscribe((value) => {
-            w = window;
-            pathname = w.location.pathname;
-
-            if (pathname != '/') {
-                localStorage.setItem('selectedProjectRoute', pathname);
-                sideOpen = true;
-            } else {
-                sideOpen = false;
-            }
+            setRoute(window);
             history.forward();
         });
         if (selectedProjectName == defaultProjectName) {
             gotoHome();
+        }
+    }
+
+    function setRoute(w_: Window): void {
+        w = w_;
+        pathname = w.location.pathname;
+
+        if (pathname != '/' && pathname != '/login' && pathname != '/signup') {
+            localStorage.setItem('selectedProjectRoute', pathname);
+            sideOpen = true;
+        } else {
+            sideOpen = false;
         }
     }
 
@@ -198,7 +206,7 @@
         return count;
     }
 
-    function markPingRead(ping: Ping): void {
+    function markPing(ping: Ping, read: boolean): void {
         drawerOpen = false;
         projectSelectOpen = false;
 
@@ -206,7 +214,7 @@
             return;
         }
 
-        ping.read = true;
+        ping.read = read;
 
         let pingDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pings', ping.id);
         setDoc(pingDoc, ping.compactify()).catch(
@@ -218,7 +226,9 @@
 
     function markAllPingsRead(): void {
         for (let ping of currMember.pings) {
-            markPingRead(ping);
+            if (!ping.read) {
+                markPing(ping, true);
+            }
         }
     }
 
@@ -373,7 +383,7 @@
         border-bottom: 1px solid var(--grey-300);
         background-color: var(--off-white);
 
-        transition: background-color var(--transition-duration);
+        transition: background-color var(--transition-duration), opacity var(--transition-duration);
 
         &:hover {
             background-color: var(--off-white-light);
@@ -442,8 +452,8 @@
                 <span class="core-header-icon material-symbols-rounded">notifications_active</span>
             </a>
             {#if currMember}
-                {#if currMember.pings.length > 0}
-                    <Badge>getUnreadCount(currMember.pings)</Badge>
+                {#if currMember.pings.length > 0 && getUnreadCount(currMember.pings) > 0}
+                    <Badge>{getUnreadCount(currMember.pings)}</Badge>
                 {/if}
                 <Menu bind:open={pingsOpen} right="0" top="48px" width="200px" height="200px">
                     <div class="core-pings-title">Notifications</div>
@@ -454,15 +464,21 @@
                         <span class="material-symbols-rounded">clear_all</span>
                     </a>
                     {#each currMember.pings as ping, i}
-                        <div class="core-ping-container" style="{i == currMember.pings.length - 1 ? 'border-bottom: none;' : ''}">
+                        <div class="core-ping-container" style="{i == currMember.pings.length - 1 ? 'border-bottom: none;' : ''} opacity: {ping.read ? 0.5 : 1}">
                             <div class="core-ping-title" style="color: {getPingColor(ping)}">{ping.title}</div>
                             <div class="core-ping-time">{StringHelper.getFormattedDate(ping.createdAt)}</div>
                             <div class="core-ping-message">{ping.message}</div>
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <!-- svelte-ignore a11y-missing-attribute -->
-                            <a class="core-ping-mark-read" on:click={() => markPingRead(ping)}>
-                                <span class="material-symbols-rounded">mark_email_read</span>
+                            <a class="core-ping-mark-read" on:click={() => markPing(ping, !ping.read)}>
+                                <span class="material-symbols-rounded">
+                                    {#if ping.read}
+                                        mark_email_unread
+                                    {:else}
+                                        mark_email_read
+                                    {/if}
+                                </span>
                             </a>
                         </div>
                     {/each}

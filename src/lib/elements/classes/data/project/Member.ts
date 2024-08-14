@@ -30,17 +30,13 @@ export class Member {
 
     public constructor(data: any) {
         this.set(data);
-
-        setInterval(() => {
-            // console.log(this.projects);
-            currentMember.update((value) => {
-                return value;
-            });
-        }, 1000);
     }
 
     public set(data: any): void {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
         
         this.displayName = data.displayName;
         if (!this.displayName) {
@@ -104,6 +100,9 @@ export class Member {
                 return a.createdAt.getTime() - b.createdAt.getTime();
             });
             this.pings = pings;
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
@@ -127,6 +126,9 @@ export class Member {
                 onSnapshot(projectDoc, (doc) => {
                     project ? project.set(doc.data()) : project = new Project(doc.data());
                     project.setObjects();
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
                 projects.push(project);
@@ -150,6 +152,10 @@ export class Member {
 
             this.projects.sort((a, b) => {
                 return a.createdAt.getTime() - b.createdAt.getTime();
+            });
+
+            currentMember.update((value) => {
+                return value;
             });
         });
     }

@@ -2,6 +2,7 @@ import { DocumentReference, getDoc, onSnapshot, Timestamp, type DocumentData } f
 import { Member } from "../project/Member";
 import { getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { Poll } from "./Poll";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Message {
     public id: string;
@@ -27,12 +28,24 @@ export class Message {
 
     public set(data: any): void {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
         
         this.memberId = data.memberId;
+        if (!this.memberId) {
+            this.memberId = '';
+        }
 
         this.replyId = data.replyId;
+        if (!this.replyId) {
+            this.replyId = '';
+        }
 
         this.pollId = data.pollId;
+        if (!this.pollId) {
+            this.pollId = '';
+        }
 
         this.text = data.text;
         if (!this.text) {
@@ -87,6 +100,10 @@ export class Message {
             let memberDoc: DocumentReference<DocumentData> = getFirestoreDoc("members", this.memberId);
             onSnapshot(memberDoc, (doc) => {
                 this.member = new Member(doc.data());
+
+                currentMember.update((value) => {
+                    return value;
+                });
             });
         }
     }
@@ -96,16 +113,24 @@ export class Message {
             let replyDoc: DocumentReference<DocumentData> = getFirestoreDoc("messages", this.replyId);
             onSnapshot(replyDoc, (doc) => {
                 this.reply = new Message(doc.data());
+
+                currentMember.update((value) => {
+                    return value;
+                });
             });
         }
     }
 
     public setPoll(): void {
-        if (this.pollId) {
+        if (this.pollId && this.pollId != "") {
             let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc("polls", this.pollId);
             onSnapshot(pollDoc, (doc) => {
                 this.poll = new Poll(doc.data());
                 this.poll.setObjects();
+
+                currentMember.update((value) => {
+                    return value;
+                });
             });
         }
     }

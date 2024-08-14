@@ -1,6 +1,7 @@
 import { CollectionReference, getDoc, getDocs, onSnapshot, query, Timestamp, where, type DocumentData, type DocumentReference } from "firebase/firestore";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { PollOption } from "./PollOption";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Poll {
     public id: string;
@@ -52,23 +53,28 @@ export class Poll {
         let pollOptionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('pollOptions');
         let pollOptionsQuery = query(pollOptionsCollection, where('projectId', '==', this.id));
         onSnapshot(pollOptionsQuery, (snapshot) => {
-            let pollOptionIds: string[] = [];
             let pollOptions: PollOption[] = [];
             snapshot.forEach((doc) => {
                 let pollOption = new PollOption(doc.data());
             
                 let pollOptionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pollOptions', pollOption.id);
                 onSnapshot(pollOptionDoc, (doc) => {
-                    pollOption = new PollOption(doc.data());
+                    pollOption ? pollOption.set(doc.data()) : pollOption = new PollOption(doc.data());
                     pollOption.setObjects();
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
-                pollOptionIds.push(pollOption.id);
                 pollOptions.push(pollOption);
             });
 
-            this.pollOptionIds = pollOptionIds;
             this.pollOptions = pollOptions;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 

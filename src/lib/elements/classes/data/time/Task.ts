@@ -2,6 +2,7 @@ import { CollectionReference, getDoc, onSnapshot, query, Timestamp, where, type 
 import { Member } from "../project/Member";
 import { getFirestoreCollection, getFirestoreDoc } from "$lib/elements/firebase/firebase";
 import { MemberTask } from "./MemberTask";
+import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Task {
     public id: string;
@@ -24,8 +25,14 @@ export class Task {
 
     public set(data: any): void {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
 
         this.projectId = data.projectId;
+        if (!this.projectId) {
+            this.projectId = '';
+        }
 
         this.name = data.name;
         if (!this.name) {
@@ -92,7 +99,6 @@ export class Task {
         let memberTasksQuery = query(memberTasksCollection, where('taskId', '==', this.id));
         onSnapshot(memberTasksQuery, (snapshot) => {
             let memberTasks: MemberTask[] = [];
-            let memberIds: string[] = [];
             let members: Member[] = [];
             snapshot.forEach((doc) => {
                 let memberTask: MemberTask = new MemberTask(doc.data());
@@ -102,15 +108,21 @@ export class Task {
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberTask.memberId);
                 onSnapshot(memberDoc, (doc) => {
                     member ? member.set(doc.data()) : member = new Member(doc.data());
+
+                    currentMember.update((value) => {
+                        return value;
+                    });
                 });
 
-                memberIds.push(member.id);
                 members.push(member);
             });
-            this.memberIds = memberIds;
             this.members = members;
 
             this.memberTasks = memberTasks;
+
+            currentMember.update((value) => {
+                return value;
+            });
         });
     }
 
