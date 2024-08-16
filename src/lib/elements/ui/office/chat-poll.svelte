@@ -37,14 +37,13 @@
         currentMember.subscribe((value) => {
             currMember = value;
             if (currMember != null) {
-                return;
+                projectSelected.subscribe((value) => {
+                    project = currMember.projects.find((p) => p.id == value);
+                    if (project != null) {
+                        updatePoll();
+                    }
+                });
             }
-            projectSelected.subscribe((value) => {
-                project = currMember.projects.find((p) => p.id == value);
-                if (project != null) {
-                    updatePoll();
-                }
-            });
         });
     }
 

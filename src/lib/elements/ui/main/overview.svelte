@@ -397,6 +397,12 @@
         user-select: none;
     }
 
+    .overview-subtitle {
+        margin-top: 16px;
+        margin-bottom: 16px;
+        color: var(--grey-800);
+    }
+
     .overview-projects-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -467,6 +473,9 @@
     {/if}
 
     <h2>Projects</h2>
+    {#if currMember && currMember.joinedProjects.length > 0}
+        <div class="overview-subtitle">You have joined {currMember.joinedProjects.length} project{currMember.joinedProjects.length !== 1 ? 's' : ''}.</div>
+    {/if}
     <div class="overview-projects-container">
         {#if currMember}
             {#each currMember.joinedProjects as project}
@@ -478,6 +487,9 @@
         {/if}
     </div>
     <h2>Requested Projects</h2>
+    {#if currMember && currMember.requestedProjects.length > 0}
+        <div class="overview-subtitle">You have requested to join {currMember.requestedProjects.length} project{currMember.requestedProjects.length !== 1 ? 's' : ''}.</div>
+    {/if}
     <div class="overview-requested-projects-container">
         {#if currMember}
             {#each currMember.requestedProjects as project}

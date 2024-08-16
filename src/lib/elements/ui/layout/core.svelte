@@ -36,6 +36,7 @@
     let selectedProject: Project = null;
     let selectedProjectName: string = defaultProjectName;
     let selectedProjectIdx: number = 0;
+    let selectedProjectRoute: string = '';
 
     let projectNames: string[] = [defaultProjectName];
     
@@ -84,9 +85,20 @@
         pathname = w.location.pathname;
 
         if (pathname != '/' && pathname != '/login' && pathname != '/signup') {
+            console.log(localStorage.getItem('selectedProjectId'))
+            localStorage.setItem('selectedProjectId', selectedProject ? selectedProject.id : '');
             localStorage.setItem('selectedProjectRoute', pathname);
+            selectedProjectRoute = pathname;
             sideOpen = true;
         } else {
+            localStorage.removeItem('selectedProjectId');
+            localStorage.removeItem('selectedProjectRoute');
+
+            selectedProject = null;
+            selectedProjectName = defaultProjectName;
+            selectedProjectIdx = 0;
+            selectedProjectRoute = '';
+
             sideOpen = false;
         }
     }
@@ -94,9 +106,31 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
-            // if (currMember) {
-            //     currMember.setObjects();
-            // }
+
+            if (currMember != null) {
+                projectSelected.subscribe((value) => {
+                    let project: Project = currMember.joinedProjects.find((project) => project.id == value);
+                    if (project) {
+                        localStorage.setItem('selectedProjectId', project.id);
+                    }
+                });
+            }
+
+            projectNames = [defaultProjectName];
+            for (let project of currMember.joinedProjects) {
+                projectNames = [...projectNames, project.name];
+            }
+
+            let selectedProjectId: string = localStorage.getItem('selectedProjectId');
+            console.log(selectedProjectId)
+            if (selectedProjectId) {
+                let project: Project = currMember.joinedProjects.find((project) => project.id == selectedProjectId);
+                if (project) {
+                    setProject(project);
+                }
+            } else {
+                // setProject(null);
+            }
         });
     }
 
@@ -112,18 +146,32 @@
             return;
         }
         let project: Project = currMember.joinedProjects[selectedProjectIdx - 1];
-        if (project || selectedProjectName == defaultProjectName) {
-            selectedProject = project;
-            if (selectedProjectName != defaultProjectName && location.pathname == '/') {
-                projectSelected.set(project.id);
-                goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
-            } else if (selectedProjectName == defaultProjectName) {
-                gotoHome();
-            }
-        }
-        localStorage.setItem('selectedProjectId', selectedProject ? selectedProject.id : '');
+        setProject(project);
+        localStorage.setItem('selectedProjectId', project ? project.id : '');
         
         sideOpen = selectedProjectName != defaultProjectName;
+    }
+
+    function setProject(project: Project): void {
+        // console.log(project)
+        if (project) {
+            selectedProject = project;
+            selectedProjectName = project.name;
+            selectedProjectIdx = currMember.joinedProjects.findIndex((p) => p.id == project.id) + 1;
+
+            projectSelected.set(project.id);
+
+            selectedProjectRoute = localStorage.getItem('selectedProjectRoute');
+            if (selectedProjectRoute) {
+                selectedProjectRoute = RouteConstants.DEFAULT_PROJECT_ROUTE;
+            }
+
+            goto(selectedProjectRoute).then(() => {
+                setRoute(window);
+            });
+        } else {
+            gotoHome();
+        }
     }
 
     function login(): void {

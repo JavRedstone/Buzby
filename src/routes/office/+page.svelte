@@ -41,7 +41,7 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
-            if (currMember) {
+            if (currMember != null) {
                 projectSelected.subscribe((value) => {
                     project = currMember.projects.find((project) => project.id == value);
                     if (project) {
@@ -253,7 +253,7 @@
         /* background-color: var(--primary); */
         border: 2px solid var(--primary-dark);
         border-radius: 100%;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 0 32px rgba(0, 0, 0, 0.25);
     }
 
     .office-table-icon {

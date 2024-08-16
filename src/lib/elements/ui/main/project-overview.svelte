@@ -49,7 +49,6 @@
 
     function gotoProject(): void {
         projectSelected.set(project.id);
-        localStorage.setItem('selectedProjectId', project.id);
         goto(RouteConstants.DEFAULT_PROJECT_ROUTE);
     }
 
@@ -510,14 +509,14 @@
         height: 100%;
         padding: 16px;
         border-radius: 8px;
-        box-shadow: 2px 2px 8px var(--grey-400);
+        box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.1);
         overflow-wrap: anywhere;
         user-select: none;
 
         transition: box-shadow var(--transition-duration);
 
         &:hover {
-            box-shadow: 2px 2px 16px var(--grey-400);
+            box-shadow: 4px 4px 32px rgba(0, 0, 0, 0.1);
         }
     }
 
@@ -749,7 +748,7 @@
     }
 </style>
 
-{#if existed && project && project.id && project.id != ''}
+{#if existed && project && project.id && project.id != '' && project.owner && project.owner.id && project.owner.id != '' && project.members && project.members.length > 0}
     <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
         <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
         <div class="project-overview-name">{project.name}</div>

@@ -86,7 +86,7 @@
         height: 100%;
         background-color: var(--off-white-light);
         border-left: 1px solid var(--grey-300);
-        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 32px 0 rgba(0, 0, 0, 0.1);
     }
 
     .hive-list-title-container {

@@ -97,10 +97,14 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
-            projectSelected.subscribe((value) => {
-                project = currMember.projects.find((p) => p.id == value);
-                occasions = project.occasions;
-            });
+            if (currMember != null) {
+                projectSelected.subscribe((value) => {
+                    project = currMember.projects.find((p) => p.id == value);
+                    if (project) {
+                        occasions = project.occasions;
+                    }
+                });
+            }
         });
     }
 
@@ -295,7 +299,7 @@
             occasionEditColor = detailsOccasion.color;
             occasionEditAssignedChecked = [];
             for (let i = 0; i < project.members.length; i++) {
-                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.memberIds.includes(project.members[i].id)];
+                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.members.includes(project.members[i])];
             }
             setTimeout(() => {
                 occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(detailsOccasion.startTime);
