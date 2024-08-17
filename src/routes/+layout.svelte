@@ -73,8 +73,11 @@
         --off-white: #ebedef;
         --off-white-rgb: 235, 237, 239;
         --off-white-lightish: #eeefef;
+        --off-white-lightish-rgb: 238, 239, 239;
         --off-white-light: #f2f3f5;
+        --off-white-light-rgb: 242, 243, 245;
         --off-white-dark: #e0e4e7;
+        --off-white-dark-rgb: 224, 228, 231;
 
         --font-family: 'Poppins', sans-serif;
         --transition-duration: 0.3s;

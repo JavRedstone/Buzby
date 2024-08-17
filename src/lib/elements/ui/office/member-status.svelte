@@ -45,6 +45,7 @@
     let neck: number = member.statusNeck;
 
     let currMember: Member = null;
+    let requested: boolean = false;
 
     let editOpen: boolean = false;
     let kickOpen: boolean = false;
@@ -54,12 +55,19 @@
     let snackbarType: string = "neutral";
 
     $: openedKickMember ? setMenuStatus() : null;
+    $: member ? setMemberStatus() : null;
 
     function setMemberStatus(): void {
-        base = member.statusBase;
-        head = member.statusHead;
-        eyes = member.statusEyes;
-        neck = member.statusNeck;
+        if (member) {
+            base = member.statusBase;
+            head = member.statusHead;
+            eyes = member.statusEyes;
+            neck = member.statusNeck;
+
+            if (project) {
+                requested = project.requestedMembers.includes(member);
+            }
+        }
     }
 
     function getCurrentMember(): void {
@@ -178,15 +186,15 @@
     }
 
     function confirmKick(): void {
-        if (currMember && currMember.id != member.id && currMember.id === project.ownerId) {
+        if (currMember && project.owner && currMember.id != openedKickMember.id && currMember.id === project.owner.id) {
             for (let memberProject of project.memberProjects) {
-                if (memberProject.memberId === member.id) {
+                if (memberProject.memberId === openedKickMember.id) {
                     let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
                     deleteDoc(memberProjectDoc).then(() => {
                         openSnackbar('Member kicked successfully.', 'success');
                         let ping: Ping = new Ping({
                             id: StringHelper.generateID(),
-                            memberId: member.id,
+                            memberId: openedKickMember.id,
                             projectId: project.id,
                             type: PingConstants.TYPES.PROJECT,
                             title: "Kicked from project",
@@ -315,10 +323,20 @@
         }
     }
 
+    .member-status-base-cycle-background {
+        position: absolute;
+        transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
+        background-color: var(--grey-800);
+        border-radius: 9px;
+        width: 30px;
+        height: 18px;
+        user-select: none;
+    }
+
     .member-status-base-cycle {
         position: absolute;
         transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
-        color: var(--primary-dark);
+        color: var(--grey-100);
         font-size: 16px;
         cursor: pointer;
         user-select: none;
@@ -326,7 +344,7 @@
         transition: color var(--transition-duration);
         
         &:hover {
-            color: var(--primary-darker);
+            color: var(--grey-300);
         }
     }
 
@@ -403,72 +421,77 @@
         transition: background-color var(--transition-duration), border-color var(--transition-duration);
     }
 </style>
-{#if currMember && currMember.id === member.id}
-    <div class="member-status-seat-curr" style="left: {x}px; top: {y}px;"></div>
-{:else if member.id === project.ownerId}
-    <div class="member-status-seat-owner" style="left: {x}px; top: {y}px;"></div>
-{:else}
-    <div class="member-status-seat-other" style="left: {x}px; top: {y}px;"></div>
-{/if}
-<img class="member-status-base" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={base == MemberConstants.STATUS_BASES.ONLINE ? beeOnline : base == MemberConstants.STATUS_BASES.DND ? beeDND : beeOffline} alt="base" />
+{#if project}
+    <div style="opacity: {requested ? 0.5 : 1}; transition: opacity var(--transition-duration);">
+        {#if currMember && currMember.id === member.id}
+        <div class="member-status-seat-curr" style="left: {x}px; top: {y}px;"></div>
+        {:else if project.owner && member.id === project.owner.id}
+        <div class="member-status-seat-owner" style="left: {x}px; top: {y}px;"></div>
+        {:else}
+        <div class="member-status-seat-other" style="left: {x}px; top: {y}px;"></div>
+        {/if}
+        <img class="member-status-base" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={base == MemberConstants.STATUS_BASES.ONLINE ? beeOnline : base == MemberConstants.STATUS_BASES.DND ? beeDND : beeOffline} alt="base" />
 
-{#if head > MemberConstants.STATUS_HEADS.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={head === MemberConstants.STATUS_HEADS.BOWTIE ? headBowtie : head === MemberConstants.STATUS_HEADS.CROWN ? headCrown : headFedora} alt="head" transition:fade={{duration:TransitionConstants.DURATION}} />
-{/if}
-{#if eyes > MemberConstants.STATUS_EYES.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={eyes === MemberConstants.STATUS_EYES.GLASSES ? eyeGlasses : eyeMLG} alt="eyes" transition:fade={{duration:TransitionConstants.DURATION}} />
-{/if}
-{#if neck > MemberConstants.STATUS_NECKS.DEFAULT}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={neck === MemberConstants.STATUS_NECKS.BOWTIE ? neckBowtie : neckTie} alt="neck" transition:fade={{duration:TransitionConstants.DURATION}} />
-{/if}
+        {#if head > MemberConstants.STATUS_HEADS.DEFAULT}
+        <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={head === MemberConstants.STATUS_HEADS.BOWTIE ? headBowtie : head === MemberConstants.STATUS_HEADS.CROWN ? headCrown : headFedora} alt="head" transition:fade={{duration:TransitionConstants.DURATION}} />
+        {/if}
+        {#if eyes > MemberConstants.STATUS_EYES.DEFAULT}
+        <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={eyes === MemberConstants.STATUS_EYES.GLASSES ? eyeGlasses : eyeMLG} alt="eyes" transition:fade={{duration:TransitionConstants.DURATION}} />
+        {/if}
+        {#if neck > MemberConstants.STATUS_NECKS.DEFAULT}
+        <img class="member-status-accessory" style="left: {x}px; top: {y}px; filter: brightness({base == MemberConstants.STATUS_BASES.OFFLINE ? 75 : 100}%);" src={neck === MemberConstants.STATUS_NECKS.BOWTIE ? neckBowtie : neckTie} alt="neck" transition:fade={{duration:TransitionConstants.DURATION}} />
+        {/if}
 
-{#if base == MemberConstants.STATUS_BASES.OFFLINE}
-    <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={zzz} alt="zzz" transition:fade={{duration:TransitionConstants.DURATION}} />
-{/if}
+        {#if base == MemberConstants.STATUS_BASES.OFFLINE}
+        <img class="member-status-accessory" style="left: {x}px; top: {y}px;" src={zzz} alt="zzz" transition:fade={{duration:TransitionConstants.DURATION}} />
+        {/if}
 
-<div class="member-status-state" style="left: {x - 24}px; top: {y + 24}px; background-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online' : base == MemberConstants.STATUS_BASES.DND ? 'dnd' : 'offline'}); border-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online-dark' : base == MemberConstants.STATUS_BASES.DND ? 'dnd-dark' : 'offline-dark'})"></div>
+        <div class="member-status-state" style="z-index: 1; left: {x - 24}px; top: {y + 24}px; background-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online' : base == MemberConstants.STATUS_BASES.DND ? 'dnd' : 'offline'}); border-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online-dark' : base == MemberConstants.STATUS_BASES.DND ? 'dnd-dark' : 'offline-dark'})"></div>
 
-<div class="member-status-name" style="left: {x}px; top: {nameAbove ? y + 48 : y - 48}px;">{member.displayName}</div>
+        <div class="member-status-name" style="left: {x}px; top: {nameAbove ? y + 48 : y - 48}px;">{member.displayName}</div>
 
-{#if currMember && currMember.id === member.id}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="member-status-edit material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleEdit}>edit</span>
-    {#if editOpen}
+        {#if currMember && currMember.id === member.id}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 34}px; top: {y + 24}px" on:click={shiftBaseLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+        <span class="member-status-edit material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleEdit}>edit</span>
+        {#if editOpen}
+            <div class="member-status-base-cycle-background" style="left: {x - 24}px; top: {y + 24}px" transition:fade={{duration:TransitionConstants.DURATION}}></div>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 34}px; top: {y + 24}px" on:click={shiftBaseLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 14}px; top: {y + 24}px" on:click={shiftBaseRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 18}px" on:click={shiftHeadLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 18}px" on:click={shiftHeadRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>    
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 4}px" on:click={shiftEyesLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 4}px" on:click={shiftEyesRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y + 10}px" on:click={shiftNeckLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y + 10}px" on:click={shiftNeckRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+        {/if}
+        {/if}
+        {#if currMember && project.owner && currMember.id != member.id && currMember.id === project.owner.id}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 14}px; top: {y + 24}px" on:click={shiftBaseRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 18}px" on:click={shiftHeadLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 18}px" on:click={shiftHeadRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>    
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 4}px" on:click={shiftEyesLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y - 4}px" on:click={shiftEyesRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y + 10}px" on:click={shiftNeckLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x + 20}px; top: {y + 10}px" on:click={shiftNeckRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
-    {/if}
-{/if}
-{#if currMember && currMember.id != member.id && currMember.id === project.ownerId}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span class="member-status-kick material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleKick}>person_remove</span>
-    <Menu bind:open={kickOpen} left="{x + 24}px" top="{y - 58}px" width="88px">
-        <div class="member-status-kick-sure">Confirm kick</div>
-        <button class="member-status-kick-confirm" on:click={confirmKick}>Kick</button>
-        <button class="member-status-kick-cancel" on:click={cancelKick}>Cancel</button>
-    </Menu>
+        <span class="member-status-kick material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleKick}>person_remove</span>
+        <Menu bind:open={kickOpen} left="{x + 24}px" top="{y - 58}px" width="88px">
+            <div class="member-status-kick-sure">Confirm kick</div>
+            <button class="member-status-kick-confirm" on:click={confirmKick}>Kick</button>
+            <button class="member-status-kick-cancel" on:click={cancelKick}>Cancel</button>
+        </Menu>
+        {/if}
+    </div>
 {/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

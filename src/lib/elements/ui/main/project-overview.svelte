@@ -19,12 +19,12 @@
 	import { RouteConstants } from '$lib/elements/classes/ui/core/RouteConstants';
 
     export let project: Project = null;
-    export let isRequested: boolean = false;
-    export let isOwner: boolean = false;
 
     let currMember: Member = null;
     
     let existed: boolean = false;
+    let isOwner: boolean = false;
+    let isRequested: boolean = false;
 
     let inviteEmail: string = "";
     let projectName: string = project.name;
@@ -55,6 +55,28 @@
     function getCurrMember(): void {
         currentMember.subscribe((value) => {
             currMember = value;
+
+            if (currMember && project) {
+                if (project.owner) {
+                    isOwner = project.owner.id == currMember.id;
+                }
+                if (project.requestedMembers) {
+                    isRequested = project.requestedMembers.find((member) => member.id == currMember.id) != null;
+                }
+
+                let hasProject: boolean = false;
+                for (let p of currMember.projects) {
+                    if (p.id == project.id) {
+                        project = p;
+                        hasProject = true;
+                        break;
+                    }
+                }
+                if (!hasProject) {
+                    existed = false;
+                    project = null;
+                }
+            }
         });
     }
 
@@ -280,7 +302,7 @@
             return;
         }
 
-        if (currMember) {
+        if (currMember && project && project.members && project.owner) {
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
             let projectEdited: Project = new Project(project.compactify());
             projectEdited.name = projectName;
@@ -323,7 +345,7 @@
             deleteProcessing = true;
         }
 
-        if (currMember) {
+        if (currMember && project && project.memberProjects) {
             let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', project.id);
             deleteDoc(projectDoc).then(() => {
                 for (let memberProject of project.memberProjects) {
@@ -370,7 +392,7 @@
             leaveProcessing = true;
         }
 
-        if (currMember) {
+        if (currMember && project && project.memberProjects && project.owner) {
             let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
             if (memberProject) {
                 let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
@@ -381,7 +403,7 @@
 
                     let ping: Ping = new Ping({
                         id: StringHelper.generateID(),
-                        memberId: project.ownerId,
+                        memberId: project.owner.id,
                         projectId: project.id,
                         type: PingConstants.TYPES.PROJECT,
                         title: "Member left",
@@ -408,7 +430,7 @@
             joinProcessing = true;
         }
 
-        if (currMember) {
+        if (currMember && project && project.memberProjects && project.owner) {
             let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
             memberProject.hasJoined = true;
             if (!memberProject) {
@@ -429,7 +451,7 @@
 
                 let ping: Ping = new Ping({
                     id: StringHelper.generateID(),
-                    memberId: project.ownerId,
+                    memberId: project.owner.id,
                     projectId: project.id,
                     type: PingConstants.TYPES.PROJECT,
                     title: "Member joined",
@@ -455,7 +477,7 @@
             rejectProcessing = true;
         }
 
-        if (currMember) {
+        if (currMember && project && project.memberProjects && project.owner) {
             let memberProject: MemberProject = project.memberProjects.find((mp) => mp.memberId == currMember.id);
             if (memberProject) {
                 let memberProjectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('memberProjects', memberProject.id);
@@ -466,7 +488,7 @@
 
                     let ping: Ping = new Ping({
                         id: StringHelper.generateID(),
-                        memberId: project.ownerId,
+                        memberId: project.owner.id,
                         projectId: project.id,
                         type: PingConstants.TYPES.PROJECT,
                         title: "Member rejected",
@@ -748,101 +770,103 @@
     }
 </style>
 
-{#if existed && project && project.id && project.id != '' && project.owner && project.owner.id && project.owner.id != '' && project.members && project.members.length > 0}
-    <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
-        <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
-        <div class="project-overview-name">{project.name}</div>
-        <div class="project-overview-description">{project.description}</div>
-        <div class="project-overview-member-count">{project.joinedMembers.length} member{project.joinedMembers.length != 1 ? "s" : ""} joined</div>
-        <div class="project-overview-member-count">{project.members.length - project.joinedMembers.length} pending member{project.members.length - project.joinedMembers.length != 1 ? "s" : ""}</div>
-        <div class="project-overview-owner">
-            <span class="material-symbols-rounded">supervisor_account</span>
-            <div class="project-overview-owner-name">{project.owner ? project.owner.displayName : ''}</div>
+{#if existed && project}
+    {#if project.id && project.id != '' && project.owner && project.members}
+        <div class="project-overview-container" transition:scale={{opacity: TransitionConstants.OPACITY, start: TransitionConstants.START, duration: TransitionConstants.DURATION}}>
+            <div class="project-overview-color-fill" style="background-color: {project.color}"></div>
+            <div class="project-overview-name">{project.name}</div>
+            <div class="project-overview-description">{project.description}</div>
+            <div class="project-overview-member-count">{project.joinedMembers.length} member{project.joinedMembers.length != 1 ? "s" : ""} joined</div>
+            <div class="project-overview-member-count">{project.members.length - project.joinedMembers.length} pending member{project.members.length - project.joinedMembers.length != 1 ? "s" : ""}</div>
+            <div class="project-overview-owner">
+                <span class="material-symbols-rounded">supervisor_account</span>
+                <div class="project-overview-owner-name">{project.owner ? project.owner.displayName : ''}</div>
+            </div>
+            <div class="project-overview-date">Created: {StringHelper.getFormattedDate(project.createdAt)}</div>
+            {#if isRequested}
+                <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join project</button>
+                <button class="project-overview-project-remove" on:click={rejectProjectConfirmed}>Reject request</button>
+            {:else}
+                {#if project.members.length < ProjectConstants.MAX_NUM_MEMBERS}
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>
+                {/if}
+                {#if isOwner}
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="project-overview-action material-symbols-rounded" style={editOpen ? 'color: var(--grey-800);' : ''} on:click={editProject}>edit</span>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="project-overview-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteProject}>delete</span>
+                {:else}
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <span class="project-overview-remove material-symbols-rounded" style={leaveOpen ? 'color: var(--error-dark);' : ''} on:click={leaveProject}>door_open</span>
+                {/if}
+                {#if inviteOpen}
+                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                        <div class="project-overview-project-field">
+                            <span class="project-overview-project-icon material-symbols-rounded">email</span>
+                            <input class="project-overview-project-input" type="text" placeholder="Enter email" bind:value={inviteEmail} />
+                        </div>
+                        <button class="project-overview-project-action" on:click={inviteMemberConfirmed}>Invite</button>
+                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
+                    </div>
+                {/if}
+                {#if isOwner}
+                    {#if editOpen}
+                        <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                            <div class="project-overview-project-field">
+                                <span class="project-overview-project-icon material-symbols-rounded">badge</span>
+                                <input class="project-overview-project-input" type="text" placeholder="Project name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
+                            </div>
+                            <div class="project-overview-project-field">
+                                <span class="project-overview-project-icon material-symbols-rounded">description</span>
+                                <input class="project-overview-project-input" type="text" placeholder="Project description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
+                            </div>
+                            <div class="project-overview-project-field">
+                                <span class="project-overview-project-icon material-symbols-rounded">colors</span>
+                                {#each ProjectConstants.COLORS as color}
+                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div class="project-overview-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
+                                        <Tooltip>{color.displayName}</Tooltip>
+                                    </div>
+                                {/each}
+                            </div>
+                            <button class="project-overview-project-action" on:click={editProjectConfirmed}>Save</button>
+                            <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
+                        </div>
+                    {/if}
+                    {#if deleteOpen}
+                        <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                            <div class="project-overview-project-field">
+                                <div class="project-overview-is-sure">Are you sure you want to delete this project?</div>
+                            </div>
+                            <button class="project-overview-project-remove" on:click={deleteProjectConfirmed}>Delete</button>
+                            <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
+                        </div>
+                    {/if}
+                {:else}
+                    {#if leaveOpen}
+                        <div transition:slide={{duration: TransitionConstants.DURATION}}>
+                            <div class="project-overview-project-field">
+                                <div class="project-overview-is-sure">Are you sure you want to leave this project?</div>
+                            </div>
+                            <button class="project-overview-project-remove" on:click={leaveProjectConfirmed}>Leave</button>
+                            <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
+                        </div>
+                    {/if}
+                {/if}
+            {/if}
+            {#if !isRequested && !inviteOpen && !editOpen && !deleteOpen && !leaveOpen}
+                <button class="project-overview-goto" on:click={gotoProject} transition:slide={{duration: TransitionConstants.DURATION}}>
+                    Go to project
+                    <span class="material-symbols-rounded">arrow_forward</span>
+                </button>
+            {/if}
         </div>
-        <div class="project-overview-date">Created: {StringHelper.getFormattedDate(project.createdAt)}</div>
-        {#if isRequested}
-            <button class="project-overview-project-join" on:click={joinProjectConfirmed}>Join project</button>
-            <button class="project-overview-project-remove" on:click={rejectProjectConfirmed}>Reject request</button>
-        {:else}
-            {#if project.members.length < ProjectConstants.MAX_NUM_MEMBERS}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="project-overview-action material-symbols-rounded" style={inviteOpen ? 'color: var(--grey-800);' : ''} on:click={inviteMember}>person_add</span>
-            {/if}
-            {#if isOwner}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="project-overview-action material-symbols-rounded" style={editOpen ? 'color: var(--grey-800);' : ''} on:click={editProject}>edit</span>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="project-overview-remove material-symbols-rounded" style={deleteOpen ? 'color: var(--error-dark);' : ''} on:click={deleteProject}>delete</span>
-            {:else}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="project-overview-remove material-symbols-rounded" style={leaveOpen ? 'color: var(--error-dark);' : ''} on:click={leaveProject}>door_open</span>
-            {/if}
-            {#if inviteOpen}
-                <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                    <div class="project-overview-project-field">
-                        <span class="project-overview-project-icon material-symbols-rounded">email</span>
-                        <input class="project-overview-project-input" type="text" placeholder="Enter email" bind:value={inviteEmail} />
-                    </div>
-                    <button class="project-overview-project-action" on:click={inviteMemberConfirmed}>Invite</button>
-                    <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                </div>
-            {/if}
-            {#if isOwner}
-                {#if editOpen}
-                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                        <div class="project-overview-project-field">
-                            <span class="project-overview-project-icon material-symbols-rounded">badge</span>
-                            <input class="project-overview-project-input" type="text" placeholder="Project name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
-                        </div>
-                        <div class="project-overview-project-field">
-                            <span class="project-overview-project-icon material-symbols-rounded">description</span>
-                            <input class="project-overview-project-input" type="text" placeholder="Project description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
-                        </div>
-                        <div class="project-overview-project-field">
-                            <span class="project-overview-project-icon material-symbols-rounded">colors</span>
-                            {#each ProjectConstants.COLORS as color}
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                <div class="project-overview-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
-                                    <Tooltip>{color.displayName}</Tooltip>
-                                </div>
-                            {/each}
-                        </div>
-                        <button class="project-overview-project-action" on:click={editProjectConfirmed}>Save</button>
-                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                    </div>
-                {/if}
-                {#if deleteOpen}
-                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                        <div class="project-overview-project-field">
-                            <div class="project-overview-is-sure">Are you sure you want to delete this project?</div>
-                        </div>
-                        <button class="project-overview-project-remove" on:click={deleteProjectConfirmed}>Delete</button>
-                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                    </div>
-                {/if}
-            {:else}
-                {#if leaveOpen}
-                    <div transition:slide={{duration: TransitionConstants.DURATION}}>
-                        <div class="project-overview-project-field">
-                            <div class="project-overview-is-sure">Are you sure you want to leave this project?</div>
-                        </div>
-                        <button class="project-overview-project-remove" on:click={leaveProjectConfirmed}>Leave</button>
-                        <button class="project-overview-project-cancel" on:click={hideExtras}>Cancel</button>
-                    </div>
-                {/if}
-            {/if}
-        {/if}
-        {#if !isRequested && !inviteOpen && !editOpen && !deleteOpen && !leaveOpen}
-            <button class="project-overview-goto" on:click={gotoProject} transition:slide={{duration: TransitionConstants.DURATION}}>
-                Go to project
-                <span class="material-symbols-rounded">arrow_forward</span>
-            </button>
-        {/if}
-    </div>
+    {/if}
 {/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

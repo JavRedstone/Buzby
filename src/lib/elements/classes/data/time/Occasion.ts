@@ -84,11 +84,10 @@ export class Occasion {
     }
 
     public setMembers(): void {
-        let memberOccasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
+        let memberOccasionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('memberOccasions');
         let memberOccasionsQuery = query(memberOccasionsCollection, where('occasionId', '==', this.id));
         onSnapshot(memberOccasionsQuery, (snapshot) => {
             let memberOccasions: MemberOccasion[] = [];
-            let memberIds: string[] = [];
             let members: Member[] = [];
             snapshot.forEach((doc) => {
                 let memberOccasion: MemberOccasion = new MemberOccasion(doc.data());
@@ -96,20 +95,27 @@ export class Occasion {
                 let member: Member = new Member({});
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberOccasion.memberId);
-                onSnapshot(memberDoc, (doc) => {
-                    member ? member.set(doc.data()) : member = new Member(doc.data());
+                onSnapshot(memberDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            member ? member.set(data) : member = new Member(data);
+                        }
 
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
-                memberIds.push(member.id);
+                memberOccasions.push(memberOccasion);
                 members.push(member);
             });
-            this.members = members;
 
             this.memberOccasions = memberOccasions;
+            this.members = members;
 
             currentMember.update((value) => {
                 return value;

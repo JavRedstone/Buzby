@@ -379,7 +379,6 @@
                     pollOptions.push(new PollOption({
                         id: StringHelper.generateID(),
                         pollId: poll.id,
-                        memberId: null,
                         text: option,
                         createdAtTemp: serverTimestamp()
                     }));
@@ -395,6 +394,10 @@
                 replyId: replyOpen && replyMessage ? replyMessage.id : '',
                 pollId: poll ? poll.id : '',
                 text: messageText,
+                link: finalizedLink,
+                linkName: finalizedLinkName,
+                imageUrl: finalizedImageUrl,
+                videoUrl: finalizedVideoUrl,
                 edited: false,
                 createdAtTemp: serverTimestamp()
             });

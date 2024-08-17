@@ -104,12 +104,19 @@ export class Message {
     public setMember(): void {
         if (this.memberId) {
             let memberDoc: DocumentReference<DocumentData> = getFirestoreDoc("members", this.memberId);
-            onSnapshot(memberDoc, (doc) => {
-                this.member = new Member(doc.data());
+            onSnapshot(memberDoc, {
+                includeMetadataChanges: true
+            }, (doc) => {
+                if (doc.exists()) {
+                    let data = doc.data();
+                    if (data) {
+                        this.member ? this.member.set(data) : this.member = new Member(data);
+                    }
 
-                currentMember.update((value) => {
-                    return value;
-                });
+                    currentMember.update((value) => {
+                        return value;
+                    });
+                }
             });
         }
     }
@@ -117,17 +124,20 @@ export class Message {
     public setReply(): void {
         if (this.replyId) {
             let replyDoc: DocumentReference<DocumentData> = getFirestoreDoc("messages", this.replyId);
-            onSnapshot(replyDoc, (doc) => {
-                this.reply = new Message(doc.data());
+            onSnapshot(replyDoc, {
+                includeMetadataChanges: true
+            }, (doc) => {
+                if (doc.exists()) {
+                    let data = doc.data();
+                    if (data) {
+                        this.reply ? this.reply.set(data) : this.reply = new Message(data);
+                        this.reply.setObjects();
+                    }
 
-                onSnapshot(replyDoc, (doc) => {
-                    this.reply ? this.reply.set(doc.data()) : this.reply = new Message(doc.data());
-                    this.reply.setObjects();
-                });
-
-                currentMember.update((value) => {
-                    return value;
-                });
+                    currentMember.update((value) => {
+                        return value;
+                    });
+                }
             });
         }
     }
@@ -135,13 +145,20 @@ export class Message {
     public setPoll(): void {
         if (this.pollId && this.pollId != "") {
             let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc("polls", this.pollId);
-            onSnapshot(pollDoc, (doc) => {
-                this.poll = new Poll(doc.data());
-                this.poll.setObjects();
+            onSnapshot(pollDoc, {
+                includeMetadataChanges: true
+            }, (doc) => {
+                if (doc.exists()) {
+                    let data = doc.data();
+                    if (data) {
+                        this.poll ? this.poll.set(data) : this.poll = new Poll(data);
+                        this.poll.setObjects();
+                    }
 
-                currentMember.update((value) => {
-                    return value;
-                });
+                    currentMember.update((value) => {
+                        return value;
+                    });
+                }
             });
         }
     }

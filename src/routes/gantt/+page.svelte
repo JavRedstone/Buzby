@@ -59,14 +59,14 @@
     }
 
     function getTasks(): void {
-        tasks = [...project.tasks];
+        tasks = project.tasks;
 
         let total = 0;
         for (let task of tasks) {
             total += task.percentage;
         }
 
-        tasks.sort((a, b) => { return a.endDate.getTime() - b.endDate.getTime(); });
+        setDateRange();
     }
 
     function setDateRange(): void {

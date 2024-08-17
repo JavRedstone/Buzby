@@ -51,7 +51,7 @@
         let options: string[] = [];
         if (poll) {
             for (let pollOption of poll.pollOptions) {
-                if (!pollOption.memberId) {
+                if (!pollOption.memberId || pollOption.memberId == '') {
                     options = [...options, pollOption.text];
                 }
             }
@@ -62,8 +62,11 @@
     function getPollVotes(): void {
         let votes: number[] = [];
         if (poll) {
+            for (let i = 0; i < pollOptions.length; i++) {
+                votes = [...votes, 0];
+            }
             for (let pollOption of poll.pollOptions) {
-                if (pollOption.memberId) {
+                if (pollOption.memberId && pollOption.memberId != '' && pollOption.member) {
                     let idx = pollOptions.indexOf(pollOption.text);
                     if (idx !== -1) {
                         votes[idx] = votes[idx] ? votes[idx] + 1 : 1;
@@ -79,8 +82,13 @@
         let members: Member[] = [];
         if (poll) {
             for (let pollOption of poll.pollOptions) {
-                memberIds = [...memberIds, pollOption.member.id];
-                members = [...members, pollOption.member];
+                if (pollOption.memberId && pollOption.memberId != '' && pollOption.member) {
+                    let idx = memberIds.indexOf(pollOption.member.id);
+                    if (idx === -1) {
+                        memberIds = [...memberIds, pollOption.member.id];
+                        members = [...members, pollOption.member];
+                    }
+                }
             }
         }
         votedMemberIds = memberIds;
@@ -119,12 +127,12 @@
         if (currMember && !votedMemberIds.includes(currMember.id)) {
             votedAlready = true;
             
-            for (let i of selectedOptions) {
+            for (let option of selectedOptions) {
                 let pollOption: PollOption = new PollOption({
                     id: StringHelper.generateID(),
                     pollId: poll.id,
                     memberId: currMember.id,
-                    text: selectedOptions[i],
+                    text: option,
                     createdAtTemp: serverTimestamp(),
                 })
 
@@ -350,7 +358,7 @@
             {#if !votedAlready}
                 <button class="chat-poll-vote-button" on:click={vote} transition:slide={{axis:'y', duration:TransitionConstants.DURATION}}>Vote</button>
             {:else}
-                <div class="chat-poll-already-text">You have voted already. You cannot change your vote.</div>
+                <div class="chat-poll-already-text">You have already voted. You cannot change your vote.</div>
             {/if}
         {/if}
     </div>

@@ -94,13 +94,19 @@
     function deleteMessage(): void {
         let messageDoc: DocumentReference<DocumentData> = getFirestoreDoc('messages', message.id);
         deleteDoc(messageDoc).then(() => {
-            let chatDoc: DocumentReference<DocumentData> = getFirestoreDoc('chats', project.id);
-            updateDoc(chatDoc, project.compactify()).then(() => {
-                if (message.pollId.length > 0) {
-                    let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
-                    deleteDoc(pollDoc);
-                }
-            });
+            if (message.pollId.length > 0) {
+                let pollDoc: DocumentReference<DocumentData> = getFirestoreDoc('polls', message.pollId);
+                deleteDoc(pollDoc).then(() => {
+                    for (let option of message.poll.pollOptions) {
+                        let optionDoc: DocumentReference<DocumentData> = getFirestoreDoc('pollOptions', option.id);
+                        deleteDoc(optionDoc);
+                    }
+                }).catch((error) => {
+                    openSnackbar("An error occurred while deleting the message. Please try again.", "error");
+                });
+            }
+        }).catch((error) => {
+            openSnackbar("An error occurred while deleting the message. Please try again.", "error");
         });
     };
 

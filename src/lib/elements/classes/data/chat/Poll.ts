@@ -11,7 +11,6 @@ export class Poll {
     public createdAt: Date;
     public createdAtTemp: any;
 
-    public pollOptionIds: string[] = [];
     public pollOptions: PollOption[] = [];
 
     constructor(data: any) {
@@ -50,21 +49,32 @@ export class Poll {
     }
 
     public setObjects(): void {
+        this.setPollOptions();
+    }
+
+    public setPollOptions(): void {
         let pollOptionsCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('pollOptions');
-        let pollOptionsQuery = query(pollOptionsCollection, where('projectId', '==', this.id));
+        let pollOptionsQuery = query(pollOptionsCollection, where('pollId', '==', this.id));
         onSnapshot(pollOptionsQuery, (snapshot) => {
             let pollOptions: PollOption[] = [];
             snapshot.forEach((doc) => {
                 let pollOption = new PollOption(doc.data());
             
                 let pollOptionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('pollOptions', pollOption.id);
-                onSnapshot(pollOptionDoc, (doc) => {
-                    pollOption ? pollOption.set(doc.data()) : pollOption = new PollOption(doc.data());
-                    pollOption.setObjects();
+                onSnapshot(pollOptionDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            pollOption ? pollOption.set(data) : pollOption = new PollOption(data);
+                            pollOption.setObjects();
+                        }
 
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
                 pollOptions.push(pollOption);

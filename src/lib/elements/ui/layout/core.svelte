@@ -111,8 +111,8 @@
 
             if (currMember) {
                 projectSelected.subscribe((value) => {
-                    if (value) {
-                        selectedProject = currMember.joinedProjects.find((project) => project.id == value);
+                    selectedProject = currMember.joinedProjects.find((project) => project.id == value);
+                    if (selectedProject && selectedProject.id && selectedProjectId != '') {
                         selectedProjectName = selectedProject.name;
                         selectedProjectIdx = currMember.joinedProjects.findIndex((p) => p.id == selectedProject.id) + 1;
                     }
@@ -199,11 +199,14 @@
                         includeMetadataChanges: true
                     }, (doc) => {
                         if (doc.exists()) {
-                            let member: Member = new Member(doc.data());
-                            member.setObjects();
-                            currMember = member;
+                            let data = doc.data();
 
-                            currentMember.set(member);
+                            if (data) {
+                                currMember ? currMember.set(data) : currMember = new Member(data);
+                                currMember.setObjects();
+                            }
+
+                            currentMember.set(currMember);
 
                             getCurrMember();
                         }
@@ -318,6 +321,7 @@
         width: 100vw;
         height: 48px;
         background-color: rgba(var(--off-white-rgb), 0.25);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .core-header-logo {
@@ -364,6 +368,7 @@
         width: 115px;
         height: calc(100vh - 48px);
         background-color: var(--off-white-dark);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
         z-index: 1000;
     }

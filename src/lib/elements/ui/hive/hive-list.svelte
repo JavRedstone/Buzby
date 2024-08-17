@@ -69,8 +69,6 @@
         } else {
             projectPercentage = 0;
         }
-
-        tasks.sort((a, b) => { return a.endDate.getTime() - b.endDate.getTime(); });
     }
 
     onMount(() => {

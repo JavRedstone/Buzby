@@ -53,11 +53,11 @@
     }
 
     function setMemberStatusPositions(): void {
-        if (project && project.joinedMembers) {
+        if (project && project.members) {
             memberOffsets = [];
             memberPositions = [];
-            memberAngles = MathHelper.getAnglesForPolygon(project.joinedMembers.length);
-            for (let i = 0; i < project.joinedMembers.length; i++) {
+            memberAngles = MathHelper.getAnglesForPolygon(project.members.length);
+            for (let i = 0; i < project.members.length; i++) {
                 let offset: Vector2 = MathHelper.getOffsetForAngle(memberAngles[i], -Math.PI / 2, window.innerWidth / 8);
                 memberOffsets.push(offset);
                 memberPositions.push(offset.clone().add(new Vector2(window.innerWidth / 4, window.innerHeight / 2)));
@@ -339,7 +339,7 @@
         <span class="office-table-icon material-symbols-rounded">diversity_2</span>
     </div>
     {#if project}
-        {#each project.joinedMembers as member, i}
+        {#each project.members as member, i}
             <MemberStatus project={project} member={member} openedKickMember={openedKickMember} x={memberPositions[i].x} y={memberPositions[i].y} nameAbove={memberOffsets[i].y >= 0} on:openKickMenu={setOpenedMenu} on:closeKickMenu={setClosedMenu} />
         {/each}
     {/if}

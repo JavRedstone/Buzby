@@ -18,15 +18,11 @@ export class Project {
     public createdAt: Date;
     public createdAtTemp: any;
 
-    public ownerId: string;
     public owner: Member;
 
     public memberProjects: MemberProject[] = [];
-    public memberIds: string[] = [];
     public members: Member[] = [];
-    public joinedMemberIds: string[] = [];
     public joinedMembers: Member[] = [];
-    public requestedMemberIds: string[] = [];
     public requestedMembers: Member[] = [];
 
     public messages: Message[] = [];
@@ -92,11 +88,15 @@ export class Project {
                 let member: Member = new Member({});
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberProject.memberId);
-                onSnapshot(memberDoc, (doc) => {
-                    member ? member.set(doc.data()) : member = new Member(doc.data());
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                onSnapshot(memberDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        member ? member.set(doc.data()) : member = new Member(doc.data());
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
                 
                 members.push(member);
@@ -131,21 +131,30 @@ export class Project {
                 let message = new Message(doc.data());
             
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('messages', message.id);
-                onSnapshot(messageDoc, (doc) => {
-                    message ? message.set(doc.data()) : message = new Message(doc.data());
-                    message.setObjects();
-                    
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                onSnapshot(messageDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            message ? message.set(data) : message = new Message(data);
+                            message.setObjects();
+                        }
+
+                        this.messages = messages.sort((a, b) => {
+                            return a.createdAt.getTime() - b.createdAt.getTime();
+                        });
+                        
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
                 messages.push(message);
             });
 
-            this.messages = messages.sort((a, b) => {
-                return a.createdAt.getTime() - b.createdAt.getTime();
-            });
+            this.messages = messages;
 
             currentMember.update((value) => {
                 return value;
@@ -163,13 +172,24 @@ export class Project {
                 let task = new Task(doc.data());
                 
                 let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
-                onSnapshot(taskDoc, (doc) => {
-                    task ? task.set(doc.data()) : task = new Task(doc.data());
-                    task.setObjects();
+                onSnapshot(taskDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            task ? task.set(data) : task = new Task(data);
+                            task.setObjects();
+                        }
 
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                        this.tasks.sort((a, b) => {
+                            return a.endDate.getTime() - b.endDate.getTime();
+                        });
+
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
                 tasks.push(task);
@@ -192,13 +212,20 @@ export class Project {
                 let occasion = new Occasion(doc.data());
                 
                 let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('occasions', occasion.id);
-                onSnapshot(occasionDoc, (doc) => {
-                    occasion ? occasion.set(doc.data()) : occasion = new Occasion(doc.data());
-                    occasion.setObjects();
+                onSnapshot(occasionDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            occasion ? occasion.set(data) : occasion = new Occasion(data);
+                            occasion.setObjects();
+                        }
 
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
                 occasions.push(occasion);

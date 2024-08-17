@@ -121,7 +121,8 @@
         padding-left: 16px;
         padding-right: 16px;
         padding-bottom: 16px;
-        border: 2px solid var(--grey-300);
+        border: 1px solid var(--grey-300);
+        box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
     }
 

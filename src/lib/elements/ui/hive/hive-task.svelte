@@ -11,7 +11,7 @@
 	import { currentMember, projectSelected } from '$lib/elements/stores/project-store';
 	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants.js';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
-	import { DocumentReference, type DocumentData, setDoc, deleteDoc } from 'firebase/firestore';
+	import { DocumentReference, type DocumentData, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 	import { HiveConstants } from '$lib/elements/classes/ui/hive/HiveConstants';
 	import { ObjectHelper } from '$lib/elements/helpers/ObjectHelper';
 	import { MemberTask } from '$lib/elements/classes/data/time/MemberTask';
@@ -73,14 +73,14 @@
         editOpen = !editOpen;
         deleteOpen = false;
 
-        if (editOpen) {
+        if (editOpen && project && task) {
             taskName = task.name;
             taskDescription = task.description;
             taskAssignedChecked = [];
-            for (let i = 0; i < project.members.length; i++) {
+            for (let member of project.joinedMembers) {
                 let hasMember: boolean = false;
-                for (let i = 0; i < task.memberTasks.length; i++) {
-                    if (task.memberTasks[i].memberId == project.members[i].id) {
+                for (let memberTask of task.memberTasks) {
+                    if (memberTask.memberId == member.id) {
                         hasMember = true;
                         break;
                     }
@@ -95,15 +95,6 @@
         else {
             hideExtras();
         }
-    }
-
-    function taskHasMember(task: Task, member: Member): boolean {
-        for (let i = 0; i < task.memberTasks.length; i++) {
-            if (task.memberTasks[i].memberId == member.id) {
-                return true;
-            }
-        }
-        return false;
     }
 
     function deleteTask(): void {
@@ -142,11 +133,11 @@
                 return;
             }
 
-            let startDate: Date = new Date(taskStartDateInput.valueAsNumber);
-            let endDate: Date = new Date(taskEndDateInput.valueAsNumber);
+            let startDate: Date = ObjectHelper.getDateFromInputValue(taskStartDateInput.valueAsNumber);
+            let endDate: Date = ObjectHelper.getDateFromInputValue(taskEndDateInput.valueAsNumber);
 
-            let startNumber: number = ObjectHelper.getDateInputValue(startDate);
-            let endNumber: number = ObjectHelper.getDateInputValue(endDate);
+            let startNumber: number = startDate.getTime();
+            let endNumber: number = endDate.getTime();
             
             if (isNaN(startNumber)) {
                 openSnackbar("Please enter a start date.", "error");
@@ -163,12 +154,17 @@
                 return;
             }
 
-            let prevAssignedIds: string[] = task.memberIds;
+            let prevAssignedIds: string[] = [];
+            for (let i = 0; i < task.memberTasks.length; i++) {
+                if (task.memberTasks[i].taskId == task.id) {
+                    prevAssignedIds.push(task.memberTasks[i].memberId);
+                }
+            }
 
             let assignedIds: string[] = [];
             for (let i = 0; i < taskAssignedChecked.length; i++) {
                 if (taskAssignedChecked[i]) {
-                    assignedIds.push(project.members[i].id);
+                    assignedIds.push(project.joinedMembers[i].id);
                 }
             }
 
@@ -190,13 +186,14 @@
 
             let newTask: Task = new Task({
                 id: task.id,
+                projectId: task.projectId,
                 name: taskName.trim(),
                 description: taskDescription.trim(),
                 percentage: task.percentage,
                 hiveX: task.hiveX,
                 hiveY: task.hiveY,
-                startDate: new Date(startNumber),
-                endDate: new Date(endNumber),
+                startDate: startDate,
+                endDate: endDate
             });
 
             let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", newTask.id);
@@ -206,6 +203,7 @@
                         id: StringHelper.generateID(),
                         memberId: membersToAdd[i],
                         taskId: newTask.id,
+                        createdAtTemp: serverTimestamp(),
                     });
                     let memberTaskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberTasks", memberTask.id);
                     setDoc(memberTaskDoc, memberTask.compactify()).then(() => {
@@ -233,6 +231,13 @@
     function deleteTaskConfirmed(): void {
         let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("tasks", task.id);
         deleteDoc(taskDoc).then(() => {
+            for (let memberTask of task.memberTasks) {
+                let memberTaskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberTasks", memberTask.id);
+                deleteDoc(memberTaskDoc).then(() => {
+                }).catch((error) => {
+                    openSnackbar("An error occurred while deleting task. Please try again.", "error");
+                });
+            }
             openSnackbar("Task deleted successfully.", "success");
         }).catch((error) => {
             openSnackbar("An error occurred while deleting task. Please try again.", "error");

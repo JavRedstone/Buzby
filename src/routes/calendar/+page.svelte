@@ -2,6 +2,7 @@
     <title>Buzby | Calendar</title>
 </svelte:head>
 <script lang="ts">
+	import { MemberOccasion } from '$lib/elements/classes/data/time/MemberOccasion';
 	import Avatar from '$lib/elements/ui/general/avatar.svelte';
 	import { MathHelper } from '$lib/elements/helpers/MathHelper';
 	import Menu from '$lib/elements/ui/general/menu.svelte';
@@ -20,7 +21,7 @@
 	import { OccasionConstants } from '$lib/elements/classes/data/time/OccasionConstants';
 	import { ProjectConstants } from '$lib/elements/classes/data/project/ProjectConstants';
 	import Tooltip from '$lib/elements/ui/general/tooltip.svelte';
-	import { deleteDoc, setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
+	import { deleteDoc, serverTimestamp, setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import type { Member } from '$lib/elements/classes/data/project/Member';
 
@@ -57,6 +58,7 @@
     let editOpen: boolean = false;
     let deleteOpen: boolean = false;
 
+    let occasionEdit: Occasion = null;
     let occasionEditName: string = "";
     let occasionEditDescription: string = "";
     let occasionEditColor: string = "";
@@ -294,12 +296,20 @@
         deleteOpen = false;
 
         if (editOpen) {
+            occasionEdit = detailsOccasion;
             occasionEditName = detailsOccasion.name;
             occasionEditDescription = detailsOccasion.description;
             occasionEditColor = detailsOccasion.color;
             occasionEditAssignedChecked = [];
-            for (let i = 0; i < project.members.length; i++) {
-                occasionEditAssignedChecked = [...occasionEditAssignedChecked, detailsOccasion.members.includes(project.members[i])];
+            for (let member of project.joinedMembers) {
+                let hasMember: boolean = false;
+                for (let memberOccasion of occasionEdit.memberOccasions) {
+                    if (memberOccasion.memberId == member.id) {
+                        hasMember = true;
+                        break;
+                    }
+                }
+                occasionEditAssignedChecked = [...occasionEditAssignedChecked, hasMember];
             }
             setTimeout(() => {
                 occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(detailsOccasion.startTime);
@@ -320,6 +330,7 @@
         editOpen = false;
         deleteOpen = false;
 
+        occasionEdit = null;
         occasionEditName = "";
         occasionEditDescription = "";
         occasionEditColor = "";
@@ -379,12 +390,30 @@
                 endTime = endOfDay;
             }
 
+            let prevAssignedIds: string[] = [];
+            for (let i = 0; i < occasionEdit.memberOccasions.length; i++) {
+                if (occasionEdit.memberOccasions[i].occasionId == occasionEdit.id) {
+                    prevAssignedIds.push(occasionEdit.memberOccasions[i].memberId);
+                }
+            }
+
             let assignedIds: string[] = [];
             for (let i = 0; i < occasionEditAssignedChecked.length; i++) {
                 if (occasionEditAssignedChecked[i]) {
                     assignedIds.push(project.joinedMembers[i].id);
                 }
             }
+
+            let membersToAdd: string[] = assignedIds.filter((id) => {
+                return !prevAssignedIds.includes(id);
+            });
+            let membersToRemove: string[] = prevAssignedIds.filter((id) => {
+                return !assignedIds.includes(id);
+            });
+
+            let memberOccasionsToRemove: MemberOccasion[] = occasionEdit.memberOccasions.filter((mo) => {
+                return mo.occasionId == occasionEdit.id && membersToRemove.includes(mo.memberId);
+            });
 
             if (assignedIds.length == 0) {
                 openSnackbar("Please assign at least one member to the occasion.", "error");
@@ -393,10 +422,10 @@
 
             let occasion: Occasion = new Occasion({
                 id: detailsOccasion.id,
+                projectId: project.id,
                 name: occasionEditName.trim(),
                 description: occasionEditDescription.trim(),
                 color: occasionEditColor,
-                assignedIds: assignedIds,
                 startTime: startTime,
                 endTime: endTime,
             });
@@ -408,13 +437,29 @@
 
             let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", occasion.id);
             setDoc(occasionDoc, occasion.compactify()).then(() => {
+                for (let i = 0; i < membersToAdd.length; i++) {
+                    let memberOccasion: MemberOccasion = new MemberOccasion({
+                        id: StringHelper.generateID(),
+                        memberId: membersToAdd[i],
+                        occasionId: occasion.id,
+                        createdAtTemp: serverTimestamp(),
+                    });
+                    let memberOccasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberOccasions", memberOccasion.id);
+                    setDoc(memberOccasionDoc, memberOccasion.compactify()).then(() => {
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while assigning member to occasion. Please try again.", "error");
+                    });
+                }
+
+                for (let i = 0; i < memberOccasionsToRemove.length; i++) {
+                    let memberOccasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberOccasions", memberOccasionsToRemove[i].id);
+                    deleteDoc(memberOccasionDoc).then(() => {
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while unassigning member from occasion. Please try again.", "error");
+                    });
+                }
+
                 closeDetails();
-                project.occasions = project.occasions.map((o) => {
-                    if (o.id === occasion.id) {
-                        return occasion;
-                    }
-                    return o;
-                });
                 openSnackbar("Occasion edited successfully.", "success");
                 cancelCreate();
             }).catch((error) => {

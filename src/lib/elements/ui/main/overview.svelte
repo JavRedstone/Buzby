@@ -24,6 +24,8 @@
 	import { MemberProject } from '$lib/elements/classes/data/project/MemberProject';
 
     let currMember: Member = null;
+    let joinedProjects: Project[] = [];
+    let requestedProjects: Project[] = [];
 
     let createOpen: boolean = false;
     let createProcessing: boolean = false;
@@ -36,6 +38,17 @@
     let snackbarOpen: boolean = false;
     let snackbarText: string = "";
     let snackbarType: string = "neutral";
+
+    function getCurrMember(): void {
+        currentMember.subscribe((value) => {
+            currMember = value;
+
+            if (currMember) {
+                joinedProjects = currMember.joinedProjects;
+                requestedProjects = currMember.requestedProjects;
+            }
+        });
+    }
 
     function createProject(): void {
         if (createProcessing) {
@@ -194,12 +207,6 @@
         else {
             memberEmails = [""];
         }
-    }
-
-    function getCurrMember(): void {
-        currentMember.subscribe((value) => {
-            currMember = value;
-        });
     }
 
     function openSnackbar(text: string, type: string): void {
@@ -420,86 +427,84 @@
     }
 </style>
 
-<div class="overview-container" transition:fade={{duration: TransitionConstants.DURATION}}>
-    <button class="overview-create-project-button" on:click={() => createOpen = true}>
-        <span class="material-symbols-rounded">add</span>
-        Create Project
-    </button>
-    
-    {#if currMember && createOpen}
-        <div class="overview-create-project-container" transition:slide={{duration: TransitionConstants.DURATION}}>
-            {#if currMember.joinedProjects.length < ProjectConstants.MAX_NUM_PROJECTS}
-                <div class="overview-create-project-field">
-                    <span class="overview-create-project-icon material-symbols-rounded">badge</span>
-                    <input class="overview-create-project-input" type="text" placeholder="Project Name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
-                </div>
-                <div class="overview-create-project-field">
-                    <span class="overview-create-project-icon material-symbols-rounded">description</span>
-                    <input class="overview-create-project-input" type="text" placeholder="Project Description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
-                </div>
-                <div class="overview-create-project-field">
-                    <span class="overview-create-project-icon material-symbols-rounded">colors</span>
-                    {#each ProjectConstants.COLORS as color}
-                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                        <!-- svelte-ignore a11y-no-static-element-interactions -->
-                        <div class="overview-create-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
-                            <Tooltip>{color.displayName}</Tooltip>
-                        </div>
-                    {/each}
-                </div>
-                <div class="overview-create-project-email-container">
-                    <div>Member emails</div>
-                    <div class="overview-create-project-email-info">*If they have an account, they will be requested to join. Otherwise, they will not be added.</div>
-                    {#each memberEmails as email, i}
-                        <div class="overview-create-project-field" transition:slide={{duration: TransitionConstants.DURATION}}>
-                            <span class="overview-create-project-icon material-symbols-rounded">email</span>
-                            <input class="overview-create-project-input" placeholder="Member Email" bind:value={email} />
-                            {#if memberEmails.length > 1}
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                <span class="overview-create-project-close-icon material-symbols-rounded" on:click={() => removeEmail(i)}>close</span>
-                            {/if}
-                        </div>
-                    {/each}
-                    {#if memberEmails.length < ProjectConstants.MAX_NUM_MEMBERS}
-                        <button class="overview-create-project-add-member" type="button" on:click={addEmail}>Add Member</button>
-                    {/if}
-                </div>
-                <button class="overview-create-project-create" on:click={createProject}>Create</button>
-            {:else}
-                <div class="overview-create-project-sorry">You have reached the project limit of {ProjectConstants.MAX_NUM_PROJECTS} project{ProjectConstants.MAX_NUM_PROJECTS > 1 ? 's' : ''}. Please delete a project to create a new one.</div>
-            {/if}
-            <button class="overview-create-project-cancel" on:click={cancel}>Cancel</button>
-        </div>
-    {/if}
+{#if currMember}
+    <div class="overview-container" transition:fade={{duration: TransitionConstants.DURATION}}>
+        <button class="overview-create-project-button" on:click={() => createOpen = true}>
+            <span class="material-symbols-rounded">add</span>
+            Create Project
+        </button>
+        
+        {#if createOpen}
+            <div class="overview-create-project-container" transition:slide={{duration: TransitionConstants.DURATION}}>
+                {#if joinedProjects.length < ProjectConstants.MAX_NUM_PROJECTS}
+                    <div class="overview-create-project-field">
+                        <span class="overview-create-project-icon material-symbols-rounded">badge</span>
+                        <input class="overview-create-project-input" type="text" placeholder="Project Name" maxlength={ProjectConstants.PROJECT_NAME_MAX_LENGTH} bind:value={projectName} />
+                    </div>
+                    <div class="overview-create-project-field">
+                        <span class="overview-create-project-icon material-symbols-rounded">description</span>
+                        <input class="overview-create-project-input" type="text" placeholder="Project Description" maxlength={ProjectConstants.PROJECT_DESCRIPTION_MAX_LENGTH} bind:value={projectDescription} />
+                    </div>
+                    <div class="overview-create-project-field">
+                        <span class="overview-create-project-icon material-symbols-rounded">colors</span>
+                        {#each ProjectConstants.COLORS as color}
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div class="overview-create-project-color" style="background-color: {color.hex}; {projectColor == color.hex ? 'border-color: var(--grey-800);' : ''}" on:click={() => projectColor = color.hex}>
+                                <Tooltip>{color.displayName}</Tooltip>
+                            </div>
+                        {/each}
+                    </div>
+                    <div class="overview-create-project-email-container">
+                        <div>Member emails</div>
+                        <div class="overview-create-project-email-info">*If they have an account, they will be requested to join. Otherwise, they will not be added.</div>
+                        {#each memberEmails as email, i}
+                            <div class="overview-create-project-field" transition:slide={{duration: TransitionConstants.DURATION}}>
+                                <span class="overview-create-project-icon material-symbols-rounded">email</span>
+                                <input class="overview-create-project-input" placeholder="Member Email" bind:value={email} />
+                                {#if memberEmails.length > 1}
+                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <span class="overview-create-project-close-icon material-symbols-rounded" on:click={() => removeEmail(i)}>close</span>
+                                {/if}
+                            </div>
+                        {/each}
+                        {#if memberEmails.length < ProjectConstants.MAX_NUM_MEMBERS}
+                            <button class="overview-create-project-add-member" type="button" on:click={addEmail}>Add Member</button>
+                        {/if}
+                    </div>
+                    <button class="overview-create-project-create" on:click={createProject}>Create</button>
+                {:else}
+                    <div class="overview-create-project-sorry">You have reached the project limit of {ProjectConstants.MAX_NUM_PROJECTS} project{ProjectConstants.MAX_NUM_PROJECTS > 1 ? 's' : ''}. Please delete a project to create a new one.</div>
+                {/if}
+                <button class="overview-create-project-cancel" on:click={cancel}>Cancel</button>
+            </div>
+        {/if}
 
-    <h2>Projects</h2>
-    {#if currMember && currMember.joinedProjects.length > 0}
-        <div class="overview-subtitle">You have joined {currMember.joinedProjects.length} project{currMember.joinedProjects.length !== 1 ? 's' : ''}.</div>
-    {/if}
-    <div class="overview-projects-container">
-        {#if currMember}
-            {#each currMember.joinedProjects as project}
-                <ProjectOverview bind:project={project} isRequested={false} isOwner={project && project.owner ? project.owner.id === currMember.id : false} />
+        <h2>Projects</h2>
+        {#if joinedProjects.length > 0}
+            <div class="overview-subtitle">You have joined {joinedProjects.length} project{joinedProjects.length !== 1 ? 's' : ''}.</div>
+        {/if}
+        <div class="overview-projects-container">
+            {#each joinedProjects as project}
+                <ProjectOverview bind:project={project} />
             {/each}
-            {#if currMember.joinedProjects.length === 0}
+            {#if joinedProjects.length === 0}
                 <div class="overview-no-projects">No projects found. Create one above!</div>
             {/if}
+        </div>
+        <h2>Requested Projects</h2>
+        {#if requestedProjects.length > 0}
+            <div class="overview-subtitle">You have requested to join {requestedProjects.length} project{requestedProjects.length !== 1 ? 's' : ''}.</div>
         {/if}
-    </div>
-    <h2>Requested Projects</h2>
-    {#if currMember && currMember.requestedProjects.length > 0}
-        <div class="overview-subtitle">You have requested to join {currMember.requestedProjects.length} project{currMember.requestedProjects.length !== 1 ? 's' : ''}.</div>
-    {/if}
-    <div class="overview-requested-projects-container">
-        {#if currMember}
-            {#each currMember.requestedProjects as project}
-                <ProjectOverview bind:project={project} isRequested={true} isOwner={false} />
+        <div class="overview-requested-projects-container">
+            {#each requestedProjects as project}
+                <ProjectOverview bind:project={project} />
             {/each}
-            {#if currMember.requestedProjects.length === 0}
+            {#if requestedProjects.length === 0}
                 <div class="overview-no-projects">No requested projects found. Receive a request to join a project!</div>
             {/if}
-        {/if}
+        </div>
     </div>
-</div>
+{/if}
 <Snackbar type={snackbarType} bind:open={snackbarOpen}>{snackbarText}</Snackbar>

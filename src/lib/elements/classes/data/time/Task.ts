@@ -16,7 +16,6 @@ export class Task {
     public endDate: Date;
 
     public memberTasks: MemberTask[] = [];
-    public memberIds: string[] = [];
     public members: Member[] = [];
 
     constructor(data: any) {
@@ -95,7 +94,7 @@ export class Task {
     }
 
     public setMembers(): void {
-        let memberTasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('members');
+        let memberTasksCollection: CollectionReference<DocumentData, DocumentData> = getFirestoreCollection('memberTasks');
         let memberTasksQuery = query(memberTasksCollection, where('taskId', '==', this.id));
         onSnapshot(memberTasksQuery, (snapshot) => {
             let memberTasks: MemberTask[] = [];
@@ -106,19 +105,27 @@ export class Task {
                 let member: Member = new Member({});
 
                 let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', memberTask.memberId);
-                onSnapshot(memberDoc, (doc) => {
-                    member ? member.set(doc.data()) : member = new Member(doc.data());
+                onSnapshot(memberDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            member ? member.set(data) : member = new Member(data);
+                        }
 
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
+                memberTasks.push(memberTask);
                 members.push(member);
             });
-            this.members = members;
 
             this.memberTasks = memberTasks;
+            this.members = members;
 
             currentMember.update((value) => {
                 return value;

@@ -19,10 +19,19 @@ export class PollOption {
 
     public set(data: any): void {
         this.id = data.id;
+        if (!this.id) {
+            this.id = '';
+        }
 
         this.pollId = data.pollId;
+        if (!this.pollId) {
+            this.pollId = '';
+        }
 
         this.memberId = data.memberId;
+        if (!this.memberId) {
+            this.memberId = '';
+        }
 
         this.text = data.text;
         if (!this.text) {
@@ -45,12 +54,16 @@ export class PollOption {
     public setObjects(): void {
         if (this.memberId) {
             let memberDoc: DocumentReference<DocumentData> = getFirestoreDoc("members", this.memberId);
-            onSnapshot(memberDoc, (doc) => {
-                this.member ? this.member.set(doc.data()) : this.member = new Member(doc.data());
+            onSnapshot(memberDoc, {
+                includeMetadataChanges: true
+            }, (doc) => {
+                if (doc.exists()) {
+                    this.member = new Member(doc.data());
 
-                currentMember.update((value) => {
-                    return value;
-                });
+                    currentMember.update((value) => {
+                        return value;
+                    });
+                }
             });
         }
     }

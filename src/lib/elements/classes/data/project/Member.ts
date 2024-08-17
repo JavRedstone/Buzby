@@ -93,13 +93,28 @@ export class Member {
         onSnapshot(pingsQuery, (snapshot) => {
             let pings: Ping[] = [];
             snapshot.forEach((doc) => {
-                let ping = new Ping(doc.data());
+                let data = doc.data();
+                
+                let ping: Ping = new Ping({});
+                if (data) {
+                    ping ? ping.set(data) : ping = new Ping(data);
+                }
+
                 pings.push(ping);
             });
-            pings.sort((a, b) => {
-                return a.createdAt.getTime() - b.createdAt.getTime();
-            });
+
             this.pings = pings;
+            
+            this.pings.sort((a, b) => {
+                if (a.read && !b.read) {
+                    return 1;
+                }
+                if (!a.read && b.read) {
+                    return -1;
+                }
+                return b.createdAt.getTime() - a.createdAt.getTime();
+            });
+
             currentMember.update((value) => {
                 return value;
             });
@@ -123,12 +138,33 @@ export class Member {
                 let project: Project = new Project({});
 
                 let projectDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('projects', memberProject.projectId);
-                onSnapshot(projectDoc, (doc) => {
-                    project ? project.set(doc.data()) : project = new Project(doc.data());
-                    project.setObjects();
-                    currentMember.update((value) => {
-                        return value;
-                    });
+                onSnapshot(projectDoc, {
+                    includeMetadataChanges: true
+                }, (doc) => {
+                    if (doc.exists()) {
+                        let data = doc.data();
+                        if (data) {
+                            project ? project.set(data) : project = new Project(data);
+                            project.setObjects();
+                        }
+
+                        this.projects = projects.sort((a, b) => {
+                            return b.createdAt.getTime() - a.createdAt.getTime();
+                        });
+                        this.ownedProjects = ownedProjects.sort((a, b) => {
+                            return b.createdAt.getTime() - a.createdAt.getTime();
+                        });
+                        this.joinedProjects = joinedProjects.sort((a, b) => {
+                            return b.createdAt.getTime() - a.createdAt.getTime();
+                        });
+                        this.requestedProjects = requestedProjects.sort((a, b) => {
+                            return b.createdAt.getTime() - a.createdAt.getTime();
+                        });
+
+                        currentMember.update((value) => {
+                            return value;
+                        });
+                    }
                 });
 
                 projects.push(project);
@@ -149,10 +185,6 @@ export class Member {
             this.ownedProjects = ownedProjects;
             this.joinedProjects = joinedProjects;
             this.requestedProjects = requestedProjects;
-
-            this.projects.sort((a, b) => {
-                return a.createdAt.getTime() - b.createdAt.getTime();
-            });
 
             currentMember.update((value) => {
                 return value;
