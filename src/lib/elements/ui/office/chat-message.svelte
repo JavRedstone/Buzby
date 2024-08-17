@@ -470,7 +470,7 @@
                 {#if message.reply != null}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <div class="chat-message-reply-display" style="width: {message.memberId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}" on:click={jumpToReply}>
-                        {message.reply.member.displayName}: {message.reply.text}
+                        {message.reply.member ? message.reply.member.displayName : ''}: {message.reply.text}
                     </div>
                 {:else}
                     <div class="chat-message-reply-deleted" style="width: {message.memberId == currMember.id ? 'calc(100% - 136px)' : 'calc(100% - 100px)'}">Original message deleted.</div>
@@ -483,7 +483,7 @@
             <div class="chat-message-big-container">
                 <div class="chat-message-header">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <div class="chat-message-name" on:click={clickedName}>{message.member.displayName}</div>
+                    <div class="chat-message-name" on:click={clickedName}>{message && message.member ? message.member.displayName : ''}</div>
                     <div class="chat-message-date">{StringHelper.getFormattedDate(message.createdAt)}</div>
                 </div>
                 <div class="chat-message-large-container">

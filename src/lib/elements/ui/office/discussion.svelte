@@ -23,6 +23,7 @@
 
     let currMember: Member = null;
     let project: Project = null;
+    let messages: Message[] = [];
     
     let messagesContainer: HTMLElement = null;
     let messageInput: HTMLInputElement = null;
@@ -74,6 +75,14 @@
             if (c != null) {
                 projectSelected.subscribe((value) => {
                     project = currMember.projects.find((p) => p.id === value);
+
+                    if (project) {
+                        messages = project.messages;
+
+                        if (messagesContainer) {
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }
+                    }
                 });
             }
         });
@@ -355,15 +364,6 @@
         messagePercentage = 0;
 
         if (currMember) {
-            let message: Message = new Message({
-                id: StringHelper.generateID(),
-                memberId: currMember.id,
-                replyId: replyOpen && replyMessage ? replyMessage.id : '',
-                text: messageText,
-                edited: false,
-                createdAtTemp: serverTimestamp()
-            });
-
             let poll: Poll = null;
             let pollOptions: PollOption[] = [];
             if (finalizedPollQuestion.length > 0) {
@@ -387,6 +387,17 @@
 
                 removeFinalizedPoll();
             }
+
+            let message: Message = new Message({
+                id: StringHelper.generateID(),
+                projectId: project.id,
+                memberId: currMember.id,
+                replyId: replyOpen && replyMessage ? replyMessage.id : '',
+                pollId: poll ? poll.id : '',
+                text: messageText,
+                edited: false,
+                createdAtTemp: serverTimestamp()
+            });
 
             if (project.messages.length > MessageConstants.MESSAGE_MAX_COUNT) {
                 for (let i = 0; i < project.messages.length - MessageConstants.MESSAGE_MAX_COUNT; i++) {
@@ -1014,7 +1025,7 @@
             <div class="discussion-title">Discussion</div>
         </div>
         <div class="discussion-messages-container" bind:this={messagesContainer}>
-            {#each project.messages as message, i}
+            {#each messages as message, i}
                 <ChatMessage bind:message={message} bind:project={project} hasAvatar={message.memberId !== project.messages[i - 1]?.memberId || message.createdAt.getTime() - project.messages[i - 1]?.createdAt.getTime() > MessageConstants.MESSAGE_GROUP_TIME || message.replyId.length > 0} highlightedId={highlightedId} bind:isHighlighted={isHighlighted} on:reply={() => openReply(message)} on:jumpToReply={() => jumpToMessage(message.replyId)} on:clickedName={() => mentionSender(message)} />
             {/each}
         </div>
@@ -1023,7 +1034,7 @@
                 <div class="discussion-reply-container" style="top: {finalizedLink.length > 0 || finalizedPollQuestion.length > 0 ? -49 : finalizedImageUrl.length > 0 ? -121 : -25}px" transition:fade={{duration: TransitionConstants.DURATION}}>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage.member.displayName}</div>
+                    <div class="discussion-reply-jump" on:click={() => jumpToMessage(replyMessage.id)}>Replying to {replyMessage && replyMessage.member ? replyMessage.member.displayName : ''}</div>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                     <span class="discussion-reply-cancel material-symbols-rounded" on:click={cancelReply}>close</span>

@@ -1,8 +1,7 @@
 export class MessageConstants {
     public static readonly MESSAGE_MAX_LENGTH = 2000;
     public static readonly MESSAGE_GROUP_TIME = 300000;
-    // public static readonly MESSAGE_TIMEOUT = 5000;
-    public static readonly MESSAGE_TIMEOUT = 0;
+    public static readonly MESSAGE_TIMEOUT = 1000;
     public static readonly MESSAGE_MAX_COUNT = 90;
     public static readonly MESSAGE_HIGHLIGHT_DURATION = 2000;
 

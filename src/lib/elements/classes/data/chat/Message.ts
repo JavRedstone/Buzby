@@ -6,6 +6,7 @@ import { currentMember } from "$lib/elements/stores/project-store";
 
 export class Message {
     public id: string;
+    public projectId: string;
     public memberId: string;
     public pollId: string;
     public replyId: string;
@@ -30,6 +31,11 @@ export class Message {
         this.id = data.id;
         if (!this.id) {
             this.id = '';
+        }
+
+        this.projectId = data.projectId;
+        if (!this.projectId) {
+            this.projectId = '';
         }
         
         this.memberId = data.memberId;
@@ -114,6 +120,11 @@ export class Message {
             onSnapshot(replyDoc, (doc) => {
                 this.reply = new Message(doc.data());
 
+                onSnapshot(replyDoc, (doc) => {
+                    this.reply ? this.reply.set(doc.data()) : this.reply = new Message(doc.data());
+                    this.reply.setObjects();
+                });
+
                 currentMember.update((value) => {
                     return value;
                 });
@@ -138,6 +149,7 @@ export class Message {
     public compactify(): any {
         return {
             id: this.id,
+            projectId: this.projectId,
             memberId: this.memberId,
             replyId: this.replyId,
             pollId: this.pollId,

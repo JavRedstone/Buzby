@@ -251,6 +251,7 @@
         background-color: rgba(var(--primary-rgb), 0.025);
         border: 1px solid var(--primary);
         border-radius: 8px;
+        box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.1);
         user-select: none;
     }
 

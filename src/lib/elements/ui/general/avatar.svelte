@@ -7,7 +7,9 @@
     export let member: Member = null;
     export let size: string = "";
 
-    let base: number = member.statusBase;
+    let base: number = 0;
+
+    $: member ? base = member.statusBase : null;
 
     function getCurrentMember(): void {
         currentMember.subscribe((value) => {

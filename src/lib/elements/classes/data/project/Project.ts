@@ -133,7 +133,8 @@ export class Project {
                 let messageDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('messages', message.id);
                 onSnapshot(messageDoc, (doc) => {
                     message ? message.set(doc.data()) : message = new Message(doc.data());
-
+                    message.setObjects();
+                    
                     currentMember.update((value) => {
                         return value;
                     });
@@ -142,7 +143,9 @@ export class Project {
                 messages.push(message);
             });
 
-            this.messages = messages;
+            this.messages = messages.sort((a, b) => {
+                return a.createdAt.getTime() - b.createdAt.getTime();
+            });
 
             currentMember.update((value) => {
                 return value;
@@ -162,6 +165,7 @@ export class Project {
                 let taskDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('tasks', task.id);
                 onSnapshot(taskDoc, (doc) => {
                     task ? task.set(doc.data()) : task = new Task(doc.data());
+                    task.setObjects();
 
                     currentMember.update((value) => {
                         return value;
@@ -199,6 +203,7 @@ export class Project {
 
                 occasions.push(occasion);
             });
+
             this.occasions = occasions;
 
             currentMember.update((value) => {
