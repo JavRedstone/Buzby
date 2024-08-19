@@ -496,18 +496,32 @@
         let amount: number = event.detail.amount;
 
         let numMinutes: number = amount / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
-        let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes));
-        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
+        let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
+        if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
+        console.log(timeClicked)
         let timeClickedClamp: Date = new Date(MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR) * CalendarConstants.MS_PER_MINUTE);
-        setTimeout(() => {
+
+        // setTimeout(() => {
+        //     if (top) {
+        //         occasion.startTime = timeClickedClamp;
+        //         occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+        //     } else {
+        //         occasion.endTime = timeClickedClamp;
+        //         occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+        //     }
+        // });
+
+        if (!dragging) {
             if (top) {
-                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+                occasion.startTime = timeClicked;
+                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClicked);
             } else {
-                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+                occasion.endTime = timeClicked;
+                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClicked);
             }
-        });
+        }
     }
     
     function setCurrentInterval(): void {
