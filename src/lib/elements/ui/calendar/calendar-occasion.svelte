@@ -12,6 +12,9 @@
     
     export let occasion: Occasion = null;
 
+    let occasionTop: number = 0;
+    let occasionHeight: number = 0;
+
     let startTimeFormatted: string = "";
     let endTimeFormatted: string = "";
 
@@ -21,10 +24,9 @@
     let resizing: boolean = false;
     let shifting: boolean = false;
 
-    $: occasion ? setTimes() : null;
-
-    function setTimes(): void {
-        console.log("HERE")
+    $: occasion ? formatTimes() : null;
+    $: occasion.startTime ? formatTimes() : null;
+    $: occasion.endTime ? formatTimes() : null;
 
         startTimeFormatted = StringHelper.getFormattedTime(occasion.startTime);
         endTimeFormatted = StringHelper.getFormattedTime(occasion.endTime);
