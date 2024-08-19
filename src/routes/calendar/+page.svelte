@@ -529,7 +529,7 @@
                 occasion.endTime = timeClickedClamp;
                 occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
             }
-        }
+        });
     }
     
     function setCurrentInterval(): void {

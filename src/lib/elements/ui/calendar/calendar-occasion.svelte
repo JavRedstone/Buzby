@@ -17,9 +17,6 @@
 
     let startTimeFormatted: string = "";
     let endTimeFormatted: string = "";
-
-    let occasionTop: number = 0;
-    let occasionHeight: number = 0;
     
     let resizing: boolean = false;
     let shifting: boolean = false;
@@ -28,6 +25,7 @@
     $: occasion.startTime ? formatTimes() : null;
     $: occasion.endTime ? formatTimes() : null;
 
+    function formatTimes(): void {
         startTimeFormatted = StringHelper.getFormattedTime(occasion.startTime);
         endTimeFormatted = StringHelper.getFormattedTime(occasion.endTime);
 
