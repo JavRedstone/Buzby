@@ -243,7 +243,6 @@
                 name: temporaryOccasion.name.trim(),
                 description: temporaryOccasion.description.trim(),
                 color: temporaryOccasion.color,
-                assignedIds: assignedIds,
                 startTime: startTime,
                 endTime: endTime,
             });
@@ -255,6 +254,21 @@
 
             let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", newOccasion.id);
             setDoc(occasionDoc, newOccasion.compactify()).then(() => {
+                for (let assignedId of assignedIds) {
+                    let memberOccasion: MemberOccasion = new MemberOccasion({
+                        id: StringHelper.generateID(),
+                        occasionId: newOccasion.id,
+                        memberId: assignedId,
+                        createdAtTemp: serverTimestamp()
+                    });
+                    let memberOccasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberOccasions", memberOccasion.id);
+                    setDoc(memberOccasionDoc, memberOccasion.compactify()).then(() => {
+                        
+                    }).catch((error) => {
+                        openSnackbar("An error occurred while adding occasion. Please try again.", "error");
+                    });
+                }
+
                 openSnackbar("Occasion added successfully.", "success");
                 cancelCreate();
             }).catch((error) => {
@@ -468,10 +482,16 @@
         }
     }
 
-
     function deleteOccasionConfirmed(): void {
         let occasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("occasions", detailsOccasion.id);
         deleteDoc(occasionDoc).then(() => {
+            for (let memberOccasion of detailsOccasion.memberOccasions) {
+                let memberOccasionDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc("memberOccasions", memberOccasion.id);
+                deleteDoc(memberOccasionDoc).then(() => {
+                }).catch((error) => {
+                    openSnackbar("An error occurred while deleting occasion. Please try again.", "error");
+                });
+            }
             closeDetails();
             openSnackbar("Occasion deleted successfully.", "success");
         }).catch((error) => {
@@ -496,15 +516,17 @@
         let amount: number = event.detail.amount;
 
         let numMinutes: number = amount / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
-        let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes));
+        let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
         if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
-        let timeClickedClamp: Date = new Date(MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR) * CalendarConstants.MS_PER_MINUTE);
+        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR));
         setTimeout(() => {
             if (top) {
+                occasion.startTime = timeClickedClamp;
                 occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
             } else {
+                occasion.endTime = timeClickedClamp;
                 occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
             }
         });

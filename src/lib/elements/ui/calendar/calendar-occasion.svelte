@@ -12,6 +12,9 @@
     
     export let occasion: Occasion = null;
 
+    let occasionTop: number = 0;
+    let occasionHeight: number = 0;
+
     let startTimeFormatted: string = "";
     let endTimeFormatted: string = "";
     
@@ -19,10 +22,15 @@
     let shifting: boolean = false;
 
     $: occasion ? formatTimes() : null;
+    $: occasion.startTime ? formatTimes() : null;
+    $: occasion.endTime ? formatTimes() : null;
 
     function formatTimes(): void {
         startTimeFormatted = StringHelper.getFormattedTime(occasion.startTime);
         endTimeFormatted = StringHelper.getFormattedTime(occasion.endTime);
+
+        occasionTop = CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(occasion.startTime) * CalendarConstants.PIXELS_PER_HOUR;
+        occasionHeight = (Math.max(OccasionConstants.OCCASION_MIN_DURATION / CalendarConstants.MINUTES_PER_HOUR, ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR))) * CalendarConstants.PIXELS_PER_HOUR;
     }
 
     function toggleDetails(): void {
@@ -131,7 +139,7 @@
 </style>
 {#if occasion}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="calendar-occasion-container" draggable="true"  style="top: {CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(occasion.startTime) * CalendarConstants.PIXELS_PER_HOUR}px; height: {(Math.max(OccasionConstants.OCCASION_MIN_DURATION / CalendarConstants.MINUTES_PER_HOUR, ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR))) * CalendarConstants.PIXELS_PER_HOUR}px; opacity: {resizing || shifting ? 0.5 : 1}" on:drag={dragOccasion} on:dragend={stopDragOccasion}>
+    <div class="calendar-occasion-container" draggable="true"  style="top: {occasionTop}px; height: {occasionHeight}px; opacity: {resizing || shifting ? 0.5 : 1}" on:drag={dragOccasion} on:dragend={stopDragOccasion}>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="calendar-occasion" style="background-color: {occasion.color}; color: {ProjectConstants.findColorByHex(occasion.color).textColor};" on:click={toggleDetails}>
