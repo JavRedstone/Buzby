@@ -6,7 +6,7 @@
 	import { TimeTick } from "$lib/elements/classes/ui/gantt/TimeTick";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
 	import { StringHelper } from "$lib/elements/helpers/StringHelper";
-	import { createEventDispatcher } from "svelte";
+	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 
     let dispatch = createEventDispatcher();
     
@@ -21,11 +21,13 @@
     let resizing: boolean = false;
     let shifting: boolean = false;
 
-    $: occasion ? formatTimes() : null;
-    $: occasion.startTime ? formatTimes() : null;
-    $: occasion.endTime ? formatTimes() : null;
+    let occasionUpdater: any = null;
 
-    function formatTimes(): void {
+    $: occasion ? updateOccasion() : null;
+    $: occasion && occasion.startTime ? updateOccasion() : null;
+    $: occasion && occasion.endTime ? updateOccasion() : null;
+
+    function updateOccasion(): void {
         startTimeFormatted = StringHelper.getFormattedTime(occasion.startTime);
         endTimeFormatted = StringHelper.getFormattedTime(occasion.endTime);
 
@@ -68,6 +70,24 @@
         dispatch("resize", { occasion: occasion, top: false, dragging: false, amount: event.offsetY });
         setTimeout(() => resizing = false, 0);
     }
+
+    function setOccasionUpdater(): void {
+        occasionUpdater = setInterval(() => {
+            updateOccasion();
+        });
+    }
+
+    function removeOccasionUpdater(): void {
+        clearInterval(occasionUpdater);
+    }
+
+    onMount(() => {
+        setOccasionUpdater();
+    });
+
+    onDestroy(() => {
+        removeOccasionUpdater();
+    });
 </script>
 <style>
     .calendar-occasion-container {

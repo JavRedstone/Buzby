@@ -502,8 +502,6 @@
     function shift(event: CustomEvent): void {
         toggleDetails(event, true);
         editOccasion();
-
-
     }
 
     function resize(event: CustomEvent): void {
@@ -521,15 +519,14 @@
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
         let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR));
-        setTimeout(() => {
-            if (top) {
-                occasion.startTime = timeClickedClamp;
-                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
-            } else {
-                occasion.endTime = timeClickedClamp;
-                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
-            }
-        });
+        
+        if (top) {
+            occasion.startTime = timeClickedClamp;
+            occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+        } else {
+            occasion.endTime = timeClickedClamp;
+            occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+        }
     }
     
     function setCurrentInterval(): void {

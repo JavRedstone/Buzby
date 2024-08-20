@@ -117,8 +117,6 @@ export class Occasion {
             this.memberOccasions = memberOccasions;
             this.members = members;
 
-            console.log(memberOccasions)
-
             currentMember.update((value) => {
                 return value;
             });
