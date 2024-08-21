@@ -509,14 +509,33 @@
         let amountY: number = event.detail.amountY;
 
         let numMinutes: number = amountY / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
-        let timeClicked: Date = ObjectHelper.addDateType((dragging ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
-        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
-            timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
+        let floorDate: Date = ObjectHelper.getFloorDate(occasion.startTime, TimeTick.DAY);
+        let endOfDay: Date = ObjectHelper.addDateType(floorDate, TimeTick.DAY, 1);
+        let minutesUntilEnd: number = ObjectHelper.getTimeDifference(endOfDay, occasion.endTime, TimeTick.MINUTE);
+        numMinutes = Math.min(numMinutes, minutesUntilEnd);
+        
+        let startTimeClicked: Date = ObjectHelper.addDateType(occasion.startTime, TimeTick.MINUTE, MathHelper.clamp(Math.floor(numMinutes), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        let endTimeClicked: Date = ObjectHelper.addDateType(occasion.endTime, TimeTick.MINUTE, MathHelper.clamp(Math.floor(numMinutes), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
+            startTimeClicked = ObjectHelper.addDateType(startTimeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
+            endTimeClicked = ObjectHelper.addDateType(endTimeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
-        timeClicked = ObjectHelper.getNearestTime(timeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
-        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+
+        // let numDaysShifted: number = Math.floor(amountX / ((contentContainer.clientWidth - 64) / CalendarConstants.DAYS_PER_WEEK));
+
+        // startTimeClicked.setDate(startTimeClicked.getDate() + numDaysShifted);
+        // endTimeClicked.setDate(endTimeClicked.getDate() + numDaysShifted);
+
+        startTimeClicked = ObjectHelper.getNearestTime(startTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
+        endTimeClicked = ObjectHelper.getNearestTime(endTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
         
-        
+        let startTimeClickedClamp: Date = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), startTimeClicked.getDate(), startTimeClicked.getHours(), MathHelper.clamp(startTimeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        let endTimeClickedClamp: Date = new Date(endTimeClicked.getFullYear(), endTimeClicked.getMonth(), endTimeClicked.getDate(), endTimeClicked.getHours(), MathHelper.clamp(endTimeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+
+        occasion.startTime = startTimeClickedClamp;
+        occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(startTimeClickedClamp);
+        occasion.endTime = endTimeClickedClamp;
+        occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(endTimeClickedClamp);
     }
 
     function resize(event: CustomEvent): void {
@@ -530,7 +549,7 @@
 
         let numMinutes: number = amount / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
         let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
-        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
+        if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
         timeClicked = ObjectHelper.getNearestTime(timeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
