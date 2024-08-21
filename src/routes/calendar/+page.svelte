@@ -502,6 +502,21 @@
     function shift(event: CustomEvent): void {
         toggleDetails(event, true);
         editOccasion();
+
+        let occasion: Occasion = event.detail.occasion;
+        let dragging: boolean = event.detail.dragging;
+        let amountX: number = event.detail.amountX;
+        let amountY: number = event.detail.amountY;
+
+        let numMinutes: number = amountY / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
+        let timeClicked: Date = ObjectHelper.addDateType((dragging ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
+        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
+            timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
+        }
+        timeClicked = ObjectHelper.getNearestTime(timeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
+        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        
+        
     }
 
     function resize(event: CustomEvent): void {
@@ -518,12 +533,19 @@
         if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
-        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR));
+        timeClicked = ObjectHelper.getNearestTime(timeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
+        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
         
         if (top) {
+            if (timeClickedClamp.getTime() >= occasion.endTime.getTime() - OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE) {
+                timeClickedClamp = new Date(occasion.endTime.getTime() - OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE);
+            }
             occasion.startTime = timeClickedClamp;
             occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
         } else {
+            if (timeClickedClamp.getTime() <= occasion.startTime.getTime() + OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE) {
+                timeClickedClamp = new Date(occasion.startTime.getTime() + OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE);
+            }
             occasion.endTime = timeClickedClamp;
             occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
         }

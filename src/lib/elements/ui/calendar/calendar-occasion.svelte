@@ -14,6 +14,7 @@
 
     let occasionTop: number = 0;
     let occasionHeight: number = 0;
+    let occasionDuration: number = 0;
 
     let startTimeFormatted: string = "";
     let endTimeFormatted: string = "";
@@ -33,6 +34,7 @@
 
         occasionTop = CalendarConstants.PIXEL_OFFSET + ObjectHelper.getTimeHours(occasion.startTime) * CalendarConstants.PIXELS_PER_HOUR;
         occasionHeight = (Math.max(OccasionConstants.OCCASION_MIN_DURATION / CalendarConstants.MINUTES_PER_HOUR, ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR))) * CalendarConstants.PIXELS_PER_HOUR;
+        occasionDuration = ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR);
     }
 
     function toggleDetails(): void {
@@ -163,16 +165,16 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="calendar-occasion" style="background-color: {occasion.color}; color: {ProjectConstants.findColorByHex(occasion.color).textColor};" on:click={toggleDetails}>
-            <div class="calendar-occasion-title" style="font-size: {ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR) > OccasionConstants.OCCASION_MIN_DURATION / CalendarConstants.MINUTES_PER_HOUR ? '12' : '8'}px;">
+            <div class="calendar-occasion-title" style="font-size: {occasionDuration > OccasionConstants.OCCASION_MIN_DURATION / CalendarConstants.MINUTES_PER_HOUR ? '12' : '8'}px;">
                 <span class="calendar-occasion-span" style="font-weight: 500;">{occasion.name.length == 0 ? "Untitled" : occasion.name}</span>
-                {#if (ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR)) * CalendarConstants.PIXELS_PER_HOUR <= OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_TIME}
+                {#if occasionDuration * CalendarConstants.PIXELS_PER_HOUR <= OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_TIME}
                     <span class="calendar-occasion-span" style="font-weight: 400;"> - {startTimeFormatted}</span>
                 {/if}
             </div>
-            {#if (ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR)) * CalendarConstants.PIXELS_PER_HOUR > OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_TIME}
+            {#if occasionDuration * CalendarConstants.PIXELS_PER_HOUR > OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_TIME}
                 <div class="calendar-occasion-time">{startTimeFormatted} - {endTimeFormatted}</div>
             {/if}
-            {#if (ObjectHelper.getTimeDifference(occasion.endTime, occasion.startTime, TimeTick.HOUR)) * CalendarConstants.PIXELS_PER_HOUR > OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_DESCRIPTION}
+            {#if occasionDuration * CalendarConstants.PIXELS_PER_HOUR > OccasionConstants.OCCASION_MINIMUM_HEIGHT_FOR_DESCRIPTION}
                 <div class="calendar-occasion-description" style="border-top-color: {ProjectConstants.findColorByHex(occasion.color).textColor};">{occasion.description.length == 0 ? "No description" : occasion.description}</div>
             {/if}
             <div class="calendar-occasion-draggable" style="top: 0;" draggable="true" on:drag={dragTop} on:dragend={stopDragTop}></div>
