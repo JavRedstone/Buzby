@@ -509,31 +509,28 @@
         let amountY: number = event.detail.amountY;
 
         let numMinutes: number = amountY / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
-        let floorDate: Date = ObjectHelper.getFloorDate(occasion.startTime, TimeTick.DAY);
-        let endOfDay: Date = ObjectHelper.addDateType(floorDate, TimeTick.DAY, 1);
-        let minutesUntilEnd: number = ObjectHelper.getTimeDifference(endOfDay, occasion.endTime, TimeTick.MINUTE);
-        numMinutes = Math.min(numMinutes, minutesUntilEnd);
         
-        let startTimeClicked: Date = ObjectHelper.addDateType(occasion.startTime, TimeTick.MINUTE, MathHelper.clamp(Math.floor(numMinutes), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
-        let endTimeClicked: Date = ObjectHelper.addDateType(occasion.endTime, TimeTick.MINUTE, MathHelper.clamp(Math.floor(numMinutes), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        let startTimeClicked: Date = ObjectHelper.addDateType((occasion.startTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
         if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
             startTimeClicked = ObjectHelper.addDateType(startTimeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
-            endTimeClicked = ObjectHelper.addDateType(endTimeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
 
         // let numDaysShifted: number = Math.floor(amountX / ((contentContainer.clientWidth - 64) / CalendarConstants.DAYS_PER_WEEK));
 
         // startTimeClicked.setDate(startTimeClicked.getDate() + numDaysShifted);
-        // endTimeClicked.setDate(endTimeClicked.getDate() + numDaysShifted);
 
         startTimeClicked = ObjectHelper.getNearestTime(startTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
-        endTimeClicked = ObjectHelper.getNearestTime(endTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
-        
-        let startTimeClickedClamp: Date = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), startTimeClicked.getDate(), startTimeClicked.getHours(), MathHelper.clamp(startTimeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+
+        let endTimeClicked: Date = new Date(startTimeClicked.getTime() + (occasion.endTime.getTime() - occasion.startTime.getTime()));
+
         let endTimeClickedClamp: Date = new Date(endTimeClicked.getFullYear(), endTimeClicked.getMonth(), endTimeClicked.getDate(), endTimeClicked.getHours(), MathHelper.clamp(endTimeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        let startTimeClickedClamp: Date = new Date(endTimeClickedClamp.getTime() - (occasion.endTime.getTime() - occasion.startTime.getTime()));
+        
+        startTimeClickedClamp = new Date(startTimeClickedClamp.getFullYear(), startTimeClickedClamp.getMonth(), startTimeClickedClamp.getDate(), startTimeClickedClamp.getHours(), MathHelper.clamp(startTimeClickedClamp.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR - OccasionConstants.OCCASION_MIN_DURATION));
+        endTimeClickedClamp = new Date(startTimeClickedClamp.getTime() + (occasion.endTime.getTime() - occasion.startTime.getTime()));
 
         occasion.startTime = startTimeClickedClamp;
-        occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(startTimeClickedClamp);
+        occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(startTimeClicked);
         occasion.endTime = endTimeClickedClamp;
         occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(endTimeClickedClamp);
     }
