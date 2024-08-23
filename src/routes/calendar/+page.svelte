@@ -513,6 +513,12 @@
         }
 
         let numMinutes: number = amountY / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
+        let floorDate: Date = ObjectHelper.getFloorDate(occasion.startTime, TimeTick.DAY);
+        let endOfDay: Date = ObjectHelper.addDateType(floorDate, TimeTick.DAY, 1);
+        let minutesUntilEnd: number = ObjectHelper.getTimeDifference(endOfDay, occasion.endTime, TimeTick.MINUTE);
+        numMinutes = Math.min(numMinutes, minutesUntilEnd);
+        
+        // console.log(numMinutes);
         
         let startTimeClicked: Date = ObjectHelper.addDateType((occasion.startTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
         if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
@@ -525,12 +531,25 @@
 
         startTimeClicked = ObjectHelper.getNearestTime(startTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
 
+        if (startTimeClicked.getDate() > occasion.startTime.getDate() && !(startTimeClicked.getHours() == 0 && startTimeClicked.getMinutes() == 0)) {
+            startTimeClicked = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), occasion.startTime.getDate() + 1, 0, 0);
+        }
+        else if (startTimeClicked.getDate() < occasion.startTime.getDate()) {
+            startTimeClicked = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), occasion.startTime.getDate(), 0, 0);
+        }
+
         let endTimeClicked: Date = new Date(startTimeClicked.getTime() + (occasion.endTime.getTime() - occasion.startTime.getTime()));
+
+        // console.log(startTimeClicked, endTimeClicked);
 
         occasion.startTime = startTimeClicked;
         occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(startTimeClicked);
         occasion.endTime = endTimeClicked;
         occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(endTimeClicked);
+    
+        if (!dragging) {
+            editOccasionConfirmed();
+        }
     }
 
     function resize(event: CustomEvent): void {
@@ -573,6 +592,10 @@
             }
             occasion.endTime = timeClicked;
             occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClicked);
+        }
+
+        if (!dragging) {
+            editOccasionConfirmed();
         }
     }
     

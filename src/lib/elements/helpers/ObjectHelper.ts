@@ -118,19 +118,19 @@ export class ObjectHelper {
 
     public static addDateType(date: Date, type: string, amount: number): Date {
         if (type == TimeTick.MONTH) {
-            return new Date(date.getFullYear(), date.getMonth() + amount);
+            return new Date(date.getFullYear(), date.getMonth() + amount, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds());
         }
         if (type == TimeTick.WEEK) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount * 7);
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount * 7, date.getHours(), date.getMinutes(), date.getSeconds());
         }
         if (type == TimeTick.DAY) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount, date.getHours(), date.getMinutes(), date.getSeconds());
         }
         if (type == TimeTick.HOUR) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + amount);
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + amount, date.getMinutes(), date.getSeconds());
         }
         if (type == TimeTick.MINUTE) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() + amount);
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() + amount, date.getSeconds());
         }
         if (type == TimeTick.SECOND) {
             return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + amount);
