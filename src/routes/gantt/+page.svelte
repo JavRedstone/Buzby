@@ -136,6 +136,10 @@
 
         moving = false;
 
+        if (Math.abs(amount) > GanttConstants.MAX_DRAG_LIMIT) {
+            return;
+        }
+
         if (left) {
             task.startDate = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
             if (task.startDate.getTime() >= task.endDate.getTime()) {
@@ -163,6 +167,10 @@
         let amount: number = event.detail.amount;
 
         moving = false;
+
+        if (Math.abs(amount) > GanttConstants.MAX_DRAG_LIMIT) {
+            return;
+        }
 
         task.startDate = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
         task.endDate = new Date(task.endDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
