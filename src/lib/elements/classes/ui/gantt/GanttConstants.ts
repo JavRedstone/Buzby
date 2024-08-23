@@ -11,4 +11,6 @@ export class GanttConstants {
     public static readonly MIN_WEEK_SCALE: number = 0.05;
     public static readonly MIN_DAY_SCALE: number = 0.5;
     public static readonly MIN_HOUR_SCALE: number = 15;
+
+    public static readonly MS_PER_MINUTE: number = 60 * 1000;
 }

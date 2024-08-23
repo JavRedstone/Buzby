@@ -1,4 +1,5 @@
 export class OccasionConstants {
+    public static readonly TEMPORARY_OCCASION_ID = 'TEMPORARY_OCCASION_ID';
     public static readonly OCCASION_NAME_MAX_LENGTH = 50;
     public static readonly OCCASION_DESCRIPTION_MAX_LENGTH = 200;
     public static readonly OCCASION_DEFAULT_COLOR_IDX = 4;

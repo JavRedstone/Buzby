@@ -18,6 +18,7 @@
 	import { setDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 	import { getFirestoreDoc } from '$lib/elements/firebase/firebase';
 	import Snackbar from '$lib/elements/ui/general/snackbar.svelte';
+	import { TaskConstants } from '$lib/elements/classes/data/time/TaskConstants';
 
     let currMember: Member = null;
     let project: Project = null;
@@ -141,16 +142,22 @@
         }
 
         if (left) {
-            task.startDate = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
-            if (task.startDate.getTime() >= task.endDate.getTime()) {
-                task.startDate = new Date(task.endDate.getTime());
+            let startDate: Date = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
+            startDate = ObjectHelper.getNearestTime(startDate, TaskConstants.TASK_MINUTE_ROUNDING);
+            if (startDate.getTime() >= task.endDate.getTime() - TaskConstants.TASK_MIN_DURATION * GanttConstants.MS_PER_MINUTE) {
+                startDate = new Date(task.endDate.getTime() - TaskConstants.TASK_MIN_DURATION * GanttConstants.MS_PER_MINUTE);
             }
+
+            task.startDate = startDate;
         }
         else {
-            task.endDate = new Date(task.endDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
-            if (task.endDate.getTime() <= task.startDate.getTime()) {
-                task.endDate = new Date(task.startDate.getTime());
+            let endDate: Date = new Date(task.endDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
+            endDate = ObjectHelper.getNearestTime(endDate, TaskConstants.TASK_MINUTE_ROUNDING);
+            if (endDate.getTime() <= task.startDate.getTime() + TaskConstants.TASK_MIN_DURATION * GanttConstants.MS_PER_MINUTE) {
+                endDate = new Date(task.startDate.getTime() + TaskConstants.TASK_MIN_DURATION * GanttConstants.MS_PER_MINUTE);
             }
+
+            task.endDate = endDate;
         }
 
         setDateRange();
@@ -172,8 +179,14 @@
             return;
         }
 
-        task.startDate = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
-        task.endDate = new Date(task.endDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
+        let startDate: Date = new Date(task.startDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
+        let endDate: Date = new Date(task.endDate.getTime() + Math.round(convertSpeed(amount * GanttConstants.MOUSE_WHEEL_SPEED)));
+
+        startDate = ObjectHelper.getNearestTime(startDate, TaskConstants.TASK_MINUTE_ROUNDING);
+        endDate = ObjectHelper.getNearestTime(endDate, TaskConstants.TASK_MINUTE_ROUNDING);
+
+        task.startDate = startDate;
+        task.endDate = endDate;
 
         setDateRange();
 

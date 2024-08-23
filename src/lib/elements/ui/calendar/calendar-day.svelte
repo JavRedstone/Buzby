@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Occasion } from "$lib/elements/classes/data/time/Occasion";
-	import { createEventDispatcher, onMount } from "svelte";
+	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 	import CalendarOccasion from "./calendar-occasion.svelte";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
 	import { TimeTick } from "$lib/elements/classes/ui/gantt/TimeTick";
@@ -12,6 +12,8 @@
     export let currentTime: Date = new Date();
     export let occasions: Occasion[] = [];
     export let temporaryOccasion: Occasion = null;
+    
+    let occasionsUpdater: any = null;
 
     let dayOccasions: Occasion[] = [];
 
@@ -35,8 +37,23 @@
         dispatch("resize", event.detail);
     }
 
+    function setOccasionsUpdater(): void {
+        occasionsUpdater = setInterval(() => {
+            setDayOccasions();
+        });
+    }
+
+    function removeOccasionsUpdater(): void {
+        clearInterval(occasionsUpdater);
+    }
+
     onMount(() => {
         setDayOccasions();
+        setOccasionsUpdater();
+    });
+
+    onDestroy(() => {
+        removeOccasionsUpdater();
     });
 </script>
 <style>
