@@ -509,6 +509,8 @@
     }
 
     function shift(event: CustomEvent): void {
+        return;
+
         let occasion: Occasion = event.detail.occasion;
         let dragging: boolean = event.detail.dragging;
         let amountX: number = event.detail.amountX;
