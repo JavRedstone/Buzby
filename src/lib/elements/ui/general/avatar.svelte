@@ -38,6 +38,6 @@
 </style>
 {#if member != null}
     <div class="avatar-image-container" style="width: {size}; height: {size}; border-color: var(--{base == MemberConstants.STATUS_BASES.ONLINE ? 'online' : base == MemberConstants.STATUS_BASES.DND ? 'dnd' : 'offline'})">
-
+        <img src={MemberConstants.AVATAR_CHOICES[member.avatarChoice]} alt={member.displayName} style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
     </div>
 {/if}

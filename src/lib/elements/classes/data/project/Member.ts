@@ -15,7 +15,7 @@ export class Member {
     public statusHead: number = MemberConstants.STATUS_HEADS.DEFAULT;
     public statusEyes: number = MemberConstants.STATUS_EYES.DEFAULT;
     public statusNeck: number = MemberConstants.STATUS_NECKS.DEFAULT;
-    public avatarChoice: number = MemberConstants.AVATAR_CHOICES.DEFAULT;
+    public avatarChoice: number = 0;
     public createdAt: Date;
     public createdAtTemp: any;
 
@@ -66,7 +66,7 @@ export class Member {
 
         this.avatarChoice = data.avatarChoice;
         if (this.avatarChoice == null || this.avatarChoice == undefined) {
-            this.avatarChoice = MemberConstants.AVATAR_CHOICES.DEFAULT;
+            this.avatarChoice = 0;
         }
 
         if (data.createdAt) {

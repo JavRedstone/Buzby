@@ -503,7 +503,7 @@
         toggleDetails(event, true);
         editOccasion();
 
-
+        
     }
 
     function resize(event: CustomEvent): void {
