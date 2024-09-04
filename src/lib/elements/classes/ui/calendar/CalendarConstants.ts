@@ -6,4 +6,5 @@ export class CalendarConstants {
 
     public static readonly PIXEL_OFFSET: number = 12;
     public static readonly PIXELS_PER_HOUR: number = 44;
+    public static readonly MAX_DRAG_LIMIT: number = 100;
 }

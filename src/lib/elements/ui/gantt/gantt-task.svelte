@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task } from "$lib/elements/classes/data/time/Task";
 	import { TaskConstants } from "$lib/elements/classes/data/time/TaskConstants";
-	import { createEventDispatcher, onMount } from "svelte";
+	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 
     let dispatch = createEventDispatcher();
     
@@ -17,9 +17,16 @@
     let resizing: boolean = false;
     let shifting: boolean = false;
 
+    let taskUpdater: any = null;
+
     $: task ? setUrgent() : null;
     $: startDateRange ? setPercentages() : null;
     $: endDateRange ? setPercentages() : null;
+
+    function updateTask(): void {
+        setPercentages();
+        setUrgent();
+    }
 
     function setPercentages(): void {
         leftPercentage = (task.startDate.getTime() - startDateRange.getTime()) / (endDateRange.getTime() - startDateRange.getTime());
@@ -90,9 +97,24 @@
         setTimeout(() => resizing = false, 0);
     }
 
+    function setTaskUpdater(): void {
+        taskUpdater = setInterval(() => {
+            updateTask();
+        });
+    }
+
+    function removeTaskUpdater(): void {
+        clearInterval(taskUpdater);
+    }
+
     onMount(() => {
+        setTaskUpdater();
         setPercentages();
         setUrgent();
+    });
+
+    onDestroy(() => {
+        removeTaskUpdater();
     });
 </script>
 <style>

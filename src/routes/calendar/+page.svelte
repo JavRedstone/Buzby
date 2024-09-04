@@ -139,6 +139,7 @@
             closeDetails();
             cancelCreate();
             temporaryOccasion = new Occasion({
+                id: OccasionConstants.TEMPORARY_OCCASION_ID,
                 startTime: nearestTime,
                 endTime: ObjectHelper.addDateType(nearestTime, TimeTick.MINUTE, duration),
             });
@@ -306,6 +307,10 @@
     }
 
     function editOccasion(): void {
+        if (detailsOccasion && detailsOccasion.id == OccasionConstants.TEMPORARY_OCCASION_ID) {
+            return;
+        }
+
         editOpen = !editOpen;
         deleteOpen = false;
 
@@ -352,6 +357,10 @@
     }
 
     function editOccasionConfirmed(): void {
+        if (occasionEdit && occasionEdit.id == OccasionConstants.TEMPORARY_OCCASION_ID) {
+            return;
+        }
+
         if (occasionEditStartTimeInput && occasionEditEndTimeInput) {
             if (occasionEditName.trim().length == 0) {
                 openSnackbar("Please enter an occasion name.", "error");
@@ -500,36 +509,107 @@
     }
 
     function shift(event: CustomEvent): void {
+        let occasion: Occasion = event.detail.occasion;
+        let dragging: boolean = event.detail.dragging;
+        let amountX: number = event.detail.amountX;
+        let amountY: number = event.detail.amountY;
+
+        if (occasion.id == OccasionConstants.TEMPORARY_OCCASION_ID) {
+            return;
+        }
+        
         toggleDetails(event, true);
         editOccasion();
 
+        if (Math.abs(amountX) > CalendarConstants.MAX_DRAG_LIMIT || Math.abs(amountY) > CalendarConstants.MAX_DRAG_LIMIT) {
+            return;
+        }
+
+        let numMinutes: number = amountY / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
+        let floorDate: Date = ObjectHelper.getFloorDate(occasion.startTime, TimeTick.DAY);
+        let endOfDay: Date = ObjectHelper.addDateType(floorDate, TimeTick.DAY, 1);
+        let minutesUntilEnd: number = ObjectHelper.getTimeDifference(endOfDay, occasion.endTime, TimeTick.MINUTE);
+        numMinutes = Math.min(numMinutes, minutesUntilEnd);
         
+        let startTimeClicked: Date = ObjectHelper.addDateType((occasion.startTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
+        if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
+            startTimeClicked = ObjectHelper.addDateType(startTimeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
+        }
+
+        let numDaysShifted: number = Math.floor(amountX / ((contentContainer.clientWidth - 64) / CalendarConstants.DAYS_PER_WEEK));
+
+        startTimeClicked.setDate(startTimeClicked.getDate() + numDaysShifted);
+
+        startTimeClicked = ObjectHelper.getNearestTime(startTimeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
+
+        if (startTimeClicked.getDate() > occasion.startTime.getDate() && !(startTimeClicked.getHours() == 0 && startTimeClicked.getMinutes() == 0)) {
+            startTimeClicked = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), occasion.startTime.getDate() + 1, 0, 0);
+        }
+        else if (startTimeClicked.getDate() < occasion.startTime.getDate()) {
+            startTimeClicked = new Date(startTimeClicked.getFullYear(), startTimeClicked.getMonth(), occasion.startTime.getDate(), 0, 0);
+        }
+
+        let endTimeClicked: Date = new Date(startTimeClicked.getTime() + (occasion.endTime.getTime() - occasion.startTime.getTime()));
+
+        occasion.startTime = startTimeClicked;
+        occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(startTimeClicked);
+        occasion.endTime = endTimeClicked;
+        occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(endTimeClicked);
+    
+        if (!dragging) {
+            editOccasionConfirmed();
+        }
     }
 
     function resize(event: CustomEvent): void {
-        toggleDetails(event, true);
-        editOccasion();
-
         let occasion: Occasion = event.detail.occasion;
         let top: boolean = event.detail.top;
         let dragging: boolean = event.detail.dragging;
         let amount: number = event.detail.amount;
 
+        if (occasion.id == OccasionConstants.TEMPORARY_OCCASION_ID) {
+            return;
+        }
+        
+        toggleDetails(event, true);
+        editOccasion();
+
+        if (Math.abs(amount) > CalendarConstants.MAX_DRAG_LIMIT) {
+            return;
+        }
+
         let numMinutes: number = amount / CalendarConstants.PIXELS_PER_HOUR * CalendarConstants.MINUTES_PER_HOUR;
         let timeClicked: Date = ObjectHelper.addDateType((top ? occasion.startTime : occasion.endTime), TimeTick.MINUTE, Math.floor(numMinutes) % CalendarConstants.MINUTES_PER_HOUR);
-        if (numMinutes > CalendarConstants.MINUTES_PER_HOUR) {
+        if (Math.abs(numMinutes) > CalendarConstants.MINUTES_PER_HOUR) {
             timeClicked = ObjectHelper.addDateType(timeClicked, TimeTick.HOUR, Math.floor(numMinutes / CalendarConstants.MINUTES_PER_HOUR));
         }
-        let timeClickedClamp: Date = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), timeClicked.getDate(), timeClicked.getHours(), MathHelper.clamp(timeClicked.getMinutes(), 0, CalendarConstants.HOURS_PER_DAY * CalendarConstants.MINUTES_PER_HOUR));
-        setTimeout(() => {
-            if (top) {
-                occasion.startTime = timeClickedClamp;
-                occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
-            } else {
-                occasion.endTime = timeClickedClamp;
-                occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClickedClamp);
+
+        timeClicked = ObjectHelper.getNearestTime(timeClicked, OccasionConstants.OCCASION_MINUTE_ROUNDING);
+        
+        if (timeClicked.getDate() > occasion.startTime.getDate() && !(timeClicked.getHours() == 0 && timeClicked.getMinutes() == 0)) {
+            timeClicked = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), occasion.startTime.getDate() + 1, 0, 0);
+        }
+        else if (timeClicked.getDate() < occasion.startTime.getDate()) {
+            timeClicked = new Date(timeClicked.getFullYear(), timeClicked.getMonth(), occasion.startTime.getDate(), 0, 0);
+        }
+
+        if (top) {
+            if (timeClicked.getTime() >= occasion.endTime.getTime() - OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE) {
+                timeClicked = new Date(occasion.endTime.getTime() - OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE);
             }
-        });
+            occasion.startTime = timeClicked;
+            occasionEditStartTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClicked);
+        } else {
+            if (timeClicked.getTime() <= occasion.startTime.getTime() + OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE) {
+                timeClicked = new Date(occasion.startTime.getTime() + OccasionConstants.OCCASION_MIN_DURATION * CalendarConstants.MS_PER_MINUTE);
+            }
+            occasion.endTime = timeClicked;
+            occasionEditEndTimeInput.valueAsNumber = ObjectHelper.getDateInputValue(timeClicked);
+        }
+
+        if (!dragging) {
+            editOccasionConfirmed();
+        }
     }
     
     function setCurrentInterval(): void {
