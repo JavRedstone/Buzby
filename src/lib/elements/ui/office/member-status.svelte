@@ -345,10 +345,20 @@
         }
     }
 
+    .member-status-base-cycle-background {
+        position: absolute;
+        transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
+        background-color: var(--grey-800);
+        border-radius: 9px;
+        width: 30px;
+        height: 18px;
+        user-select: none;
+    }
+
     .member-status-base-cycle {
         position: absolute;
         transform: translate(calc(-50% - 12px), calc(-50% - 24.375px));
-        color: var(--primary-dark);
+        color: var(--grey-100);
         font-size: 16px;
         cursor: pointer;
         user-select: none;
@@ -356,7 +366,7 @@
         transition: color var(--transition-duration);
         
         &:hover {
-            color: var(--primary-darker);
+            color: var(--grey-300);
         }
     }
 
@@ -429,6 +439,7 @@
         height: 10px;
         border-radius: 50%;
         border: 2px solid;
+        z-index: 1;
 
         transition: background-color var(--transition-duration), border-color var(--transition-duration);
     }
@@ -465,12 +476,13 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="member-status-edit material-symbols-rounded" style="left: {x + 24}px; top: {y + 24}px" on:click={toggleEdit}>edit</span>
     {#if editOpen}
+        <div class="member-status-base-cycle-background" style="left: {x - 24}px; top: {y + 24}px" transition:fade={{duration:TransitionConstants.DURATION}}></div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 34}px; top: {y + 24}px" on:click={shiftBaseLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 14}px; top: {y + 24}px" on:click={shiftBaseRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
+        <span class="member-status-base-cycle material-symbols-rounded" style="left: {x - 12.5}px; top: {y + 24}px" on:click={shiftBaseRight} transition:fly={{x:10, duration:TransitionConstants.DURATION}}>chevron_right</span>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="member-status-accessory-cycle material-symbols-rounded" style="left: {x - 20}px; top: {y - 18}px" on:click={shiftHeadLeft} transition:fly={{x:-10, duration:TransitionConstants.DURATION}}>chevron_left</span>

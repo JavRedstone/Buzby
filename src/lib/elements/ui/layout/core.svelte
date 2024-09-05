@@ -21,6 +21,8 @@
 	import Badge from '../general/badge.svelte';
 	import { navigating } from '$app/stores';
 	import { StringHelper } from '$lib/elements/helpers/StringHelper';
+	import { MemberConstants } from '../../classes/data/project/MemberConstants';
+	import Avatar from '../general/avatar.svelte';
 
     export let sideOpen: boolean = false;
 
@@ -30,6 +32,7 @@
     let drawerOpen: boolean = false;
     let projectSelectOpen: boolean = false;
     let pingsOpen: boolean = false;
+    let avatarOpen: boolean = false;
 
     let defaultProjectName: string = ProjectConstants.DEFAULT_PROJECT_NAME;
     
@@ -250,6 +253,7 @@
         drawerOpen = false;
         projectSelectOpen = false;
         pingsOpen = false;
+        avatarOpen = false;
         localStorage.clear();
         goto('/login');
     }
@@ -293,6 +297,7 @@
         drawerOpen = false;
         projectSelectOpen = false;
         pingsOpen = false;
+        avatarOpen = false;
         try {
             authHandlers.logout().then(
                 () => {
@@ -344,15 +349,18 @@
         }
     }
 
-    function editProfile(): void {
-        drawerOpen = false;
-        projectSelectOpen = false;
-    }
-
     function togglePings(): void {
         drawerOpen = false;
         projectSelectOpen = false;
+        avatarOpen = false;
         pingsOpen = !pingsOpen;
+    }
+
+    function toggleAvatar(): void {
+        drawerOpen = false;
+        projectSelectOpen = false;
+        pingsOpen = false;
+        avatarOpen = !avatarOpen;
     }
 
     async function markPingRead(ping: Ping): Promise<void> {
@@ -408,6 +416,35 @@
         ).catch(
             (error: any) => {
                 openSnackbar('Error marking notifications as read. Please try again.', 'error');
+            }
+        );
+    }
+
+    function cycleAvatar(right: boolean) {
+        if (!currMember) {
+            return;
+        }
+
+        let next: number = right ? currMember.avatarChoice + 1 : currMember.avatarChoice - 1;
+        if (next < 0) {
+            next = MemberConstants.AVATAR_CHOICES.length - 1;
+        } else if (next >= MemberConstants.AVATAR_CHOICES.length) {
+            next = 0;
+        }
+
+        currMember.avatarChoice = next;
+        let memberDoc: DocumentReference<DocumentData, DocumentData> = getFirestoreDoc('members', currMember.id);
+        setDoc(memberDoc, currMember.compactify()).then(
+            () => {
+                memberStatus.update((value) => {
+                    value.currentMember = currMember;
+                    return value;
+                });
+                openSnackbar('Avatar changed successfully!', 'success');
+            }
+        ).catch(
+            (error: any) => {
+                openSnackbar('Error changing avatar. Please try again.', 'error');
             }
         );
     }
@@ -597,6 +634,25 @@
         top: 8px;
         cursor: pointer;
     }
+
+    .core-avatar-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .core-avatar-cycle {
+        font-size: 24px;
+        color: var(--grey-800);
+        cursor: pointer;
+        user-select: none;
+
+        transition: color var(--transition-duration);
+
+        &:hover {
+            color: var(--primary-dark);
+        }
+    }
 </style>
 <div class="core-header-container">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -661,9 +717,22 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a on:click={editProfile}>
+            <a on:click={toggleAvatar}>
                 <span class="core-header-icon material-symbols-rounded">account_circle</span>
             </a>
+            {#if currMember}
+                <Menu bind:open={avatarOpen} right="0" top="48px" width="80px">
+                    <div class="core-avatar-container">
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <span class="core-avatar-cycle material-symbols-rounded" on:click={() => cycleAvatar(false)}>chevron_left</span>
+                        <Avatar member={currMember} size="48px" />
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <span class="core-avatar-cycle material-symbols-rounded" on:click={() => cycleAvatar(true)}>chevron_right</span>
+                    </div>
+                </Menu>
+            {/if}
         </div>
         <div class="core-header-icon-container" style="right: 40px;">
             <!-- svelte-ignore a11y-click-events-have-key-events -->
