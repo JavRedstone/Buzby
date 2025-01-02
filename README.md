@@ -6,9 +6,7 @@ For most students, group projects are pretty rough. Time management and workload
 
 # Contributors
 
-- App created and developed entirely by Javier Huang
-- Assets, design, and testing by Evan Zhang
-- Marketing and testing by Andrew Zheng
+- Web Appliation designed and developed by Javier Huang
 
 # App Information
 
