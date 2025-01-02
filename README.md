@@ -4,10 +4,6 @@ Educational web application that integrates AI and interactive features in helpi
 
 For most students, group projects are pretty rough. Time management and workload distribution are common issues that arise when planning and working on group projects. In addition, many separate platforms may be needed to be used when collaborating on group projects, such as messaging systems like Discord, which need to be used separately. This application not only serves to improve group work but also integrates all the different features necessary together into one, coherent application.
 
-# Contributors
-
-- Web Appliation designed and developed by Javier Huang
-
 # App Information
 
 - The app is created using the SvelteKit web development framework.
