@@ -14,6 +14,8 @@ export class Member {
     public avatarEyes: number = MemberConstants.AVATAR_EYES.DEFAULT;
     public avatarNeck: number = MemberConstants.AVATAR_NECKS.DEFAULT;
 
+    public avatarChoice: number = 0;
+
     public projectIds: string[];
     public requestedProjectIds: string[];
     
@@ -53,6 +55,11 @@ export class Member {
         this.avatarNeck = data.avatarNeck;
         if (this.avatarNeck == null || this.avatarNeck == undefined) {
             this.avatarNeck = MemberConstants.AVATAR_NECKS.DEFAULT;
+        }
+
+        this.avatarChoice = data.avatarChoice;
+        if (this.avatarChoice == null || this.avatarChoice == undefined) {
+            this.avatarChoice = 0;
         }
 
         this.projectIds = data.projectIds;
@@ -107,6 +114,7 @@ export class Member {
             avatarHead: this.avatarHead,
             avatarEyes: this.avatarEyes,
             avatarNeck: this.avatarNeck,
+            avatarChoice: this.avatarChoice,
             projectIds: this.projectIds,
             requestedProjectIds: this.requestedProjectIds,
             pingIds: this.pingIds,
