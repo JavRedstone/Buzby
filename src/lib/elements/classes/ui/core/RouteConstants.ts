@@ -17,7 +17,7 @@ export class RouteConstants {
     public static readonly ROUTES: RouteItem[] = [
         new RouteItem(RouteConstants.OFFICE, "group", "Office"),
         new RouteItem(RouteConstants.HIVE, "hive", "Hive"),
-        new RouteItem(RouteConstants.GANTT, "view_object_track", "Gantt"), // originally view_timeline
+        new RouteItem(RouteConstants.GANTT, "view_object_track", "Gantt"),
         new RouteItem(RouteConstants.CALENDAR, "event", "Calendar"),
     ];
 
