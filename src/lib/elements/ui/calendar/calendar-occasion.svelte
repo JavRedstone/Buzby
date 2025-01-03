@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { ProjectConstants } from "$lib/elements/classes/data/project/ProjectConstants";
     import type { Occasion } from "$lib/elements/classes/data/time/Occasion";
-	import { createEventDispatcher } from "svelte";
-	import { StringHelper } from "$lib/elements/helpers/StringHelper";
 	import { OccasionConstants } from "$lib/elements/classes/data/time/OccasionConstants";
 	import { CalendarConstants } from "$lib/elements/classes/ui/calendar/CalendarConstants";
 	import { TimeTick } from "$lib/elements/classes/ui/gantt/TimeTick";
 	import { ObjectHelper } from "$lib/elements/helpers/ObjectHelper";
+	import { StringHelper } from "$lib/elements/helpers/StringHelper";
+	import { createEventDispatcher } from "svelte";
 
     let dispatch = createEventDispatcher();
     
