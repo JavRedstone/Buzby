@@ -4,6 +4,9 @@ Educational web application that integrates AI and interactive features in helpi
 
 For most students, group projects are pretty rough. Time management and workload distribution are common issues that arise when planning and working on group projects. In addition, many separate platforms may be needed to be used when collaborating on group projects, such as messaging systems like Discord, which need to be used separately. This application not only serves to improve group work but also integrates all the different features necessary together into one, coherent application.
 
+**Video Demonstration:** [https://www.youtube.com/watch?v=nvqd_zxCelU](https://www.youtube.com/watch?v=nvqd_zxCelU)
+**Information Slideshow:** [https://github.com/JavRedstone/Buzby/blob/buzby-v2/static/slides/Buzby_Web_Application_Slides.pdf](https://github.com/JavRedstone/Buzby/blob/buzby-v2/static/slides/Buzby_Web_Application_Slides.pdf)
+
 # App Information
 
 - The app is created using the SvelteKit web development framework.
