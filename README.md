@@ -6,8 +6,6 @@ For most students, group projects are pretty rough. Time management and workload
 
 **Video Demonstration:** [https://www.youtube.com/watch?v=nvqd_zxCelU](https://www.youtube.com/watch?v=nvqd_zxCelU)
 
-**Information Slideshow:** [https://github.com/JavRedstone/Buzby/blob/buzby-v2/static/slides/Buzby_Web_Application_Slides.pdf](https://github.com/JavRedstone/Buzby/blob/buzby-v2/static/slides/Buzby_Web_Application_Slides.pdf)
-
 # App Information
 
 - The app is created using the SvelteKit web development framework.
